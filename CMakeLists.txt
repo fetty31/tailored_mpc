@@ -55,12 +55,12 @@ include_directories(
 
 add_executable(${PROJECT_NAME}_exec src/main.cpp)
 
-# add_library(${PROJECT_NAME}
-#   src/structures/params.cpp
-# )
+add_library(${PROJECT_NAME}
+  src/structures/params.cpp
+)
 
 # add_dependencies(${PROJECT_NAME} as_msgs_generate_messages_cpp)
 # add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencpp)
 
-# target_link_libraries(${PROJECT_NAME}_exec ${PROJECT_NAME})
-target_link_libraries(${PROJECT_NAME}_exec ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_exec ${catkin_LIBRARIES} ${PROJECT_NAME})

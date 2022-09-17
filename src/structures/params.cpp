@@ -16,10 +16,10 @@ Params::Params(const ros::NodeHandle &nh) {
     nh.param<string>("/tailored_mpc/Topics/Commands", mpc.topics.commands, "/AS/C/commands");
 
     // NLOP
-    nh.param<uint>("/tailored_mpc/NLOP/Nstates", mpc.nlop.n_states, 7);
-    nh.param<uint>("/tailored_mpc/NLOP/Ncontrols", mpc.nlop.n_controls, 2);
-    nh.param<uint>("/tailored_mpc/NLOP/N", mpc.nlop.N, 40);
-    nh.param<uint>("/tailored_mpc/NLOP/Npar", mpc.nlop.Npar, 23);
+    nh.param<int>("/tailored_mpc/NLOP/Nstates", mpc.nlop.n_states, 7);
+    nh.param<int>("/tailored_mpc/NLOP/Ncontrols", mpc.nlop.n_controls, 2);
+    nh.param<int>("/tailored_mpc/NLOP/N", mpc.nlop.N, 40);
+    nh.param<int>("/tailored_mpc/NLOP/Npar", mpc.nlop.Npar, 23);
 
 
 }

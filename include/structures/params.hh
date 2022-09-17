@@ -31,10 +31,10 @@ struct Params{
             
         } topics;
         struct NLOP{
-            uint n_states; // Number of state variables [delta, acc, n, mu, Vx, Vy, w]
-            uint n_controls; // Number of controls variables [diffDelta, diffAcc] = [d(delta)/dt, d(acc)/dt]
-            uint N; // Horizon length of the optimization problem 
-            uint Npar; // Number of parameters for optimization problem [ 23 (MPC parameters) + (initial state) + n (curvature points == N) ]
+            int n_states; // Number of state variables [delta, acc, n, mu, Vx, Vy, w]
+            int n_controls; // Number of controls variables [diffDelta, diffAcc] = [d(delta)/dt, d(acc)/dt]
+            int N; // Horizon length of the optimization problem 
+            int Npar; // Number of parameters for optimization problem [ 23 (MPC parameters) + (initial state) + n (curvature points == N) ]
 
             // TO DO: rest of vars
 
