@@ -15,13 +15,14 @@ struct Params{
         int m; // Car's mass (without pilot)
         double width, longue; // Car's track width & length
         double Lf, Lr; // Longitudinal distance from CoG to front and rear wheels
+        double ax_max, ax_min; // Maximum/Minimum longitudinal acceleration 
 
         // TO DO: rest of parameters from MPC that are not in dynamic reconfig
 
     } vehicle;
 
     struct MPC{
-        int T; // period of MPC (1/freq) [s]
+        double T; // period of MPC (1/freq) [s]
         struct Topics{
             string commands; // Car Commands topic
             string state; // Car State topic
@@ -29,6 +30,15 @@ struct Params{
             // TO DO: rest of topics
             
         } topics;
+        struct NLOP{
+            uint n_states; // Number of state variables [delta, acc, n, mu, Vx, Vy, w]
+            uint n_controls; // Number of controls variables [diffDelta, diffAcc] = [d(delta)/dt, d(acc)/dt]
+            uint N; // Horizon length of the optimization problem 
+            uint Npar; // Number of parameters for optimization problem [ 23 (MPC parameters) + (initial state) + n (curvature points == N) ]
+
+            // TO DO: rest of vars
+
+        } nlop;
     } mpc;
 };
 

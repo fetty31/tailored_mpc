@@ -1,0 +1,21 @@
+# Tailored MPC params:
+
+Vehicle:
+  m: 240
+  width: 1.5
+  longue: 2.72
+  Lf: 0.708
+  Lr: 0.822
+  ax_max: 5.5
+  ax_min: -8
+
+Topics:
+  State: /AS/C/state
+  Commands: /AS/C/commands
+  # TO DO: fill with other topics
+
+NLOP:
+  Nstates: 7
+  Ncontrols: 2
+  N: 40
+  Npar: 23
