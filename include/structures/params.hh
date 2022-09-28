@@ -16,16 +16,22 @@ struct Params{
         double width, longue; // Car's track width & length
         double Lf, Lr; // Longitudinal distance from CoG to front and rear wheels
         double ax_max, ax_min; // Maximum/Minimum longitudinal acceleration 
+        double d_IMU; // distance from IMU's sensor to CoG
+        double Ar, rho; // aero area & air density
+        double I; // moment of inertia (of the car)
+        double gravity;
 
         // TO DO: rest of parameters from MPC that are not in dynamic reconfig
 
     } vehicle;
 
     struct MPC{
-        double T; // period of MPC (1/freq) [s]
+        double PredTime; // period of MPC (1/freq) [s]
+        int nPlanning; // number of points we want from the planner
         struct Topics{
             string commands; // Car Commands topic
             string state; // Car State topic
+            string planner; // Planner topic
 
             // TO DO: rest of topics
             
@@ -40,6 +46,8 @@ struct Params{
 
         } nlop;
     } mpc;
+
+    bool FORCES;
 };
 
 

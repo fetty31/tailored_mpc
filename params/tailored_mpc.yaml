@@ -1,21 +1,33 @@
 # Tailored MPC params:
 
 Vehicle:
-  m: 240
-  width: 1.5
-  longue: 2.72
-  Lf: 0.708
-  Lr: 0.822
-  ax_max: 5.5
-  ax_min: -8
+  m: 240                                              # Car's mass
+  inertia: 93                                         # Interial moment
+  gravity: 9.81                                       # Gravity's acceleration
+  Ar: 1                                               # Area of air contact
+  rho: 1.255                                          # Air's density
+  width: 1.5                                          # Car's width
+  longue: 2.72                                        # Car's length
+  Lf: 0.708                                           # Distance from CoG to front axis
+  Lr: 0.822                                           # Distance from CoG to rear axis
+  ax_max: 5.5                                         # Maximum longitudinal acceleration
+  ax_min: -8                                          # Minimum longitudinal acceleration
+  d_IMU: -0.318                                       # Distance from vectornav to CoG
 
 Topics:
   State: /AS/C/state
   Commands: /AS/C/commands
+  Planner: /AS/C/trajectory/partial
   # TO DO: fill with other topics
 
 NLOP:
-  Nstates: 7
-  Ncontrols: 2
-  N: 40
-  Npar: 23
+  Nstates: 7                                          # Number of states
+  Ncontrols: 2                                        # Number of controls
+  N: 40                                               # Prediction horizon
+  Npar: 23                                            # Number of parameters
+
+FORCES: false                                         # FORCESPRO's solver flag
+
+PredTime: 2                                           #[s] Time we look into the future (total prediction)
+
+nPlanning: 1900                                       # n points saved from the planner

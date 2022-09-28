@@ -9,8 +9,9 @@ Optimizer::Optimizer(const Params& params){
     this->N = params.mpc.nlop.N;
     this->Npar = params.mpc.nlop.Npar + this->n_states + this->N; // [ 23 (MPC parameters) + (initial state) + n (curvature points == N) ]
 
-    // MPC freq
-    this->T = params.mpc.T;
+    // Total prediction time
+    this->PredTime = params.mpc.PredTime;
+    this->T = PredTime/N; // MPC period
 
     // Vehicle params
     this->m = params.vehicle.m;
@@ -32,19 +33,33 @@ Optimizer::Optimizer(const Params& params){
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //------------------------Principal functions--------------------------------------------------
 
-shared_ptr<Function> init(){
+shared_ptr<Function> Optimizer::generate_solver(){
 
     if(params_set){
-        
+
+        auto start_time = std::chrono::system_clock::now();
+
+        nlop_formulation();
+        track_constraints();
+        forces_constraints();
+
         SXDict nlp = {{"x", SX::vertcat({X,U})},
             {"f", obj},
             {"g", SX::vertcat(g)},
             {"p", P}
             };
 
-        solver = nlpsol("MPCsolver", "ipopt", nlp, solverOptions);
+        // Create solver object
+        Function solver = nlpsol("MPCsolver", "ipopt", nlp, solverOptions);
 
-        return shared_ptr<Function>(solver);
+        // Make solver obj a shared pointer
+        auto solver_ptr = make_shared<Function>(move(solver));
+
+        auto end_time = std::chrono::system_clock::now();
+        std::chrono::duration<double> elapsed = end_time - start_time;
+        ROS_WARN( "OPTIMIZER ELAPSED TIME: %f ms", elapsed.count()*1000);
+
+        return solver_ptr;
 
     }else{
 
@@ -66,12 +81,15 @@ void Optimizer::nlop_formulation(){
     SX q_mu = P(20);
 
     // Add initial conditions
-    g.push_back(X(:,0) - P(23:30))
-    cout << "P(23:30) " << P(23:30) << endl;
+    int idx_init = Npar-n_states-N;
+    g.push_back( X(Slice(0,n_states)) - P(Slice(idx_init,idx_init+n_states)) );
+
+    cout << "P(23:30) " << P(Slice(idx_init,idx_init+n_states)) << endl;
+    cout << "X(0:7) " << X(Slice(0,n_states)) << endl;
 
     int idx = 0; // index for X variables (states) 
     int idu = 0; // index for U variables (controls) 
-    for(int e = 1; e < N+1; e++){
+    for(int e = 0; e < N; e++){
         SX st = X(Slice(idx,idx+n_states));
         SX k = P(23+e);
         SX steering = st(0) + U(idu);
@@ -87,11 +105,11 @@ void Optimizer::nlop_formulation(){
         // Objective function
         obj += -q_s*sdot + dRd*pow(U(idu),2) + dRa*pow(U(idu+1),2) + q_slip*pow(diff_beta,2) + q_mu*pow(st(3),2) + q_n*pow(st(2),2);
 
-        SX st_next = X(Slice(idx+n_states,idx+2*n_states)); // next state
+        SX st_next = X(Slice(idx+n_states,idx+2*n_states)); // next stage state vector
         SX con_now = U(Slice(idu,idu+n_controls)) + st(Slice(0,2)); // current stage global controls (steering,throttle)
         SX st_now = st(Slice(2,st.rows())); // current stage states (n,mu,vx,vy,w)
 
-        vector<SX> f_value = continuous_dynamics(st_now,con_now,P,k); // ODE with next states prediction
+        vector<SX> f_value = continuous_dynamics(st_now,con_now,k); // ODE with next states prediction
 
         SX states = SX::sym("states", f_value.size());
         for(int row = 0; row < f_value.size(); row++){
@@ -110,21 +128,20 @@ void Optimizer::nlop_formulation(){
 
 }
 
-// Set constraints --> track constraints
+// Set track constraints
 void Optimizer::track_constraints(){
 
     for(int i=0;i<N+1;i++){
 
-    SX n = X(2+i*7);
-    SX mu = X(3+i*7);
+        SX n = X(2+i*7);
+        SX mu = X(3+i*7);
 
-    g.push_back(n+longue/2*sin(abs(mu))+width/2*cos(mu)); // track constraints
-    g.push_back(-n+longue/2*sin(abs(mu))+width/2*cos(mu));
-
+        g.push_back(n+longue/2*sin(abs(mu))+width/2*cos(mu)); // track constraints
+        g.push_back(-n+longue/2*sin(abs(mu))+width/2*cos(mu));
   }
 }
 
-// Set constraints --> forces ellipse constraint
+// Set ellipse of forces constraints (actually a gg diagram constraint)
 void Optimizer::forces_constraints(){
 
     for(int i=0;i<N+1;i++){
@@ -132,8 +149,8 @@ void Optimizer::forces_constraints(){
     SX alpha_R = atan((X(5+i*7)-P(5)*X(6+i*7))/X(4+i*7));               // atan((vy-Lr*w)/(vx))
     SX alpha_F = atan((X(5+i*7)+P(4)*X(6+i*7))/X(4+i*7)) - X(0+i*7);    // atan((vy+Lf*w)/(vx)) - delta
 
-    SX Fr = P(6)*sin(P(8)*atan(P(10)*alpha_R));                                                            // Fr = Dr*sin(Cr*atan(Br*alpha_R))
-    SX Ff = P(7)*sin(P(9)*atan(P(11)*alpha_F));                                                            // Ff = Df*sin(Cf*atan(Bf*alpha_F))
+    SX Fr = P(6)*sin(P(8)*atan(P(10)*alpha_R));                                        // Fr = Dr*sin(Cr*atan(Br*alpha_R))
+    SX Ff = P(7)*sin(P(9)*atan(P(11)*alpha_F));                                        // Ff = Df*sin(Cf*atan(Bf*alpha_F))
     SX Fx = P(2)*X(1+i*7) - P(2)*P(12)*P(13) - 0.5*P(14)*P(15)*P(16)*pow(X(4+i*7),2);  // Fx = m*a - m*u_r*g - 0.5*Cd*rho*Ar*vx^2
 
     // g.push_back( pow(P(18)*Fx,2) + pow(Fr,2) - pow(P(21]*P(6),2)/P(2) );   // (p_long*Fx)² + Fr² <= (lambda*Dr)²/m
@@ -150,7 +167,7 @@ void Optimizer::forces_constraints(){
 //------------------------Auxiliar functions--------------------------------------------------
 
 
-vector<SX> Optimizer::continuous_dynamics( SX st, SX con, SX P, SX k){
+vector<SX> Optimizer::continuous_dynamics( SX st, SX con, SX k){
 
     vector<SX> f_values;
 
@@ -163,11 +180,11 @@ vector<SX> Optimizer::continuous_dynamics( SX st, SX con, SX P, SX k){
 
     SX sdot = (st(2)*cos(st(1)) - st(3)*sin(st(1)))/(1-st(0)*k);                  // sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
 
-    SX ndot = (st(2)*sin(st(1)) + st(3)*cos(st(1)))/sdot;                         // ndot   =  (vx*sin(mu) + vy*cos(mu))/sdot
-    SX mudot = st(4)/sdot - k;                                                    // mudot  =  w/sdot - k
-    SX vxdot = 1/P(2)*(Fx - Ff*sin(con(0)) + P(2)*st(3)*st(4))/sdot;              // vxdot  =  (1/m)*(Fx - Ff*sin(delta) + m*vy*w)/sdot
-    SX vydot = 1/P(2)*(Fr + Ff*cos(con(0)) - P(2)*st(2)*st(4))/sdot;              // vydot  =  (1/m)*(Fr + Ff*cos(delta) - m*vx*w)/sdot
-    SX wdot = 1/P(3)*(Ff*P(4)*cos(con(0)) - Fr*P(5))/sdot;                        // wdot   =  (1/I)*(Ff*Lf*cos(delta) - Fr*Lr)/sdot
+    SX ndot = (st(2)*sin(st(1)) + st(3)*cos(st(1)));                         // ndot   =  (vx*sin(mu) + vy*cos(mu))
+    SX mudot = st(4) - k*sdot;                                               // mudot  =  w - k*sdot
+    SX vxdot = 1/P(2)*(Fx - Ff*sin(con(0)) + P(2)*st(3)*st(4));              // vxdot  =  (1/m)*(Fx - Ff*sin(delta) + m*vy*w)
+    SX vydot = 1/P(2)*(Fr + Ff*cos(con(0)) - P(2)*st(2)*st(4));              // vydot  =  (1/m)*(Fr + Ff*cos(delta) - m*vx*w)
+    SX wdot = 1/P(3)*(Ff*P(4)*cos(con(0)) - Fr*P(5));                        // wdot   =  (1/I)*(Ff*Lf*cos(delta) - Fr*Lr)
 
     f_values.push_back(ndot);
     f_values.push_back(mudot);
@@ -187,14 +204,14 @@ vector<double> Optimizer::vconcat(const vector<double>& x, const vector<double>&
 }
 
 
-void Optimizer::printVec(vector<double> &input, int firstElements=0){
+void Optimizer::printVec(vector<double> &input, int firstElements){
     if(firstElements!=0){
       for (auto it = input.begin(); it != input.end()-input.size()+firstElements; it++) {
-        std::cout << *it << "\n";
+        cout << *it << "\n";
       }
     }else{
         for (auto it = input.begin(); it != input.end(); it++) {
-        std::cout << *it << "\n";
+        cout << *it << "\n";
       }
     }   
 }
