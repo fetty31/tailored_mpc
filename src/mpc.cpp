@@ -27,13 +27,16 @@ MPC::MPC(const Params& params){
 
     this->FORCES = params.FORCES;
 
-    this->paramFlag = true;
-
     planner = Eigen::MatrixXd::Zero(nPlanning,9);
-    carState = Eigen::VectorXd::Zero(carState.rows());
+    carState = Eigen::VectorXd::Zero(8);
     predicted_s = Eigen::VectorXd::Zero(N);
-    lastState = Eigen::MatrixXd::Zero(N,7);
+
+    lastState = Eigen::MatrixXd::Zero(N,6);
     lastCommands = Eigen::MatrixXd::Zero(N,2);
+    solStates = Eigen::MatrixXd::Zero(N,5);
+    solCommands = Eigen::MatrixXd::Zero(N,4);
+
+    this->paramFlag = true;
 
 }
 
@@ -77,24 +80,47 @@ void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //------------------------Principal functions--------------------------------------------------
 
+void MPC::solve(){
+
+    if(paramFlag && dynParamFlag && plannerFlag && stateFlag){
+        
+        if(!this->FORCES){
+            solve_IPOPT();
+        }
+        // else{} --> call FORCESPRO solve function
+        get_solution();
+        
+    }else{
+
+        if(!paramFlag || !dynParamFlag){
+            ROS_ERROR("MPC: Parameters aren't properly defined");
+            ROS_ERROR_STREAM("Static params: " << paramFlag);
+            ROS_ERROR_STREAM("Dyn params: " << dynParamFlag);
+        }else{
+            ROS_ERROR("MPC: No data from state car or planner");
+            ROS_ERROR_STREAM("Planner: " << plannerFlag);
+            ROS_ERROR_STREAM("State: " << stateFlag);
+        }
+    }
+}
+
 
 void MPC::solve_IPOPT(){
 
-    if(paramFlag && dynParamFlag && plannerFlag && stateFlag){
+    set_boundaries_IPOPT();
+    set_parameters_IPOPT();
 
-        set_boundaries_IPOPT();
-        set_parameters_IPOPT();
+    // Bounds and initial guess
+    std::map<std::string, casadi::DM> arg, sol;
+    arg["lbx"] = ipopt.lbx;
+    arg["ubx"] = ipopt.ubx;
+    arg["lbg"] = vconcat(vconcat(ipopt.lbg_next,ipopt.lbg_track),ipopt.lbg_elipse);
+    arg["ubg"] = vconcat(vconcat(ipopt.ubg_next,ipopt.ubg_track),ipopt.ubg_elipse);
+    arg["x0"] = ipopt.x0;
+    arg["p"] = ipopt.p;
 
-        // Bounds and initial guess
-        std::map<std::string, casadi::DM> arg, sol;
-        arg["lbx"] = ipopt.lbx;
-        arg["ubx"] = ipopt.ubx;
-        arg["lbg"] = vconcat(vconcat(ipopt.lbg_next,ipopt.lbg_track),ipopt.lbg_elipse);
-        arg["ubg"] = vconcat(vconcat(ipopt.ubg_next,ipopt.ubg_track),ipopt.ubg_elipse);
-        arg["x0"] = ipopt.x0;
-        arg["p"] = ipopt.p;
-
-        // Solve the NLOP
+    // Solve the NLOP
+    if(ipopt.solver_ptr){
         sol = (*ipopt.solver_ptr)(arg);
 
         casadi::Dict stats;
@@ -110,17 +136,9 @@ void MPC::solve_IPOPT(){
         printVec(ipopt.solution, 15);
 
     }else{
-
-        if(!paramFlag || !dynParamFlag){
-            ROS_ERROR("MPC: Parameters aren't properly defined");
-            ROS_ERROR_STREAM("Static params: " << paramFlag);
-            ROS_ERROR_STREAM("Dyn params: " << dynParamFlag);
-        }else{
-            ROS_ERROR("MPC: No data from state car or planner");
-            ROS_ERROR_STREAM("Planner: " << plannerFlag);
-            ROS_ERROR_STREAM("State: " << stateFlag);
-        }
+        ROS_ERROR("IPOPT SOLVER POINTER IS NULL");
     }
+    
 
 }
 
@@ -279,13 +297,16 @@ vector<double> MPC::initial_conditions(){
 
 }
 
-void MPC::s_prediction(){
+// void MPC::s_prediction(){
 
-    predicted_s.setZero();
-    predicted_s(0) = fmod(predicted_s(0),smax);
+//     predicted_s.setZero();
+//     cout << "S_PRED planner(0,2): " << planner(0,2) << endl;
+//     predicted_s(0) = fmod(planner(0,2),smax);
+
+//     // lastState(0,0) = carState(0)
 
 
-}
+// }
 
 // void curv_mpc::Compute_s_pred(MatrixXd planner, VectorXd& state){
 
@@ -364,19 +385,21 @@ void MPC::s_prediction(){
 //     }
 // }
 
-void MPC::get_solution_IPOPT(){
+void MPC::get_solution(){
 
-    // Concatenate optimized stages in Xopt ( 9*(N+1) x 1) --> (9 x (N+1) )
+    if(!this->FORCES){
+        // Concatenate optimized stages in Xopt ( 9*(N+1) x 1) --> (9 x (N+1) )
+        Eigen::MatrixXd optimized = vector2eigen(ipopt.solution);
+        Eigen::Map<Eigen::MatrixXd> stages(optimized.topRows(n_states*(N+1)).data(),n_states,N+1);
+        Eigen::Map<Eigen::MatrixXd> controls(optimized.bottomRows(n_controls*(N+1)).data(),n_controls,N+1);
+        Eigen::MatrixXd Xopt(stages.rows()+controls.rows(), stages.cols());
+        Xopt << controls, 
+                stages;
 
-    Eigen::MatrixXd optimized = vector2eigen(ipopt.solution);
-    Eigen::Map<Eigen::MatrixXd> stages(optimized.topRows(n_states*(N+1)).data(),n_states,N+1);
-    Eigen::Map<Eigen::MatrixXd> control(optimized.bottomRows(n_controls*(N+1)).data(),n_controls,N+1);
-    // Eigen::MatrixXd Xopt(stages.rows()+control.rows(), stages.cols());
-    // Xopt << control, 
-    //         stages;
-
-    solStates = stages;
-    solCommands = control;
+        solStates = Xopt.bottomRows(5); // [n, mu, vx, vy, w] 
+        solCommands = Xopt.topRows(4);  // [diff_delta, diff_acc, delta, acc]
+    }
+    // else{} --> fill solStates, solCommands with FORCES solution
 
 }
 
@@ -401,8 +424,8 @@ void MPC::printVec(vector<double> &input, int firstElements){
 
 Eigen::MatrixXd MPC::vector2eigen(vector<double> vect){
 
-    Eigen::MatrixXd result;
-    long int rows = 0;
+    Eigen::MatrixXd result(vect.size(),1);
+    int rows = 0;
     vector<double>::iterator row;
     for(row = vect.begin(); row != vect.end(); ++row){
             result(rows,0) = *row; 

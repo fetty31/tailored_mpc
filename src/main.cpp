@@ -40,13 +40,12 @@ int main(int argc, char **argv) {
 	f = boost::bind(&dynamicCallback, _1, _2, &mpc);
 	server.setCallback(f);
 
-
     // ros::Rate r(1/mpc.T);
 
-    ros::Rate r(10);
+    ros::Rate r(20);
     while(ros::ok()){
 
-        mpc.solve_IPOPT();
+        mpc.solve();
 
         ros::spinOnce();
         r.sleep();

@@ -128,21 +128,22 @@ class MPC{
         double smax = 0;
 
         // Previous state
-        Eigen::MatrixXd lastState;
-        Eigen::MatrixXd lastCommands;
+        Eigen::MatrixXd lastState;    // [x, y, heading, vx, vy, w]
+        Eigen::MatrixXd lastCommands; // [delta, acc]
 
         // Previous solution
-        Eigen::MatrixXd solStates;
-        Eigen::MatrixXd solCommands;
+        Eigen::MatrixXd solStates;    // [n, mu, vx, vy, w]
+        Eigen::MatrixXd solCommands;  // [diff_delta, diff_acc, delta, acc]
 
         // CASADI + IPOPT:
         void set_boundaries_IPOPT();
         void set_parameters_IPOPT();
-        void get_solution_IPOPT();
+        void solve_IPOPT();
 
         // FORCESPRO:
 
         // Aux:
+        void get_solution();
         vector<double> vconcat(const vector<double>& x, const vector<double>& y);
         void printVec(vector<double> &input, int firstElements=0);
         Eigen::MatrixXd vector2eigen(vector<double> vect);
@@ -158,8 +159,8 @@ class MPC{
         void stateCallback(const as_msgs::CarState::ConstPtr& msg);
         void plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg);
 
-        // Solve methods
-        void solve_IPOPT();
+        // Solve method
+        void solve();
 
         // Structs declaration
         Boundaries bounds;
