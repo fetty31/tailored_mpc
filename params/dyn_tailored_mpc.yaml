@@ -9,6 +9,10 @@ dictitems:
   Dr: 3152.3
   dRa: 0.3
   dRd: 1.0
+  diff_acc_max: 0.25
+  diff_acc_min: 0.0
+  diff_delta_max: 0.052359833
+  diff_delta_min: 0.0
   groups: !!python/object/new:dynamic_reconfigure.encoding.Config
     dictitems:
       Bf: 10.8529
@@ -20,6 +24,10 @@ dictitems:
       Dr: 3152.3
       dRa: 0.3
       dRd: 1.0
+      diff_acc_max: 0.25
+      diff_acc_min: 0.0
+      diff_delta_max: 0.052359833
+      diff_delta_min: 0.0
       groups: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
       id: 0

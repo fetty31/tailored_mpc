@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(tailored_mpc)
 
-add_compile_options(-std=c++11)
+#add_compile_options(-std=c++0x)
+set(CMAKE_CXX_FLAGS "-fpermissive")
 # set(CMAKE_BUILD_TYPE "Release")
 
 message(STATUS "TAILORED MPC says hi :)")
@@ -17,6 +18,9 @@ find_path(CASADI_INCLUDE_DIR
   casadi/casadi.hpp
   HINTS ${HOME}/casadi/
 )
+
+message(${PROJECT_SOURCE_DIR})
+find_library(FORCESPRO_LIBRARY libTailoredSolver.a PATHS ${PROJECT_SOURCE_DIR}/solver/codeGen/TailoredSolver/lib_target)
 
 if(CASADI_INCLUDE_DIR)
   set(CASADI_INCLUDE_DIR ${CASADI_INCLUDE_DIR} ${CASADI_INCLUDE_DIR}/casadi)
@@ -64,9 +68,12 @@ add_library(${PROJECT_NAME}
   src/structures/params.cpp
   src/optimizer.cpp
   src/mpc.cpp
+
+  solver/codeGen/TailoredSolver_casadi.c
+  solver/codeGen/TailoredSolver_adtool2forces.c
 )
 
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${CASADI_LIBRARY})
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${FORCESPRO_LIBRARY} ${CASADI_LIBRARY})
 target_link_libraries(${PROJECT_NAME}_exec ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 add_dependencies(${PROJECT_NAME} as_msgs_generate_messages_cpp)

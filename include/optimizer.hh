@@ -17,6 +17,30 @@
 using namespace casadi;
 using namespace std;
 
+struct IPOPT{
+
+    vector<double> lbx;        // Lower boundaries stages (x,u)
+    vector<double> ubx;        // Upper boundaries stages (x,u)
+
+    vector<double> lbg_next;   // Lower boundaries continuity constraints 
+    vector<double> ubg_next;   // Upper boundaries continuity constraints
+
+    vector<double> lbg_track;  // Lower boundaries track constraints
+    vector<double> ubg_track;  // Upper boundaries track constraints
+
+    vector<double> lbg_elipse;  // Lower boundaries ellipse constraints 
+    vector<double> ubg_elipse;  // Upper boundaries ellipse constraints
+
+    vector<double> x0;         // Initial guess
+    vector<double> p;          // Parameters + curvature
+    vector<double> solution;   // Solution --> Optimized stages
+
+    string exit_flag;
+
+    shared_ptr<casadi::Function> solver_ptr; // Solver object
+
+};
+
 // optimizer class
 class Optimizer{
 
@@ -34,7 +58,7 @@ class Optimizer{
             // Vehicle variables
         double m, Lf, Lr, width, longue, ax_max, ay_max; // see "params.hh" for explanation
 
-        double T, PredTime; // period of MPC [s], total predicted time [s]
+        double T; // integration time [s]
 
             // Optimization variables
         SX X; // symbolic states vector

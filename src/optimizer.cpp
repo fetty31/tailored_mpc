@@ -9,9 +9,7 @@ Optimizer::Optimizer(const Params& params){
     this->N = params.mpc.nlop.N;
     this->Npar = params.mpc.nlop.Npar + this->n_states + this->N; // [ 23 (MPC parameters) + (initial state) + n (curvature points == N) ]
 
-    // Total prediction time
-    this->PredTime = params.mpc.PredTime;
-    this->T = PredTime/N; // MPC period
+    this->T = params.mpc.rk4_t; // Integration time
 
     // Vehicle params
     this->m = params.vehicle.m;

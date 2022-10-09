@@ -1,19 +1,17 @@
-function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength, useFastSolver, floattype)
+function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength, n_states, n_controls, useFastSolver, floattype)
     %% Check function args    
     if (nargin < 3)
         error('The function ''generatePathTrackingSolver'' is not meant to run standalone! Please run ''PathTracking'' instead.');
     end
-    if nargin < 4
+    if nargin < 6
         useFastSolver = false;
     end
-    if nargin < 5
+    if nargin < 7
         floattype = 'double';
     end
 
     %% Problem dimensions
     N = horizonLength;
-    n_states = 7;
-    n_controls = 2;
     Npar = 24;
     model = {};
     model.N = N;             % horizon length
@@ -69,7 +67,7 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
     codeoptions.optlevel = 2;   % 0: no optimization, 1: optimize for size, 2: optimize for speed, 3: optimize for size & speed
     codeoptions.platform = 'Gnu-x86_64'; % Specify the platform
     codeoptions.printlevel = 0; % Optional, on some platforms printing is not supported
-    codeoptions.cleanup = 1; % To keep necessary files for target compile
+    codeoptions.cleanup = 0; % To keep necessary files for target compile
     
     % Necessary to set bounds dynamically
     codeoptions.nlp.stack_parambounds = 1;
@@ -223,7 +221,7 @@ function h = nonlin_const(z, p)
     
     h = [(Fx/(Ax_max*m))^2 + (Fr/(Ay_max*m))^2; % <= lambda
          (Fx/(Ax_max*m))^2 + (Ff/(Ay_max*m))^2; % <= lambda
-         n - long/2*sin(abs(mu)) + width/2*cos(mu);
-         -n + long/2*sin(abs(mu)) + width/2*cos(mu)];
+         n - long/2*sin(abs(mu)) + width/2*cos(mu); % <= L(s)
+         -n + long/2*sin(abs(mu)) + width/2*cos(mu)]; % <= R(s)
      
 end

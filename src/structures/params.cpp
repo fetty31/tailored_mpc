@@ -14,7 +14,7 @@ Params::Params(const ros::NodeHandle &nh) {
     nh.param<double>("/tailored_mpc/Vehicle/inertia", vehicle.I, 93);
     nh.param<double>("/tailored_mpc/Vehicle/gravity", vehicle.gravity, 9.81);
     nh.param<double>("/tailored_mpc/Vehicle/rho", vehicle.rho, 1.255);
-    nh.param<double>("/tailored_mpc/Vehicle/Ar", vehicle.rho, 1.0);
+    nh.param<double>("/tailored_mpc/Vehicle/Ar", vehicle.Ar, 1.0);
 
     // Topics
     nh.param<string>("/tailored_mpc/Topics/State", mpc.topics.state, "/AS/C/state");
@@ -31,7 +31,8 @@ Params::Params(const ros::NodeHandle &nh) {
     nh.param<bool>("/tailored_mpc/FORCES", FORCES, true);
 
     // MPC period (1/freq)
-    nh.param<double>(("/tailored_mpc/PredTime"), mpc.PredTime, 0.05);
+    nh.param<double>(("/tailored_mpc/rk4_t"), mpc.rk4_t, 0.025);
     nh.param<int>(("/tailored_mpc/nPlanning"), mpc.nPlanning, 1900);
+    nh.param<int>(("/tailored_mpc/Hz"), mpc.Hz, 20);
 
 }

@@ -28,6 +28,7 @@ NLOP:
 
 FORCES: false                                         # FORCESPRO's solver flag
 
-PredTime: 2                                           #[s] Time we look into the future (total prediction)
+Hz: 20                                                #[s] MPC frequency
+rk4_t: 0.025                                          #[s] Runge Kutta integration time (must match the time used in FORCES_problem.m)
 
 nPlanning: 1900                                       # n points saved from the planner
