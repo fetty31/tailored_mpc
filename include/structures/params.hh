@@ -31,6 +31,7 @@ struct Params{
             string commands;        // Car Commands topic
             string state;           // Car State topic
             string planner;         // Planner topic
+            string tro;             // Offline planner topic
             
         } topics;
         struct NLOP{
@@ -42,7 +43,6 @@ struct Params{
         } nlop;
     } mpc;
 
-    bool FORCES;                // FORCESPRO flag (true meaning we are using FORCESPRO's solver, false for using IPOPT)
 };
 
 

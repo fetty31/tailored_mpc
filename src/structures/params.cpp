@@ -20,15 +20,13 @@ Params::Params(const ros::NodeHandle &nh) {
     nh.param<string>("/tailored_mpc/Topics/State", mpc.topics.state, "/AS/C/state");
     nh.param<string>("/tailored_mpc/Topics/Commands", mpc.topics.commands, "/AS/C/commands");
     nh.param<string>("/tailored_mpc/Topics/Planner", mpc.topics.planner, "/AS/C/trajectory/partial");
+    nh.param<string>("/tailored_mpc/Topics/Tro", mpc.topics.tro, "/AS/C/trajectory/full");
 
     // NLOP
     nh.param<int>("/tailored_mpc/NLOP/Nstates", mpc.nlop.n_states, 7);
     nh.param<int>("/tailored_mpc/NLOP/Ncontrols", mpc.nlop.n_controls, 2);
     nh.param<int>("/tailored_mpc/NLOP/N", mpc.nlop.N, 40);
     nh.param<int>("/tailored_mpc/NLOP/Npar", mpc.nlop.Npar, 23);
-
-    // FORCES
-    nh.param<bool>("/tailored_mpc/FORCES", FORCES, true);
 
     // MPC period (1/freq)
     nh.param<double>(("/tailored_mpc/rk4_t"), mpc.rk4_t, 0.025);

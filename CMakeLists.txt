@@ -66,7 +66,6 @@ add_executable(${PROJECT_NAME}_exec src/main.cpp)
 
 add_library(${PROJECT_NAME}
   src/structures/params.cpp
-  src/optimizer.cpp
   src/mpc.cpp
 
   solver/codeGen/TailoredSolver_casadi.c

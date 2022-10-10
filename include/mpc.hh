@@ -22,7 +22,6 @@
 #include "structures/params.hh"
 
 // Include headers of both solvers
-#include "optimizer.hh"
 #include "forces.hh"
 
 using namespace std;
@@ -41,15 +40,6 @@ struct Boundaries{
         vector<double> x_max  = { 23.0*M_PI/180, 5.5, 3, 150.0*M_PI/180, 25.0, 2.0, 100.0*M_PI/180 };
         vector<double> x0 = { 0.0, -1.25, 0.0, 0.0, 15.0, 0.0, 0.0 };
 
-        double lower_continuity = -0.01; // Lower bound continuity constraint
-        double upper_continuity = 0.01;  // Upper bound continuity constraint
-
-        double lower_track = 0.0;        // Lower bound track constraint
-        double upper_track = 1.5;        // Upper bound track constraint
-
-        double lower_ellipse = -casadi::inf;       // Lower bound ellipse constraint 
-        double upper_ellipse = 0.0;      // Upper bound ellipse constraint
-
 };
 
 class MPC{
@@ -61,20 +51,18 @@ class MPC{
         bool plannerFlag = false, stateFlag = false;
         bool paramFlag = false;     // flag for parameters set up
         bool dynParamFlag = false;  // flag for dynamic parameters set up
-        bool FORCES = true;         // flag for using FORCESPRO
 
         // NLOP params
         int n_states = 7;     // number of state vars
         int n_controls = 2;   // number of control vars
         int N = 40;           // horizon length
-        int Npar;             // [ 23 (MPC parameters) + (initial state) + n (curvature points == N) ]
+        int Npar = 24;        // number of real time parameters
 
         // MPC
         int nPlanning = 1900;     // number of points wanted from the planner
         bool firstIter = true;    // first iteration flag
         int samplingS = 10;       // s sampling distance 
         double delta_s = 0.025;   // planner discretization
-        int mission = 0;          // 0 for AX, 1 for TD, 2 for SkidPad, 3 for Acceleration
         double rk4_t = 0.025;     // Integration time
         
         // DYNAMIC PARAMETERS:
@@ -126,17 +114,11 @@ class MPC{
         Eigen::MatrixXd solStates;    // [n, mu, vx, vy, w]
         Eigen::MatrixXd solCommands;  // [diff_delta, diff_acc, delta, acc]
 
-        // CASADI + IPOPT:
-        void set_boundaries_IPOPT(); 
-        void set_parameters_IPOPT();
-        void solve_IPOPT();
-
         // FORCESPRO:
-        void set_FORCES(); // here parameters & boundaries are added in the same for loop
-        void solve_FORCES();
+        void set_params_bounds(); // here parameters & boundaries are added in the same for loop
+        void get_solution();
 
         // Aux:
-        void get_solution();
         vector<double> vconcat(const vector<double>& x, const vector<double>& y);
         void printVec(vector<double> &input, int firstElements=0);
         Eigen::MatrixXd vector2eigen(vector<double> vect);
@@ -153,17 +135,18 @@ class MPC{
         // Callbacks
         void stateCallback(const as_msgs::CarState::ConstPtr& msg);
         void plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg);
+        void troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg);
 
         // Solve method
         void solve();
 
         // Structs declaration
         Boundaries bounds;
-        IPOPT ipopt;
-        ForcesproSolver forces;
+        ForcesproSolver forces = ForcesproSolver();
 
         // MPC
-        double Hz = 20; // [s]
+        double Hz = 20;   // [s]
+        int mission = 0;  // 0 for AX, 1 for TD, 2 for SkidPad, 3 for Acceleration
 
         // Planner's trajectory matrix 
         Eigen::MatrixXd planner; // [x, y, s, k, vx, L, R]

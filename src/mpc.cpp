@@ -7,7 +7,7 @@ MPC::MPC(const Params& params){
     this->n_states = params.mpc.nlop.n_states;
     this->n_controls = params.mpc.nlop.n_controls;
     this->N = params.mpc.nlop.N;
-    this->Npar = params.mpc.nlop.Npar + this->n_states + this->N; // [ 23 (MPC parameters) + (initial state) + n (curvature points == N) ]
+    this->Npar = params.mpc.nlop.Npar;
 
     // MPC
     this->Hz = params.mpc.Hz;
@@ -26,7 +26,6 @@ MPC::MPC(const Params& params){
     this->rho = params.vehicle.rho;
     this->gravity = params.vehicle.gravity;
 
-    this->FORCES = params.FORCES;
 
     planner = Eigen::MatrixXd::Zero(nPlanning,7);
     carState = Eigen::VectorXd::Zero(8);
@@ -77,6 +76,33 @@ void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
 
 }
 
+void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
+
+    if (msg->objectives.size() < nPlanning){
+			ROS_WARN("MPC: Planner is too short!");
+			return;
+    }
+
+    // Fill planner matrix
+    for (unsigned int i = 0; i < nPlanning ; i++)
+    {	
+        planner(i, 0) = msg->objectives[i].x;
+        planner(i, 1) = msg->objectives[i].y;
+        planner(i, 2) = msg->objectives[i].s; 
+        planner(i, 3) = msg->objectives[i].k; 
+        planner(i, 4) = msg->objectives[i].vx;
+        planner(i, 5) = msg->objectives[i].L;
+        planner(i, 6) = msg->objectives[i].R;
+    }
+
+    smax = msg->smax;
+    plannerFlag = true;
+
+    cout << "TRO callback:\n";
+    cout << planner.topRows(15) << endl;
+
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //------------------------Principal functions--------------------------------------------------
@@ -87,11 +113,20 @@ void MPC::solve(){
         
         auto start_time = chrono::system_clock::now();
 
-        if(!this->FORCES){
-            solve_IPOPT();
-        }else{
-            solve_FORCES();
-        }
+        set_params_bounds();
+
+        /* Get i-th memory buffer */
+        int i = 0;
+        forces.mem_handle = TailoredSolver_internal_mem(i);
+        /* Note: number of available memory buffers is controlled by code option max_num_mem */
+
+        // Solve
+        forces.exit_flag = TailoredSolver_solve(&forces.params, &forces.solution, &forces.info, forces.mem_handle, NULL, forces.ext_func);
+
+        ROS_WARN_STREAM("MPC exit flag: " << forces.exit_flag);
+
+        if(forces.exit_flag == 1) this->firstIter = false;
+        else this->firstIter = true;
 
         get_solution();
         s_prediction();
@@ -114,62 +149,6 @@ void MPC::solve(){
             ROS_ERROR_STREAM("State: " << stateFlag);
         }
     }
-}
-
-void MPC::solve_FORCES(){
-
-    set_FORCES();
-
-    /* Get i-th memory buffer */
-    int i = 0;
-    forces.mem_handle = TailoredSolver_internal_mem(i);
-    /* Note: number of available memory buffers is controlled by code option max_num_mem */
-
-    // Solve
-    forces.exit_flag = TailoredSolver_solve(&forces.params, &forces.solution, &forces.info, forces.mem_handle, NULL, forces.ext_func);
-
-    ROS_WARN_STREAM("MPC exit flag: " << forces.exit_flag);
-
-    if(forces.exit_flag == 1) this->firstIter = false;
-    else this->firstIter = true;
-
-}
-
-
-void MPC::solve_IPOPT(){
-
-    set_boundaries_IPOPT();
-    set_parameters_IPOPT();
-
-    // Bounds and initial guess
-    std::map<std::string, casadi::DM> arg, sol;
-    arg["lbx"] = ipopt.lbx;
-    arg["ubx"] = ipopt.ubx;
-    arg["lbg"] = vconcat(vconcat(ipopt.lbg_next,ipopt.lbg_track),ipopt.lbg_elipse);
-    arg["ubg"] = vconcat(vconcat(ipopt.ubg_next,ipopt.ubg_track),ipopt.ubg_elipse);
-    arg["x0"] = ipopt.x0;
-    arg["p"] = ipopt.p;
-
-    // Solve the NLOP
-    if(ipopt.solver_ptr){
-        sol = (*ipopt.solver_ptr)(arg);
-
-        casadi::Dict stats;
-        stats = (*ipopt.solver_ptr).stats();
-
-        ipopt.exit_flag = stats["return_status"].get_str(); // Maximum_Iterations_Exceeded
-        ipopt.solution = vector<double>(sol.at("x"));
-
-        // Exit Flag:
-        cout << "IPOPT EXIT FLAG = " << ipopt.exit_flag << endl;
-
-        cout << "SOLUTION: " << endl;
-        printVec(ipopt.solution, 15);
-
-    }else{
-        ROS_ERROR("IPOPT SOLVER POINTER IS NULL");
-    }
-    
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -272,36 +251,19 @@ void MPC::s_prediction(){
 
 void MPC::get_solution(){
 
-    if(!this->FORCES){
-        // Concatenate optimized stages in Xopt ( 9*(N+1) x 1) --> (9 x (N+1) )
-        Eigen::MatrixXd optimized = vector2eigen(ipopt.solution);
-        Eigen::Map<Eigen::MatrixXd> stages(optimized.topRows(n_states*(N+1)).data(),n_states,N+1);
-        Eigen::Map<Eigen::MatrixXd> controls(optimized.bottomRows(n_controls*(N+1)).data(),n_controls,N+1);
-        Eigen::MatrixXd Xopt(stages.rows()+controls.rows(), stages.cols());
-        Xopt << controls, 
-                stages;
-        Eigen::MatrixXd solStatesT, solCommandsT;
-        solStatesT = Xopt.bottomRows(5);
-        solCommandsT = Xopt.topRows(4);
+    // Change vec dimensions from x(5*N x 1) u(4*N x 1) to x(N x 5) u(N x 4)
+    Eigen::MatrixXd u = array2eigen(forces.solution.U);
+    Eigen::MatrixXd x = array2eigen(forces.solution.X);
 
-        solStates = solStatesT.transpose();     // [n, mu, vx, vy, w] 
-        solCommands = solCommandsT.transpose(); // [diff_delta, diff_acc, delta, acc]
+    Eigen::Map<Eigen::MatrixXd> controlsT(u.data(), 4, N);
+    Eigen::Map<Eigen::MatrixXd> statesT(u.data(), 5, N);
 
-    }else{
-        // Change vec dimensions from x(5*N x 1) u(4*N x 1) to x(N x 5) u(N x 4)
-        Eigen::MatrixXd u = array2eigen(forces.solution.U);
-        Eigen::MatrixXd x = array2eigen(forces.solution.X);
-
-        Eigen::Map<Eigen::MatrixXd> controlsT(u.data(), 4, N);
-        Eigen::Map<Eigen::MatrixXd> statesT(u.data(), 5, N);
-
-        solStates = statesT.transpose();
-        solCommands = controlsT.transpose();
-    }
+    solStates = statesT.transpose();
+    solCommands = controlsT.transpose();
 
 }
 
-void MPC::set_FORCES(){
+void MPC::set_params_bounds(){
 
     int id_k = 0;       // curvature's index
     int id_sinit = 0;   // initial s index
@@ -312,6 +274,7 @@ void MPC::set_FORCES(){
     int Nvar = this->n_states + this->n_controls;
 
     vector<double> xinit = initial_conditions(); // initial conditions evaluation
+    cout << "initial conditions" << endl;
     
     if(!firstIter){
 
@@ -332,7 +295,12 @@ void MPC::set_FORCES(){
         }
     }
 
-    for(int k = 0; k < this->N; ++k){
+    cout << "Enter for loop\n";
+    for(int k = 0; k < this->N; k++){
+
+        cout << "k*Nvar = " << k*Nvar << endl;
+        cout << "+8 = " << k*Nvar + 8 << endl;
+        cout << "k*Npar = " << k*Npar << endl;
 
         this->forces.params.all_parameters[ 0 + k*this->Npar] = this->dRd; 
         this->forces.params.all_parameters[ 1 + k*this->Npar] = this->dRa;
@@ -358,8 +326,9 @@ void MPC::set_FORCES(){
         this->forces.params.all_parameters[21 + k*this->Npar] = this->lambda;
         this->forces.params.all_parameters[22 + k*this->Npar] = this->q_s;
 
+        cout << "Dyn params\n";
 
-        int plannerIdx;
+        int plannerIdx = 0;
         if(firstIter){
             plannerIdx = this->samplingS*k;
         }else{
@@ -398,14 +367,20 @@ void MPC::set_FORCES(){
             }
         }
 
-        this->forces.params.all_parameters[23 + k*this->Npar] = planner(plannerIdx, 2); // curvature 
-        // L(s), R(s) --> planner(plannerIdx, 5:6)
+        cout << "plannerIdx: " << plannerIdx << endl;
+
+        this->forces.params.all_parameters[23 + k*this->Npar] = planner(plannerIdx, 3); // curvature 
+
+        cout << "curvature: " << this->forces.params.all_parameters[23 + k*this->Npar] << endl;
 
         // Inequality constraints bounds:
         this->forces.params.hu[k*nh] = this->lambda;
         this->forces.params.hu[k*nh + 1] = this->lambda;
-        this->forces.params.hu[k*nh + 2] = planner(plannerIdx, 5); // L(s) ortogonal left dist from the path to the track limits
-        this->forces.params.hu[k*nh + 3] = planner(plannerIdx, 6); // R(s) ortogonal right dist from the path to the track limits
+        this->forces.params.hu[k*nh + 2] = fabs(planner(plannerIdx, 5)); // L(s) ortogonal left dist from the path to the track limits
+        this->forces.params.hu[k*nh + 3] = fabs(planner(plannerIdx, 6)); // R(s) ortogonal right dist from the path to the track limits
+
+        cout << "Inequality const set\n";
+        cout << "L(s): " << this->forces.params.hu[k*nh + 2] << endl;
 
         // Equality constraints bounds:
         this->forces.params.lb[k*Nvar] = this->bounds.u_min[0];
@@ -418,6 +393,8 @@ void MPC::set_FORCES(){
         this->forces.params.lb[k*Nvar + 7] = this->bounds.x_min[5];
         this->forces.params.lb[k*Nvar + 8] = this->bounds.x_min[6];
 
+        cout << "min set\n";
+
         this->forces.params.ub[k*Nvar] = this->bounds.u_max[0];
         this->forces.params.ub[k*Nvar + 1] = this->bounds.u_max[1];
         this->forces.params.ub[k*Nvar + 2] = this->bounds.x_max[0];
@@ -427,6 +404,8 @@ void MPC::set_FORCES(){
         this->forces.params.ub[k*Nvar + 6] = this->bounds.x_max[4];
         this->forces.params.ub[k*Nvar + 7] = this->bounds.x_max[5];
         this->forces.params.ub[k*Nvar + 8] = this->bounds.x_max[6];
+
+        cout << "max set\n";
 
         if(!firstIter){
             if((latency + k) < this->N - 1){
@@ -486,6 +465,8 @@ void MPC::set_FORCES(){
                 this->forces.params.x0[k*Nvar + 6] = xinit[4];
                 this->forces.params.x0[k*Nvar + 7] = xinit[5];
                 this->forces.params.x0[k*Nvar + 8] = xinit[6];
+
+                cout << "xinit when k==0: " << xinit[6] << endl;
             }else{
                 this->forces.params.x0[k*Nvar] = (this->forces.params.lb[k*Nvar] + this->forces.params.ub[k*Nvar])/2;
                 this->forces.params.x0[k*Nvar + 1] = (this->forces.params.lb[k*Nvar + 1] + this->forces.params.ub[k*Nvar + 1])/2;
@@ -496,121 +477,12 @@ void MPC::set_FORCES(){
                 this->forces.params.x0[k*Nvar + 6] = (this->forces.params.lb[k*Nvar + 6] + this->forces.params.ub[k*Nvar + 6])/2;
                 this->forces.params.x0[k*Nvar + 7] = (this->forces.params.lb[k*Nvar + 7] + this->forces.params.ub[k*Nvar + 7])/2;
                 this->forces.params.x0[k*Nvar + 8] = (this->forces.params.lb[k*Nvar + 8] + this->forces.params.ub[k*Nvar + 8])/2;
+
+                cout << "MEAN: " << (this->forces.params.lb[k*Nvar + 6] + this->forces.params.ub[k*Nvar + 6])/2 << endl;
             }
         }
     }
-
-}
-
-// set_boundaries_IPOPT: Set boundaries for state, control variables and equality & inequality constraints
-void MPC::set_boundaries_IPOPT(){
-
-    vector<double> X_MIN;
-    vector<double> X_MAX;
-    vector<double> X0;
-    vector<double> U_MIN;
-    vector<double> U_MAX;
-    vector<double> U0;
-
-    // Reserve memory
-    X_MIN.reserve(this->bounds.x_min.size()*(this->N+1));
-    X_MAX.reserve(this->bounds.x_max.size()*(this->N+1));
-    X0.reserve(this->bounds.x0.size()*(this->N+1));
-    U_MIN.reserve(this->bounds.u_min.size()*this->N);
-    U_MAX.reserve(this->bounds.u_max.size()*this->N);
-    U0.reserve(this->bounds.u0.size()*this->N);
-
-    // Include lambda in upper_ellipse
-    this->bounds.upper_ellipse = this->lambda;
-
-    // Bounds of constraints
-    vector<double> lbg_next(n_states*(N+1), this->bounds.lower_continuity);  // lower boundaries continuity constraint
-    vector<double> lbg_track(2*(N+1), this->bounds.lower_track);         // lower boundaries track constraint
-    vector<double> lbg_elipse(2*(N+1), this->bounds.lower_ellipse);      // lower boundaries ellipse constraint
-
-    vector<double> ubg_next(n_states*(N+1), this->bounds.upper_continuity);  // upper boundaries continuity constraint
-    vector<double> ubg_elipse(2*(N+1), this->bounds.upper_ellipse);      // upper boundaries ellipse constraint
-
-    vector<double> ubg_track; // upper boundaries track constraint
-    for(unsigned i=0; i<N+1; i++){
-        ubg_track.push_back(planner(i,7));
-        ubg_track.push_back(planner(i,8));
-    }
-
-    ipopt.lbg_next = lbg_next;
-    ipopt.lbg_track = lbg_track;
-    ipopt.lbg_elipse = lbg_elipse;
-    ipopt.ubg_next = ubg_next;
-    ipopt.ubg_track = ubg_track;
-    ipopt.ubg_elipse = ubg_elipse;
-
-    for(int k=0; k<N+1; k++){
-
-        X_MIN.insert(X_MIN.end(), this->bounds.x_min.begin(), this->bounds.x_min.end());
-        X_MAX.insert(X_MAX.end(), this->bounds.x_max.begin(), this->bounds.x_max.end());
-
-        X0.insert(X0.end(), this->bounds.x0.begin(), this->bounds.x0.end());
-
-        if(k<N){
-        
-        U_MIN.insert(U_MIN.end(), this->bounds.u_min.begin(), this->bounds.u_min.end());
-        U_MAX.insert(U_MAX.end(), this->bounds.u_max.begin(), this->bounds.u_max.end());
-
-        U0.insert(U0.end(), this->bounds.u0.begin(), this->bounds.u0.end());
-        }
-    }
-
-    ipopt.lbx = vconcat(X_MIN,U_MIN);
-    ipopt.ubx = vconcat(X_MAX,U_MAX);
-    ipopt.x0 = vconcat(X0,U0);
-
-
-}
-
-void MPC::set_parameters_IPOPT(){
-
-    vector<double> param = {this->dRd, 
-                        this->dRa, 
-                        this->m, 
-                        this->I, 
-                        this->Lf, 
-                        this->Lr, 
-                        this->Dr, 
-                        this->Df, 
-                        this->Cr, 
-                        this->Cf, 
-                        this->Br, 
-                        this->Bf, 
-                        this->u_r, 
-                        this->gravity, 
-                        this->Cd, 
-                        this->rho, 
-                        this->Ar, 
-                        this->q_slip, 
-                        this->p_long, // not used
-                        this->q_n, 
-                        this->q_mu, 
-                        this->lambda, 
-                        this->q_s};
-
-    vector<double> curvature(this->N);
-    for (unsigned int i = 0; i < this->N; i++){
-        curvature[i] = planner(i,3);
-    }
-
-    vector<double> xinit = initial_conditions(); // initial conditions evaluation
-
-    param.reserve(xinit.size()+param.size()+curvature.size()); // reserve memory
-
-    param.insert(param.end(), xinit.begin(), xinit.end()); // insert initial state vector
-
-    param.insert(param.end(), curvature.begin(), curvature.end()); // insert midline path's curvature
-
-    ipopt.p = param;
-    this->Npar = param.size();
-
-    cout << "XINIT: " << endl;
-    printVec(xinit);
+    cout << "Finished for loop\n";
 
 }
 

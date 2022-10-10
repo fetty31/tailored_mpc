@@ -21,19 +21,13 @@ int main(int argc, char **argv) {
     // Params object
     Params params = Params(nh);
 
-    // Optimizer object
-    shared_ptr<casadi::Function> solverPtr;
-    if(!params.FORCES){
-        Optimizer opt(params);
-        solverPtr = opt.generate_solver();
-    }
     // MPC object
     MPC mpc(params);
-    mpc.ipopt.solver_ptr = solverPtr;
 
     // Publishers & Subscribers
     ros::Subscriber subState = nh.subscribe(params.mpc.topics.state, 1, &MPC::stateCallback, &mpc);
     ros::Subscriber subPlanner = nh.subscribe(params.mpc.topics.planner, 1, &MPC::plannerCallback, &mpc);
+    ros::Subscriber subTro = nh.subscribe(params.mpc.topics.tro, 1, &MPC::troCallback, &mpc);
     ros::Publisher pubCommands = nh.advertise<as_msgs::CarCommands>(params.mpc.topics.commands, 1);
 
     // Dynamic reconfigure
@@ -43,16 +37,22 @@ int main(int argc, char **argv) {
 	f = boost::bind(&dynamicCallback, _1, _2, &mpc);
 	server.setCallback(f);
 
+    mpc.mission = 1; // mision hardcoded
+    int it = 0;
+
     // ros::Rate r(int(1/mpc.T));
     ROS_INFO_STREAM("MPC: publish frequency: " << mpc.Hz << "Hz");
     ros::Rate r(mpc.Hz);
     while(ros::ok()){
 
-        // mpc.solve();
+        mpc.solve();
 
         as_msgs::CarCommands msg = as_msgs::CarCommands();
         mpc.msgCommands(&msg);
-        // pubCommands.publish(msg);
+        pubCommands.publish(msg);
+
+        cout << "iteration: " << it << endl;
+        it++;
 
         ros::spinOnce();
         r.sleep();
