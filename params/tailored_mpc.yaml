@@ -10,9 +10,8 @@ Vehicle:
   longue: 2.72                                        # Car's length
   Lf: 0.708                                           # Distance from CoG to front axis
   Lr: 0.822                                           # Distance from CoG to rear axis
-  ax_max: 5.5                                         # Maximum longitudinal acceleration
-  ax_min: -8                                          # Minimum longitudinal acceleration
   d_IMU: -0.318                                       # Distance from vectornav to CoG
+  Rwheel: 0.2                                         # Effective wheel radius
 
 Topics:
   State: /AS/C/state
@@ -25,7 +24,7 @@ NLOP:
   Nstates: 7                                          # Number of states
   Ncontrols: 2                                        # Number of controls
   N: 40                                               # Prediction horizon
-  Npar: 24                                            # Number of parameters
+  Npar: 27                                            # Number of parameters
 
 Hz: 20                                                #[s] MPC frequency
 rk4_t: 0.025                                          #[s] Runge Kutta integration time (must match the time used in FORCES_problem.m)

@@ -19,7 +19,7 @@
 #include "as_msgs/CarCommands.h"
 
 // Utilities for parameters
-#include "structures/params.hh"
+#include "utils/params.hh"
 
 // Include headers of both solvers
 #include "forces.hh"
@@ -31,13 +31,13 @@ struct Boundaries{
         // VARIABLES BOUNDARIES:
 
           // Bounds and initial guess for the control
-        vector<double> u_min =  { -3*M_PI/180, -5.0 };
+        vector<double> u_min =  { -3*M_PI/180, -5.0 }; // both max,min bounds will be overwriten by dynamic reconfigure callback
         vector<double> u_max  = {  3*M_PI/180, 0.25  };
         vector<double> u0 = {  0.0, 0.0  };
 
           // Bounds and initial guess for the state
-        vector<double> x_min  = { -23.0*M_PI/180, -8.0, -3, -150.0*M_PI/180, 0.0, -2.0, -100.0*M_PI/180 };
-        vector<double> x_max  = { 23.0*M_PI/180, 5.5, 3, 150.0*M_PI/180, 25.0, 2.0, 100.0*M_PI/180 };
+        vector<double> x_min  = { -23.0*M_PI/180, -1, -3, -150.0*M_PI/180, 0.0, -2.0, -100.0*M_PI/180 };
+        vector<double> x_max  = { 23.0*M_PI/180, 1, 3, 150.0*M_PI/180, 25.0, 2.0, 100.0*M_PI/180 };
         vector<double> x0 = { 0.0, -1.25, 0.0, 0.0, 15.0, 0.0, 0.0 };
 
 };
@@ -84,6 +84,7 @@ class MPC{
         double lambda = 1;
         double q_s = 1;
         double latency = 4;
+        double Cm = 4000;
 
         // STATIC PARAMETERS: 
           // see "params.hh" for explanation
@@ -97,9 +98,10 @@ class MPC{
         double longue = 2.72;
         double width = 1.5;
         double d_IMU = -0.318;
+        double Rwheel = 0.2;
 
         // Initial conditions evaluation
-        vector<double> initial_conditions();
+        void initial_conditions();
 
         // S prediction
         void s_prediction();
@@ -122,7 +124,8 @@ class MPC{
         vector<double> vconcat(const vector<double>& x, const vector<double>& y);
         void printVec(vector<double> &input, int firstElements=0);
         Eigen::MatrixXd vector2eigen(vector<double> vect);
-        Eigen::MatrixXd array2eigen(double array[]);
+        Eigen::MatrixXd output2eigen(double* array, int size);
+        double getTorquefromThrottle(double throttle);
 
 
     public:

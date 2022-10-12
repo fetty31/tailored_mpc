@@ -1,6 +1,6 @@
 #include <ros/ros.h>
 #include "mpc.hh"
-#include "structures/params.hh"
+#include "utils/params.hh"
 
 
 void dynamicCallback(tailored_mpc::dynamicConfig &config, uint32_t level, MPC* mpc){
@@ -40,9 +40,13 @@ int main(int argc, char **argv) {
     mpc.mission = 1; // mision hardcoded
     int it = 0;
 
+    ros::Duration(1).sleep();
+
     // ros::Rate r(int(1/mpc.T));
     ROS_INFO_STREAM("MPC: publish frequency: " << mpc.Hz << "Hz");
     ros::Rate r(mpc.Hz);
+
+    // ros::Rate r(1);
     while(ros::ok()){
 
         mpc.solve();

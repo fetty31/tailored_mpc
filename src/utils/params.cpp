@@ -1,4 +1,4 @@
-#include "structures/params.hh"
+#include "utils/params.hh"
 
 Params::Params(const ros::NodeHandle &nh) {
 
@@ -8,13 +8,12 @@ Params::Params(const ros::NodeHandle &nh) {
     nh.param<double>("/tailored_mpc/Vehicle/width", vehicle.width, 1.5);
     nh.param<double>("/tailored_mpc/Vehicle/Lf", vehicle.Lf, 0.708);
     nh.param<double>("/tailored_mpc/Vehicle/Lr", vehicle.Lr, 0.822);
-    nh.param<double>("/tailored_mpc/Vehicle/ax_max", vehicle.ax_max, 5.5);
-    nh.param<double>("/tailored_mpc/Vehicle/ax_min", vehicle.ax_min, -8);
     nh.param<double>("/tailored_mpc/Vehicle/d_IMU", vehicle.d_IMU, -0.318);
     nh.param<double>("/tailored_mpc/Vehicle/inertia", vehicle.I, 93);
     nh.param<double>("/tailored_mpc/Vehicle/gravity", vehicle.gravity, 9.81);
     nh.param<double>("/tailored_mpc/Vehicle/rho", vehicle.rho, 1.255);
     nh.param<double>("/tailored_mpc/Vehicle/Ar", vehicle.Ar, 1.0);
+    nh.param<double>("/tailored_mpc/Vehicle/Rwheel", vehicle.Rwheel, 0.2);
 
     // Topics
     nh.param<string>("/tailored_mpc/Topics/State", mpc.topics.state, "/AS/C/state");

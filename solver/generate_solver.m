@@ -1,7 +1,7 @@
 function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength, n_states, n_controls, useFastSolver, floattype)
     %% Check function args    
     if (nargin < 3)
-        error('The function ''generatePathTrackingSolver'' is not meant to run standalone! Please run ''PathTracking'' instead.');
+        error('The function ''generatePathTrackingSolver'' is not meant to run standalone! Please run ''FORCES_problem'' instead.');
     end
     if nargin < 6
         useFastSolver = false;
@@ -12,12 +12,12 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
 
     %% Problem dimensions
     N = horizonLength;
-    Npar = 24;
+    Npar = 27;
     model = {};
     model.N = N;             % horizon length
     model.nvar = 9;          % number of variables
     model.neq  = n_states;   % number of equality constraints
-    model.nh = 4;            % number of inequality constraint functions
+    model.nh = 2;            % number of inequality constraint functions
     model.npar = Npar;       % number of runtime parameters
 
     %% Runge Kutta integration time
@@ -63,10 +63,10 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
 
     codeoptions = getOptions('TailoredSolver');
 
-    codeoptions.maxit = 150;    % Maximum number of iterations
+    codeoptions.maxit = 200;    % Maximum number of iterations
     codeoptions.optlevel = 2;   % 0: no optimization, 1: optimize for size, 2: optimize for speed, 3: optimize for size & speed
     codeoptions.platform = 'Gnu-x86_64'; % Specify the platform
-    codeoptions.printlevel = 0; % Optional, on some platforms printing is not supported
+    codeoptions.printlevel = 1; % Optional, on some platforms printing is not supported
     codeoptions.cleanup = 0; % To keep necessary files for target compile
     
     % Necessary to set bounds dynamically
@@ -74,14 +74,19 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
     codeoptions.dump_formulation = 1;
     
     % Speed up the solver
-%     codeoptions.nlp.checkFunctions = 0;
-%     codeoptions.nlp.linear_solver = 'symm_indefinite_fast';
-%     
-%     codeoptions.nlp.BarrStrat = 'monotone';
+    codeoptions.nlp.checkFunctions = 0;
+    codeoptions.nlp.linear_solver = 'symm_indefinite_fast'; % 'symm_indefinite'
+    
+    codeoptions.nlp.BarrStrat = 'monotone'; % 'loqo' (default). Strategy for updating the barrier parameter
+%     codeoptions.nlp.hessian_approximation = 'bfgs'; % hessian approximation ('gauss-newton' also supported)
 
     codeoptions.overwrite = 1;      % Overwrite existing solver
     codeoptions.BuildSimulinkBlock = 0;
     codeoptions.nohash = 1;         % Enforce solver regeneration
+
+%     codeoptions.nlp.integrator.attempt_subsystem_exploitation = 1; % exploit possible linear subsystems
+
+%     codeoptions.init = 1; % Solver initialization method (0: cold start; 1: centered start; 2: primal warm start; see https://forces.embotech.com/Documentation/solver_options/index.html#compiler-optimization-level)
 
 %     codeoptions.parallel = 1; % Internal Parallelization
 %     codeoptions.nlp.max_num_threads = 5; % When using code generated integrators (RK4) we must specify the maximum number of threads available
@@ -103,7 +108,7 @@ function f = objective(z, p)
     q_n = p(20);
     q_s = p(23);
     q_mu = p(21);
-    k = p(24);
+    k = p(26);
     
     % Progress rate
     sdot = (z(7)*cos(z(6)) - z(8)*sin(z(6)))/(1 - z(5)*k); % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
@@ -157,7 +162,8 @@ function xdot = my_continuous_dynamics(x, u, p)
     Cd = p(15);
     rho = p(16);
     Ar = p(17);
-    k = p(24);
+    Cm = p(26);
+    k = p(27);
     
     % Slip angles
     alpha_R = atan((vy-Lr*w)/(vx));
@@ -166,7 +172,7 @@ function xdot = my_continuous_dynamics(x, u, p)
     % Simplified Pacejka magic formula
     Fr = Dr*sin(Cr*atan(Br*alpha_R));
     Ff = Df*sin(Cf*atan(Bf*alpha_F));
-    Fx = Fm*(1+cos(delta)) - m*u_r*g - 0.5*Cd*rho*Ar*vx^2;
+    Fx = Cm*Fm*(1+cos(delta)) - m*u_r*g - 0.5*Cd*rho*Ar*vx^2;
     
     
     %Progress rate change
@@ -178,8 +184,8 @@ function xdot = my_continuous_dynamics(x, u, p)
             (vx*sin(mu) + vy*cos(mu));
             w - k*sdot;
             (1/m)*(Fx - Ff*sin(delta) + m*vy*w);
-            (1/m)*(Fr + Fm*sin(delta) + Ff*cos(delta) - m*vx*w);
-            (1/I)*((Ff*cos(delta) + Fm*sin(delta))*Lf - Fr*Lr)];
+            (1/m)*(Fr + Cm*Fm*sin(delta) + Ff*cos(delta) - m*vx*w);
+            (1/I)*((Ff*cos(delta) + Cm*Fm*sin(delta))*Lf - Fr*Lr)];
     
 end
 
@@ -194,6 +200,7 @@ function h = nonlin_const(z, p)
     Cf = p(10);
     Br = p(11);
     Bf = p(12); 
+    Cm = p(26);
     
     delta = z(3);
     Fm = z(4);
@@ -204,12 +211,12 @@ function h = nonlin_const(z, p)
     w = z(9);
     
     % Length and width of the car
-    long = 2.72;
-    width = 1.2 + 0.4;
+    long = Lr+Lf;
+    width = 1.2;
 
     % Maximum longitudinal & lateral acceleration
-    Ax_max = 5.5;
-    Ay_max = 8;
+    Ax_max = p(24);
+    Ay_max = p(25);
     
     alpha_R = atan((vy-Lr*w)/(vx));
     alpha_F = atan((vy+Lf*w)/(vx)) - delta;
@@ -217,11 +224,14 @@ function h = nonlin_const(z, p)
     Fr = Dr*sin(Cr*atan(Br*alpha_R));
     Ff = Df*sin(Cf*atan(Bf*alpha_F));
 
-    Fx = Fm*(1+cos(delta));
+    Fx = Cm*Fm*(1+cos(delta));
     
-    h = [(Fx/(Ax_max*m))^2 + (Fr/(Ay_max*m))^2; % <= lambda
-         (Fx/(Ax_max*m))^2 + (Ff/(Ay_max*m))^2; % <= lambda
-         n - long/2*sin(abs(mu)) + width/2*cos(mu); % <= L(s)
+%     h = [(Fx/(Ax_max*m))^2 + (Fr/(Ay_max*m))^2; % <= lambda
+%          (Fx/(Ax_max*m))^2 + (Ff/(Ay_max*m))^2; % <= lambda
+%          n - long/2*sin(abs(mu)) + width/2*cos(mu); % <= L(s)
+%          -n + long/2*sin(abs(mu)) + width/2*cos(mu)]; % <= R(s)
+
+    h = [ n - long/2*sin(abs(mu)) + width/2*cos(mu); % <= L(s)
          -n + long/2*sin(abs(mu)) + width/2*cos(mu)]; % <= R(s)
      
 end

@@ -25,6 +25,7 @@ MPC::MPC(const Params& params){
     this->Ar = params.vehicle.Ar;
     this->rho = params.vehicle.rho;
     this->gravity = params.vehicle.gravity;
+    this->Rwheel = params.vehicle.Rwheel;
 
 
     planner = Eigen::MatrixXd::Zero(nPlanning,7);
@@ -98,9 +99,6 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
     smax = msg->smax;
     plannerFlag = true;
 
-    cout << "TRO callback:\n";
-    cout << planner.topRows(15) << endl;
-
 }
 
 
@@ -113,6 +111,7 @@ void MPC::solve(){
         
         auto start_time = chrono::system_clock::now();
 
+        initial_conditions();
         set_params_bounds();
 
         /* Get i-th memory buffer */
@@ -123,7 +122,9 @@ void MPC::solve(){
         // Solve
         forces.exit_flag = TailoredSolver_solve(&forces.params, &forces.solution, &forces.info, forces.mem_handle, NULL, forces.ext_func);
 
-        ROS_WARN_STREAM("MPC exit flag: " << forces.exit_flag);
+        ROS_ERROR_STREAM("MPC exit flag: " << forces.exit_flag);
+        ROS_ERROR_STREAM("MPC solve time: " << forces.info.solvetime);
+        ROS_ERROR_STREAM("MPC iterations: " << forces.info.it);
 
         if(forces.exit_flag == 1) this->firstIter = false;
         else this->firstIter = true;
@@ -154,43 +155,210 @@ void MPC::solve(){
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //------------------------Auxiliar functions--------------------------------------------------
 
-vector<double> MPC::initial_conditions(){
+void MPC::set_params_bounds(){
 
-    // Calculate tangent vector of the trajectory
-    Eigen::Vector2d tangent;
-    tangent << planner(1,0) - planner(0,0), planner(1,1) - planner(0,1);
+    int id_k = 0;       // curvature's index
+    int id_sinit = 0;   // initial s index
+    double mean_s = 0;  // mean of s discretization (delta_s)
 
-    // Calculate vector from car to first point of the trajectory
-    Eigen::Vector2d s0_to_car;
-    s0_to_car << carState(0) - planner(0,0), carState(1) - planner(0,1);
+    Eigen::VectorXd progress = Eigen::VectorXd::Zero(this->N); // progress vector 
 
-    // Calculate cross product to get angle
-    double cross = s0_to_car(0)*tangent(1) - s0_to_car(1)*tangent(0);
-    double angle = asin(cross/(s0_to_car.norm()*tangent.norm())); // angle between car position and heading of the trajectory
+    int size = sizeof(forces.params.hu)/sizeof(forces.params.hu[0]);
+    int nh = int(size/this->N);
+    int Nvar = this->n_states + this->n_controls;
+    
+    if(!firstIter){
 
-    // Get sign
-    int sign = angle/fabs(angle);
+        // Loop to find minimum distance between s0 and predicted s
+        double min_dist = 10;
+        for(int index = 0; index < predicted_s.size(); index++){
 
-    if(fabs(angle) > M_PI/2) angle = fabs(angle) - M_PI/2;
-    else angle = M_PI/2 - fabs(angle);
+            double diff = fabs(planner(0,2) - predicted_s(index));
 
-    double n0 = s0_to_car.norm()*cos(angle)*sign; // normal distance from car to track
-    double t_angle = atan2(tangent(1), tangent(0)); // heading of the trajectory
-    double mu0 = -(t_angle - carState(2));
+            if(diff < 0.1){
+                id_sinit = index;
+                break;
 
-    ROS_WARN_STREAM("mu0: " << mu0);
-    ROS_WARN_STREAM("n0: " << n0);
+            }else if(diff < min_dist){
+                min_dist = diff;
+                id_sinit = index;
+            }
+        }
+    }
 
-    vector<double> xinit(this->n_states); // x = [delta, acc, n, mu, Vx, Vy, w]
-    xinit[0] = carState(6);
-    xinit[1] = carState(7);
-    xinit[2] = n0;
-    xinit[3] = mu0;
-    xinit[4] = carState(3);
-    xinit[5] = carState(4);
-    xinit[6] = carState(5);
+    for(int k = 0; k < this->N; k++){
 
-    return xinit;
+        this->forces.params.all_parameters[ 0 + k*this->Npar] = this->dRd; 
+        this->forces.params.all_parameters[ 1 + k*this->Npar] = this->dRa;
+        this->forces.params.all_parameters[ 2 + k*this->Npar] = this->m;
+        this->forces.params.all_parameters[ 3 + k*this->Npar] = this->I;
+        this->forces.params.all_parameters[ 4 + k*this->Npar] = this->Lf;
+        this->forces.params.all_parameters[ 5 + k*this->Npar] = this->Lr;
+        this->forces.params.all_parameters[ 6 + k*this->Npar] = this->Dr;
+        this->forces.params.all_parameters[ 7 + k*this->Npar] = this->Df;
+        this->forces.params.all_parameters[ 8 + k*this->Npar] = this->Cr;
+        this->forces.params.all_parameters[ 9 + k*this->Npar] = this->Cf;
+        this->forces.params.all_parameters[10 + k*this->Npar] = this->Br;
+        this->forces.params.all_parameters[11 + k*this->Npar] = this->Bf;
+        this->forces.params.all_parameters[12 + k*this->Npar] = this->u_r;   
+        this->forces.params.all_parameters[13 + k*this->Npar] = this->gravity;
+        this->forces.params.all_parameters[14 + k*this->Npar] = this->Cd;
+        this->forces.params.all_parameters[15 + k*this->Npar] = this->rho;   
+        this->forces.params.all_parameters[16 + k*this->Npar] = this->Ar; 
+        this->forces.params.all_parameters[17 + k*this->Npar] = this->q_slip;
+        this->forces.params.all_parameters[18 + k*this->Npar] = this->p_long;
+        this->forces.params.all_parameters[19 + k*this->Npar] = this->q_n;
+        this->forces.params.all_parameters[20 + k*this->Npar] = this->q_mu;
+        this->forces.params.all_parameters[21 + k*this->Npar] = this->lambda;
+        this->forces.params.all_parameters[22 + k*this->Npar] = this->q_s;
+        this->forces.params.all_parameters[23 + k*this->Npar] = this->bounds.x_max[1];  // CHANGE!! acc no longer input variable, Fm instead
+        this->forces.params.all_parameters[24 + k*this->Npar] = fabs(this->bounds.x_min[1]);
+        this->forces.params.all_parameters[25 + k*this->Npar] = Cm; 
+
+        int plannerIdx = 0;
+        if(firstIter){
+            plannerIdx = this->samplingS*k;
+        }else{
+            if(id_sinit < this->N){
+                
+                progress(k) = predicted_s(id_sinit);
+
+                // Set k(s), L(s), R(s) with the prediction from last MPC iteration 
+                double diff_s = progress(k) - this->planner(0, 2);
+                id_k = int(round(diff_s/this->delta_s));
+
+                if(diff_s < 0) id_k = 0;
+
+                // Average of last 5 delta_s 
+                // TO DO: 
+                //      -make longer
+                if(k != 0 && id_sinit > this->N - 5){
+
+                    diff_s = progress(k) - progress(k-1);
+
+                    if(diff_s < 0) diff_s += this->smax; // If we are passing the start line, reset diff
+                    mean_s += diff_s;
+                }
+
+                if(id_sinit == this->N) {
+                    mean_s = round(mean_s/5/delta_s);
+                }
+
+                id_sinit++;
+                plannerIdx = id_k;
+
+            }else{
+                // Set k(s), L(s), R(s) with planner actual discretization
+                id_k += int(mean_s);
+                plannerIdx = id_k;
+            }
+        }
+
+        this->forces.params.all_parameters[26 + k*this->Npar] = planner(plannerIdx, 3); // curvature 
+
+        // Inequality constraints bounds:
+        this->forces.params.hu[k*nh] =     this->lambda;
+        this->forces.params.hu[k*nh + 1] = this->lambda;
+        this->forces.params.hu[k*nh + 2] = fabs(planner(plannerIdx, 5)); // L(s) ortogonal left dist from the path to the track limits
+        this->forces.params.hu[k*nh + 3] = fabs(planner(plannerIdx, 6)); // R(s) ortogonal right dist from the path to the track limits
+
+
+        // Equality constraints bounds:
+        this->forces.params.lb[k*Nvar] =     this->bounds.u_min[0];
+        this->forces.params.lb[k*Nvar + 1] = this->bounds.u_min[1];
+        this->forces.params.lb[k*Nvar + 2] = this->bounds.x_min[0];
+        this->forces.params.lb[k*Nvar + 3] = this->bounds.x_min[1];
+        this->forces.params.lb[k*Nvar + 4] = this->bounds.x_min[2];
+        this->forces.params.lb[k*Nvar + 5] = this->bounds.x_min[3];
+        this->forces.params.lb[k*Nvar + 6] = this->bounds.x_min[4];
+        this->forces.params.lb[k*Nvar + 7] = this->bounds.x_min[5];
+        this->forces.params.lb[k*Nvar + 8] = this->bounds.x_min[6];
+
+
+        this->forces.params.ub[k*Nvar] =     this->bounds.u_max[0];
+        this->forces.params.ub[k*Nvar + 1] = this->bounds.u_max[1];
+        this->forces.params.ub[k*Nvar + 2] = this->bounds.x_max[0];
+        this->forces.params.ub[k*Nvar + 3] = this->bounds.x_max[1];
+        this->forces.params.ub[k*Nvar + 4] = this->bounds.x_max[2];
+        this->forces.params.ub[k*Nvar + 5] = this->bounds.x_max[3];
+        this->forces.params.ub[k*Nvar + 6] = this->bounds.x_max[4];
+        this->forces.params.ub[k*Nvar + 7] = this->bounds.x_max[5];
+        this->forces.params.ub[k*Nvar + 8] = this->bounds.x_max[6];
+
+
+        if(!firstIter){
+            if((latency + k) < this->N - 1){
+                if(this->forces.exit_flag == 1){
+                    this->forces.params.x0[k*Nvar] =     solCommands(latency+k, 0);
+                    this->forces.params.x0[k*Nvar + 1] = solCommands(latency+k, 1);
+                    this->forces.params.x0[k*Nvar + 2] = solCommands(latency+k, 2);
+                    this->forces.params.x0[k*Nvar + 3] = solCommands(latency+k, 3);
+                    this->forces.params.x0[k*Nvar + 4] = solStates(latency+k, 0);
+                    this->forces.params.x0[k*Nvar + 5] = solStates(latency+k, 1);
+                    this->forces.params.x0[k*Nvar + 6] = solStates(latency+k, 2);
+                    this->forces.params.x0[k*Nvar + 7] = solStates(latency+k, 3);
+                    this->forces.params.x0[k*Nvar + 8] = solStates(latency+k, 4);
+                }else{
+                    this->forces.params.x0[k*Nvar] =     (this->forces.params.lb[k*Nvar] + this->forces.params.ub[k*Nvar])/2;
+                    this->forces.params.x0[k*Nvar + 1] = (this->forces.params.lb[k*Nvar + 1] + this->forces.params.ub[k*Nvar + 1])/2;
+                    this->forces.params.x0[k*Nvar + 2] = (this->forces.params.lb[k*Nvar + 2] + this->forces.params.ub[k*Nvar + 2])/2;
+                    this->forces.params.x0[k*Nvar + 3] = (this->forces.params.lb[k*Nvar + 3] + this->forces.params.ub[k*Nvar + 3])/2;
+                    this->forces.params.x0[k*Nvar + 4] = (this->forces.params.lb[k*Nvar + 4] + this->forces.params.ub[k*Nvar + 4])/2;
+                    this->forces.params.x0[k*Nvar + 5] = (this->forces.params.lb[k*Nvar + 5] + this->forces.params.ub[k*Nvar + 5])/2;
+                    this->forces.params.x0[k*Nvar + 6] = (this->forces.params.lb[k*Nvar + 6] + this->forces.params.ub[k*Nvar + 6])/2;
+                    this->forces.params.x0[k*Nvar + 7] = (this->forces.params.lb[k*Nvar + 7] + this->forces.params.ub[k*Nvar + 7])/2;
+                    this->forces.params.x0[k*Nvar + 8] = (this->forces.params.lb[k*Nvar + 8] + this->forces.params.ub[k*Nvar + 8])/2;
+                }
+            }else{
+                if(this->forces.exit_flag == 1){
+                    this->forces.params.x0[k*Nvar] =     solCommands(N-1, 0);
+                    this->forces.params.x0[k*Nvar + 1] = solCommands(N-1, 1);
+                    this->forces.params.x0[k*Nvar + 2] = solCommands(N-1, 2);
+                    this->forces.params.x0[k*Nvar + 3] = solCommands(N-1, 3);
+                    this->forces.params.x0[k*Nvar + 4] = solStates(N-1, 0);
+                    this->forces.params.x0[k*Nvar + 5] = solStates(N-1, 1);
+                    this->forces.params.x0[k*Nvar + 6] = solStates(N-1, 2);
+                    this->forces.params.x0[k*Nvar + 7] = solStates(N-1, 3);
+                    this->forces.params.x0[k*Nvar + 8] = solStates(N-1, 4);
+                }else{
+                    this->forces.params.x0[k*Nvar] =     (this->forces.params.lb[k*Nvar] + this->forces.params.ub[k*Nvar])/2;
+                    this->forces.params.x0[k*Nvar + 1] = (this->forces.params.lb[k*Nvar + 1] + this->forces.params.ub[k*Nvar + 1])/2;
+                    this->forces.params.x0[k*Nvar + 2] = (this->forces.params.lb[k*Nvar + 2] + this->forces.params.ub[k*Nvar + 2])/2;
+                    this->forces.params.x0[k*Nvar + 3] = (this->forces.params.lb[k*Nvar + 3] + this->forces.params.ub[k*Nvar + 3])/2;
+                    this->forces.params.x0[k*Nvar + 4] = (this->forces.params.lb[k*Nvar + 4] + this->forces.params.ub[k*Nvar + 4])/2;
+                    this->forces.params.x0[k*Nvar + 5] = (this->forces.params.lb[k*Nvar + 5] + this->forces.params.ub[k*Nvar + 5])/2;
+                    this->forces.params.x0[k*Nvar + 6] = (this->forces.params.lb[k*Nvar + 6] + this->forces.params.ub[k*Nvar + 6])/2;
+                    this->forces.params.x0[k*Nvar + 7] = (this->forces.params.lb[k*Nvar + 7] + this->forces.params.ub[k*Nvar + 7])/2;
+                    this->forces.params.x0[k*Nvar + 8] = (this->forces.params.lb[k*Nvar + 8] + this->forces.params.ub[k*Nvar + 8])/2;
+                }
+            }
+        }else{
+
+            if(k==0){
+                this->forces.params.x0[k*Nvar] =     0;
+                this->forces.params.x0[k*Nvar + 1] = 0;
+                this->forces.params.x0[k*Nvar + 2] = forces.params.xinit[0];
+                this->forces.params.x0[k*Nvar + 3] = forces.params.xinit[1];
+                this->forces.params.x0[k*Nvar + 4] = forces.params.xinit[2];
+                this->forces.params.x0[k*Nvar + 5] = forces.params.xinit[3];
+                this->forces.params.x0[k*Nvar + 6] = forces.params.xinit[4];
+                this->forces.params.x0[k*Nvar + 7] = forces.params.xinit[5];
+                this->forces.params.x0[k*Nvar + 8] = forces.params.xinit[6];
+
+            }else{
+                this->forces.params.x0[k*Nvar] =     (this->forces.params.lb[k*Nvar] + this->forces.params.ub[k*Nvar])/2;
+                this->forces.params.x0[k*Nvar + 1] = (this->forces.params.lb[k*Nvar + 1] + this->forces.params.ub[k*Nvar + 1])/2;
+                this->forces.params.x0[k*Nvar + 2] = (this->forces.params.lb[k*Nvar + 2] + this->forces.params.ub[k*Nvar + 2])/2;
+                this->forces.params.x0[k*Nvar + 3] = (this->forces.params.lb[k*Nvar + 3] + this->forces.params.ub[k*Nvar + 3])/2;
+                this->forces.params.x0[k*Nvar + 4] = (this->forces.params.lb[k*Nvar + 4] + this->forces.params.ub[k*Nvar + 4])/2;
+                this->forces.params.x0[k*Nvar + 5] = (this->forces.params.lb[k*Nvar + 5] + this->forces.params.ub[k*Nvar + 5])/2;
+                this->forces.params.x0[k*Nvar + 6] = (this->forces.params.lb[k*Nvar + 6] + this->forces.params.ub[k*Nvar + 6])/2;
+                this->forces.params.x0[k*Nvar + 7] = (this->forces.params.lb[k*Nvar + 7] + this->forces.params.ub[k*Nvar + 7])/2;
+                this->forces.params.x0[k*Nvar + 8] = (this->forces.params.lb[k*Nvar + 8] + this->forces.params.ub[k*Nvar + 8])/2;
+
+            }
+        }
+    }
 
 }
 
@@ -249,11 +417,49 @@ void MPC::s_prediction(){
     // ...
 }
 
+void MPC::initial_conditions(){
+
+    // Calculate tangent vector of the trajectory
+    Eigen::Vector2d tangent;
+    tangent << planner(1,0) - planner(0,0), planner(1,1) - planner(0,1);
+
+    // Calculate vector from car to first point of the trajectory
+    Eigen::Vector2d s0_to_car;
+    s0_to_car << carState(0) - planner(0,0), carState(1) - planner(0,1);
+
+    // Calculate cross product to get angle
+    double cross = s0_to_car(0)*tangent(1) - s0_to_car(1)*tangent(0);
+    double angle = asin(cross/(s0_to_car.norm()*tangent.norm())); // angle between car position and heading of the trajectory
+
+    // Get sign
+    int sign = angle/fabs(angle);
+
+    if(fabs(angle) > M_PI/2) angle = fabs(angle) - M_PI/2;
+    else angle = M_PI/2 - fabs(angle);
+
+    double n0 = s0_to_car.norm()*cos(angle)*sign; // normal distance from car to track
+    double t_angle = atan2(tangent(1), tangent(0)); // heading of the trajectory
+    double mu0 = -(t_angle - carState(2));
+
+    ROS_WARN_STREAM("mu0: " << mu0);
+    ROS_WARN_STREAM("n0: " << n0);
+
+    // xinit = [delta, Fm, n, mu, Vx, Vy, w]
+    forces.params.xinit[0] = carState(6);
+    forces.params.xinit[1] = min(this->m*carState(7)/this->Cm,1.0);
+    forces.params.xinit[2] = n0;
+    forces.params.xinit[3] = mu0;
+    forces.params.xinit[4] = carState(3);
+    forces.params.xinit[5] = carState(4);
+    forces.params.xinit[6] = carState(5);
+
+}
+
 void MPC::get_solution(){
 
     // Change vec dimensions from x(5*N x 1) u(4*N x 1) to x(N x 5) u(N x 4)
-    Eigen::MatrixXd u = array2eigen(forces.solution.U);
-    Eigen::MatrixXd x = array2eigen(forces.solution.X);
+    Eigen::MatrixXd u = output2eigen(forces.solution.U, sizeof(forces.solution.U)/sizeof(forces.solution.U[0]));
+    Eigen::MatrixXd x = output2eigen(forces.solution.X, sizeof(forces.solution.X)/sizeof(forces.solution.X[0]));
 
     Eigen::Map<Eigen::MatrixXd> controlsT(u.data(), 4, N);
     Eigen::Map<Eigen::MatrixXd> statesT(u.data(), 5, N);
@@ -261,237 +467,20 @@ void MPC::get_solution(){
     solStates = statesT.transpose();
     solCommands = controlsT.transpose();
 
-}
-
-void MPC::set_params_bounds(){
-
-    int id_k = 0;       // curvature's index
-    int id_sinit = 0;   // initial s index
-    double mean_s = 0;  // mean s discretization
-
-    int size = sizeof(forces.params.hu)/sizeof(forces.params.hu[0]);
-    int nh = int(size/this->N);
-    int Nvar = this->n_states + this->n_controls;
-
-    vector<double> xinit = initial_conditions(); // initial conditions evaluation
-    cout << "initial conditions" << endl;
-    
-    if(!firstIter){
-
-        // Loop to find minimum distance between s0 and predicted s
-        double min_dist = 10;
-        for(int index = 0; index < predicted_s.size(); index++){
-
-            double diff = fabs(planner(0,2) - predicted_s(index));
-
-            if(diff < 0.1){
-                id_sinit = index;
-                break;
-
-            }else if(diff < min_dist){
-                min_dist = diff;
-                id_sinit = index;
-            }
-        }
-    }
-
-    cout << "Enter for loop\n";
-    for(int k = 0; k < this->N; k++){
-
-        cout << "k*Nvar = " << k*Nvar << endl;
-        cout << "+8 = " << k*Nvar + 8 << endl;
-        cout << "k*Npar = " << k*Npar << endl;
-
-        this->forces.params.all_parameters[ 0 + k*this->Npar] = this->dRd; 
-        this->forces.params.all_parameters[ 1 + k*this->Npar] = this->dRa;
-        this->forces.params.all_parameters[ 2 + k*this->Npar] = this->m;
-        this->forces.params.all_parameters[ 3 + k*this->Npar] = this->I;
-        this->forces.params.all_parameters[ 4 + k*this->Npar] = this->Lf;
-        this->forces.params.all_parameters[ 5 + k*this->Npar] = this->Lr;
-        this->forces.params.all_parameters[ 6 + k*this->Npar] = this->Dr;
-        this->forces.params.all_parameters[ 7 + k*this->Npar] = this->Df;
-        this->forces.params.all_parameters[ 8 + k*this->Npar] = this->Cr;
-        this->forces.params.all_parameters[ 9 + k*this->Npar] = this->Cf;
-        this->forces.params.all_parameters[10 + k*this->Npar] = this->Br;
-        this->forces.params.all_parameters[11 + k*this->Npar] = this->Bf;
-        this->forces.params.all_parameters[12 + k*this->Npar] = this->u_r;   
-        this->forces.params.all_parameters[13 + k*this->Npar] = this->gravity;
-        this->forces.params.all_parameters[14 + k*this->Npar] = this->Cd;
-        this->forces.params.all_parameters[15 + k*this->Npar] = this->rho;   
-        this->forces.params.all_parameters[16 + k*this->Npar] = this->Ar; 
-        this->forces.params.all_parameters[17 + k*this->Npar] = this->q_slip;
-        this->forces.params.all_parameters[18 + k*this->Npar] = this->p_long;
-        this->forces.params.all_parameters[19 + k*this->Npar] = this->q_n;
-        this->forces.params.all_parameters[20 + k*this->Npar] = this->q_mu;
-        this->forces.params.all_parameters[21 + k*this->Npar] = this->lambda;
-        this->forces.params.all_parameters[22 + k*this->Npar] = this->q_s;
-
-        cout << "Dyn params\n";
-
-        int plannerIdx = 0;
-        if(firstIter){
-            plannerIdx = this->samplingS*k;
-        }else{
-            if(id_sinit < this->N){
-
-                // Set k(s), L(s), R(s) with the prediction from last MPC iteration 
-                double diff_s = predicted_s(id_sinit) - this->planner(0, 2);
-                id_k = int(round(diff_s/this->delta_s));
-
-                if(diff_s < 0) id_k = 0;
-
-                // Average of last 5 delta_s 
-                // TO DO: 
-                //      -make longer
-                if(k != 0 && id_sinit > this->N - 5){
-                    diff_s = predicted_s(id_sinit) - this->forces.params.all_parameters[23 + (k-1)*this->Npar];
-
-                    if(diff_s < 0) diff_s += this->smax; // If we are passing the start line, reset diff
-                    mean_s += diff_s;
-                }
-
-                if(id_sinit == this->N) {
-                    mean_s = round(mean_s/5/delta_s);
-                }
-
-                id_sinit++;
-                plannerIdx = id_k;
-
-            }else{
-                // Set k(s), L(s), R(s) with planner actual discretization
-                // TO DO:
-                //      - increase discretization (more than the planner)
-                //      - maybe rk4 time from matlab would have to be real time param 
-                id_k += int(mean_s);
-                plannerIdx = id_k;
-            }
-        }
-
-        cout << "plannerIdx: " << plannerIdx << endl;
-
-        this->forces.params.all_parameters[23 + k*this->Npar] = planner(plannerIdx, 3); // curvature 
-
-        cout << "curvature: " << this->forces.params.all_parameters[23 + k*this->Npar] << endl;
-
-        // Inequality constraints bounds:
-        this->forces.params.hu[k*nh] = this->lambda;
-        this->forces.params.hu[k*nh + 1] = this->lambda;
-        this->forces.params.hu[k*nh + 2] = fabs(planner(plannerIdx, 5)); // L(s) ortogonal left dist from the path to the track limits
-        this->forces.params.hu[k*nh + 3] = fabs(planner(plannerIdx, 6)); // R(s) ortogonal right dist from the path to the track limits
-
-        cout << "Inequality const set\n";
-        cout << "L(s): " << this->forces.params.hu[k*nh + 2] << endl;
-
-        // Equality constraints bounds:
-        this->forces.params.lb[k*Nvar] = this->bounds.u_min[0];
-        this->forces.params.lb[k*Nvar + 1] = this->bounds.u_min[1];
-        this->forces.params.lb[k*Nvar + 2] = this->bounds.x_min[0];
-        this->forces.params.lb[k*Nvar + 3] = this->bounds.x_min[1];
-        this->forces.params.lb[k*Nvar + 4] = this->bounds.x_min[2];
-        this->forces.params.lb[k*Nvar + 5] = this->bounds.x_min[3];
-        this->forces.params.lb[k*Nvar + 6] = this->bounds.x_min[4];
-        this->forces.params.lb[k*Nvar + 7] = this->bounds.x_min[5];
-        this->forces.params.lb[k*Nvar + 8] = this->bounds.x_min[6];
-
-        cout << "min set\n";
-
-        this->forces.params.ub[k*Nvar] = this->bounds.u_max[0];
-        this->forces.params.ub[k*Nvar + 1] = this->bounds.u_max[1];
-        this->forces.params.ub[k*Nvar + 2] = this->bounds.x_max[0];
-        this->forces.params.ub[k*Nvar + 3] = this->bounds.x_max[1];
-        this->forces.params.ub[k*Nvar + 4] = this->bounds.x_max[2];
-        this->forces.params.ub[k*Nvar + 5] = this->bounds.x_max[3];
-        this->forces.params.ub[k*Nvar + 6] = this->bounds.x_max[4];
-        this->forces.params.ub[k*Nvar + 7] = this->bounds.x_max[5];
-        this->forces.params.ub[k*Nvar + 8] = this->bounds.x_max[6];
-
-        cout << "max set\n";
-
-        if(!firstIter){
-            if((latency + k) < this->N - 1){
-                if(this->forces.exit_flag == 1){
-                    this->forces.params.x0[k*Nvar] = solCommands(latency+k, 0);
-                    this->forces.params.x0[k*Nvar + 1] = solCommands(latency+k, 1);
-                    this->forces.params.x0[k*Nvar + 2] = solCommands(latency+k, 2);
-                    this->forces.params.x0[k*Nvar + 3] = solCommands(latency+k, 3);
-                    this->forces.params.x0[k*Nvar + 4] = solStates(latency+k, 0);
-                    this->forces.params.x0[k*Nvar + 5] = solStates(latency+k, 1);
-                    this->forces.params.x0[k*Nvar + 6] = solStates(latency+k, 2);
-                    this->forces.params.x0[k*Nvar + 7] = solStates(latency+k, 3);
-                    this->forces.params.x0[k*Nvar + 8] = solStates(latency+k, 4);
-                }else{
-                    this->forces.params.x0[k*Nvar] = (this->forces.params.lb[k*Nvar] + this->forces.params.ub[k*Nvar])/2;
-                    this->forces.params.x0[k*Nvar + 1] = (this->forces.params.lb[k*Nvar + 1] + this->forces.params.ub[k*Nvar + 1])/2;
-                    this->forces.params.x0[k*Nvar + 2] = (this->forces.params.lb[k*Nvar + 2] + this->forces.params.ub[k*Nvar + 2])/2;
-                    this->forces.params.x0[k*Nvar + 3] = (this->forces.params.lb[k*Nvar + 3] + this->forces.params.ub[k*Nvar + 3])/2;
-                    this->forces.params.x0[k*Nvar + 4] = (this->forces.params.lb[k*Nvar + 4] + this->forces.params.ub[k*Nvar + 4])/2;
-                    this->forces.params.x0[k*Nvar + 5] = (this->forces.params.lb[k*Nvar + 5] + this->forces.params.ub[k*Nvar + 5])/2;
-                    this->forces.params.x0[k*Nvar + 6] = (this->forces.params.lb[k*Nvar + 6] + this->forces.params.ub[k*Nvar + 6])/2;
-                    this->forces.params.x0[k*Nvar + 7] = (this->forces.params.lb[k*Nvar + 7] + this->forces.params.ub[k*Nvar + 7])/2;
-                    this->forces.params.x0[k*Nvar + 8] = (this->forces.params.lb[k*Nvar + 8] + this->forces.params.ub[k*Nvar + 8])/2;
-                }
-            }else{
-                if(this->forces.exit_flag == 1){
-                    this->forces.params.x0[k*Nvar] = solCommands(N-1, 0);
-                    this->forces.params.x0[k*Nvar + 1] = solCommands(N-1, 1);
-                    this->forces.params.x0[k*Nvar + 2] = solCommands(N-1, 2);
-                    this->forces.params.x0[k*Nvar + 3] = solCommands(N-1, 3);
-                    this->forces.params.x0[k*Nvar + 4] = solStates(N-1, 0);
-                    this->forces.params.x0[k*Nvar + 5] = solStates(N-1, 1);
-                    this->forces.params.x0[k*Nvar + 6] = solStates(N-1, 2);
-                    this->forces.params.x0[k*Nvar + 7] = solStates(N-1, 3);
-                    this->forces.params.x0[k*Nvar + 8] = solStates(N-1, 4);
-                }else{
-                    this->forces.params.x0[k*Nvar] = (this->forces.params.lb[k*Nvar] + this->forces.params.ub[k*Nvar])/2;
-                    this->forces.params.x0[k*Nvar + 1] = (this->forces.params.lb[k*Nvar + 1] + this->forces.params.ub[k*Nvar + 1])/2;
-                    this->forces.params.x0[k*Nvar + 2] = (this->forces.params.lb[k*Nvar + 2] + this->forces.params.ub[k*Nvar + 2])/2;
-                    this->forces.params.x0[k*Nvar + 3] = (this->forces.params.lb[k*Nvar + 3] + this->forces.params.ub[k*Nvar + 3])/2;
-                    this->forces.params.x0[k*Nvar + 4] = (this->forces.params.lb[k*Nvar + 4] + this->forces.params.ub[k*Nvar + 4])/2;
-                    this->forces.params.x0[k*Nvar + 5] = (this->forces.params.lb[k*Nvar + 5] + this->forces.params.ub[k*Nvar + 5])/2;
-                    this->forces.params.x0[k*Nvar + 6] = (this->forces.params.lb[k*Nvar + 6] + this->forces.params.ub[k*Nvar + 6])/2;
-                    this->forces.params.x0[k*Nvar + 7] = (this->forces.params.lb[k*Nvar + 7] + this->forces.params.ub[k*Nvar + 7])/2;
-                    this->forces.params.x0[k*Nvar + 8] = (this->forces.params.lb[k*Nvar + 8] + this->forces.params.ub[k*Nvar + 8])/2;
-                }
-            }
-        }else{
-
-            if(k==0){
-                this->forces.params.x0[k*Nvar] = 0;
-                this->forces.params.x0[k*Nvar + 1] = 0;
-                this->forces.params.x0[k*Nvar + 2] = xinit[0];
-                this->forces.params.x0[k*Nvar + 3] = xinit[1];
-                this->forces.params.x0[k*Nvar + 4] = xinit[2];
-                this->forces.params.x0[k*Nvar + 5] = xinit[3];
-                this->forces.params.x0[k*Nvar + 6] = xinit[4];
-                this->forces.params.x0[k*Nvar + 7] = xinit[5];
-                this->forces.params.x0[k*Nvar + 8] = xinit[6];
-
-                cout << "xinit when k==0: " << xinit[6] << endl;
-            }else{
-                this->forces.params.x0[k*Nvar] = (this->forces.params.lb[k*Nvar] + this->forces.params.ub[k*Nvar])/2;
-                this->forces.params.x0[k*Nvar + 1] = (this->forces.params.lb[k*Nvar + 1] + this->forces.params.ub[k*Nvar + 1])/2;
-                this->forces.params.x0[k*Nvar + 2] = (this->forces.params.lb[k*Nvar + 2] + this->forces.params.ub[k*Nvar + 2])/2;
-                this->forces.params.x0[k*Nvar + 3] = (this->forces.params.lb[k*Nvar + 3] + this->forces.params.ub[k*Nvar + 3])/2;
-                this->forces.params.x0[k*Nvar + 4] = (this->forces.params.lb[k*Nvar + 4] + this->forces.params.ub[k*Nvar + 4])/2;
-                this->forces.params.x0[k*Nvar + 5] = (this->forces.params.lb[k*Nvar + 5] + this->forces.params.ub[k*Nvar + 5])/2;
-                this->forces.params.x0[k*Nvar + 6] = (this->forces.params.lb[k*Nvar + 6] + this->forces.params.ub[k*Nvar + 6])/2;
-                this->forces.params.x0[k*Nvar + 7] = (this->forces.params.lb[k*Nvar + 7] + this->forces.params.ub[k*Nvar + 7])/2;
-                this->forces.params.x0[k*Nvar + 8] = (this->forces.params.lb[k*Nvar + 8] + this->forces.params.ub[k*Nvar + 8])/2;
-
-                cout << "MEAN: " << (this->forces.params.lb[k*Nvar + 6] + this->forces.params.ub[k*Nvar + 6])/2 << endl;
-            }
-        }
-    }
-    cout << "Finished for loop\n";
+    cout << "solStates: " << endl;
+    cout << solStates << endl;
 
 }
 
 void MPC::msgCommands(as_msgs::CarCommands *msg){
 
     msg->header.stamp = ros::Time::now();
-    msg->motor = solCommands(this->latency, 3);
+    msg->motor = getTorquefromThrottle(0.1); //getTorquefromThrottle(solCommands(this->latency, 3));
     msg->steering = solCommands(this->latency, 2);
     msg->Mtv = 0.0;
+
+    cout << "steering: " << solCommands(this->latency, 2) << endl;
+    cout << "motor: " << solCommands(this->latency, 3) << endl;
     return;
 }
 
@@ -526,15 +515,20 @@ Eigen::MatrixXd MPC::vector2eigen(vector<double> vect){
     return result;
 }
 
-Eigen::MatrixXd MPC::array2eigen(double *arr){
+Eigen::MatrixXd MPC::output2eigen(double* arr, int size){
 
-    int size = sizeof(*arr)/sizeof(arr[0]);
     cout << "Array size is " << size << endl;
     Eigen::MatrixXd result(size,1);
     for(int i = 0; i < size; i++){
         result(i,0) = arr[i];
+        // cout << arr[i] << endl;
     }
     return result;
+}
+
+double MPC::getTorquefromThrottle(double throttle){
+
+    return throttle*this->Cm*this->Rwheel;
 }
 
 
@@ -559,6 +553,7 @@ void MPC::reconfigure(tailored_mpc::dynamicConfig& config){
         this->lambda = config.lambda;
         this->q_s = config.q_s;
         this->latency = config.latency;
+        this->Cm = config.Cm;
 
         this->bounds.u_min[0] = config.diff_delta_min;
         this->bounds.u_min[1] = config.diff_acc_min;
