@@ -16,7 +16,7 @@ end
 addpath(solverDir);
 
 %% Problem info
-t = 25e-3; % Runge Kutta integrator time
+t = 0.025; % Runge Kutta integrator time
 N = 40; % Horizon Length
 n_states = 7;
 n_controls = 2;

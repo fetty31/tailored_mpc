@@ -446,12 +446,17 @@ void MPC::initial_conditions(){
 
     // xinit = [delta, Fm, n, mu, Vx, Vy, w]
     forces.params.xinit[0] = carState(6);
-    forces.params.xinit[1] = min(this->m*carState(7)/this->Cm,1.0);
+    forces.params.xinit[1] = ax_to_throttle(carState(7));
     forces.params.xinit[2] = n0;
     forces.params.xinit[3] = mu0;
     forces.params.xinit[4] = carState(3);
     forces.params.xinit[5] = carState(4);
     forces.params.xinit[6] = carState(5);
+
+    cout << "Xinit:\n";
+    for(int i;i<7;i++){
+        cout << forces.params.xinit[i] << endl;
+    }
 
 }
 
@@ -462,7 +467,7 @@ void MPC::get_solution(){
     Eigen::MatrixXd x = output2eigen(forces.solution.X, sizeof(forces.solution.X)/sizeof(forces.solution.X[0]));
 
     Eigen::Map<Eigen::MatrixXd> controlsT(u.data(), 4, N);
-    Eigen::Map<Eigen::MatrixXd> statesT(u.data(), 5, N);
+    Eigen::Map<Eigen::MatrixXd> statesT(x.data(), 5, N);
 
     solStates = statesT.transpose();
     solCommands = controlsT.transpose();
@@ -470,12 +475,15 @@ void MPC::get_solution(){
     cout << "solStates: " << endl;
     cout << solStates << endl;
 
+    cout << "solCommands:\n";
+    cout << solCommands << endl;
+
 }
 
 void MPC::msgCommands(as_msgs::CarCommands *msg){
 
     msg->header.stamp = ros::Time::now();
-    msg->motor = getTorquefromThrottle(0.1); //getTorquefromThrottle(solCommands(this->latency, 3));
+    msg->motor = 0.0; //solCommands(this->latency,3); //getTorquefromThrottle(solCommands(this->latency, 3));
     msg->steering = solCommands(this->latency, 2);
     msg->Mtv = 0.0;
 
@@ -515,7 +523,7 @@ Eigen::MatrixXd MPC::vector2eigen(vector<double> vect){
     return result;
 }
 
-Eigen::MatrixXd MPC::output2eigen(double* arr, int size){
+Eigen::MatrixXd MPC::output2eigen(double arr[], int size){
 
     cout << "Array size is " << size << endl;
     Eigen::MatrixXd result(size,1);

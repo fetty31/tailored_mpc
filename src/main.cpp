@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include "mpc.hh"
+#include "utils/vis_tools.hh"
 #include "utils/params.hh"
 
 
@@ -23,6 +24,9 @@ int main(int argc, char **argv) {
 
     // MPC object
     MPC mpc(params);
+
+    // Visualization tools
+    VisualizationTools rviz = VisualizationTools(&mpc);
 
     // Publishers & Subscribers
     ros::Subscriber subState = nh.subscribe(params.mpc.topics.state, 1, &MPC::stateCallback, &mpc);
@@ -54,6 +58,9 @@ int main(int argc, char **argv) {
         as_msgs::CarCommands msg = as_msgs::CarCommands();
         mpc.msgCommands(&msg);
         pubCommands.publish(msg);
+
+        rviz.rviz_predicted();
+        rviz.rviz_actual();
 
         cout << "iteration: " << it << endl;
         it++;

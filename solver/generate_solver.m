@@ -29,6 +29,7 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
     
     %% Dynamics, i.e. equality constraints 
     model.eq = @integrated_dynamics;
+%     model.continuous_dynamics = @my_continuous_dynamics;
     
     % Nonlinear inequalities
     model.ineq = @nonlin_const;
@@ -53,6 +54,9 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
     %% Initial conditions
     % Initial conditions on all states
     model.xinitidx = 3:9; % use this to specify on which variables initial conditions are imposed
+
+    %% Linear subsystem
+%     model.linInIdx = [1, 2]';
     
     %% Define solver options
 %     if useFastSolver
@@ -62,6 +66,12 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
 %     end
 
     codeoptions = getOptions('TailoredSolver');
+
+    % Define integrator
+%     codeoptions.nlp.integrator.type = 'ERK4';
+%     codeoptions.nlp.integrator.Ts = rkTime;
+%     codeoptions.nlp.integrator.nodes = 2;
+%     codeoptions.nlp.integrator.differentiation_method = 'chainrule';
 
     codeoptions.maxit = 200;    % Maximum number of iterations
     codeoptions.optlevel = 2;   % 0: no optimization, 1: optimize for size, 2: optimize for speed, 3: optimize for size & speed
@@ -86,6 +96,7 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
 
 %     codeoptions.nlp.integrator.attempt_subsystem_exploitation = 1; % exploit possible linear subsystems
 
+
 %     codeoptions.init = 1; % Solver initialization method (0: cold start; 1: centered start; 2: primal warm start; see https://forces.embotech.com/Documentation/solver_options/index.html#compiler-optimization-level)
 
 %     codeoptions.parallel = 1; % Internal Parallelization
@@ -99,7 +110,7 @@ end
     %% Eval and dynamics functions
     
 function f = objective(z, p)
-
+    
     dRd = p(1);
     dRa = p(2);
     Lf = p(5);
@@ -124,28 +135,40 @@ function f = objective(z, p)
 end
 
 
+% function xnext = integrated_dynamics(z, p)
+% 
+%     global Ts
+% %     Ts = 25e-3;
+%     u = z(1:2);
+%     x = z(3:9);
+%   
+%     xnext = RK4(x, u, @my_continuous_dynamics, Ts, p);
+% end
+
 function xnext = integrated_dynamics(z, p)
 
     global Ts
-%     Ts = 25e-3;
     u = z(1:2);
     x = z(3:9);
-  
-    xnext = RK4(x, u, @my_continuous_dynamics, Ts, p);
+    U = u + x(1:2);
+
+    % implements a RK4 integrator for the dynamics
+    next_state = RK4( x(3:end), U, @my_continuous_dynamics, Ts, p);
+    xnext = [U; next_state];
 end
 
 function xdot = my_continuous_dynamics(x, u, p)
     
-    delta = x(1);
-    Fm = x(2);
-    n = x(3);
-    mu = x(4);
-    vx = x(5);
-    vy = x(6);
-    w = x(7);
+    delta = u(1);
+    Fm = u(2);
+    n = x(1);
+    mu = x(2);
+    vx = x(3);
+    vy = x(4);
+    w = x(5);
     
-    diff_delta = u(1);
-    diff_Fm = u(2);
+%     diff_delta = u(1);
+%     diff_Fm = u(2);
     
     m = p(3);
     I = p(4);
@@ -179,9 +202,15 @@ function xdot = my_continuous_dynamics(x, u, p)
     sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
     
     % Differential equations (time dependent)
-    xdot = [diff_delta;
-            diff_Fm;
-            (vx*sin(mu) + vy*cos(mu));
+%     xdot = [diff_delta;
+%             diff_Fm;
+%             vx*sin(mu) + vy*cos(mu);
+%             w - k*sdot;
+%             (1/m)*(Fx - Ff*sin(delta) + m*vy*w);
+%             (1/m)*(Fr + Cm*Fm*sin(delta) + Ff*cos(delta) - m*vx*w);
+%             (1/I)*((Ff*cos(delta) + Cm*Fm*sin(delta))*Lf - Fr*Lr)];
+
+    xdot = [vx*sin(mu) + vy*cos(mu);
             w - k*sdot;
             (1/m)*(Fx - Ff*sin(delta) + m*vy*w);
             (1/m)*(Fr + Cm*Fm*sin(delta) + Ff*cos(delta) - m*vx*w);

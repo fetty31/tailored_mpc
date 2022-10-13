@@ -1,4 +1,3 @@
-
-MAXIT - Maximum number of iterations reached, exiting.
-Solve time: 29.397 ms (200 iterations)
+Solver could not proceed, exiting. (Error code: 0x0193A).
+Solve time: 0.299 ms (1 iteration)
 

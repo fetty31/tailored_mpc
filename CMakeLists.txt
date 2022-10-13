@@ -35,6 +35,7 @@ add_executable(${PROJECT_NAME}_exec src/main.cpp)
 
 add_library(${PROJECT_NAME}
   src/utils/params.cpp
+  src/utils/vis_tools.cpp
   src/mpc.cpp
 
   solver/codeGen/TailoredSolver_casadi.c

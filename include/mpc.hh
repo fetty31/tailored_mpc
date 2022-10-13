@@ -99,6 +99,7 @@ class MPC{
         double width = 1.5;
         double d_IMU = -0.318;
         double Rwheel = 0.2;
+        double maxTrq = 300;
 
         // Initial conditions evaluation
         void initial_conditions();
@@ -107,14 +108,6 @@ class MPC{
         void s_prediction();
         Eigen::VectorXd predicted_s;
         double smax = 0;
-
-        // Previous state
-        Eigen::MatrixXd lastState;    // [x, y, heading, vx, vy, w]
-        Eigen::MatrixXd lastCommands; // [diff_delta, diff_acc, delta, acc]
-
-        // Previous solution
-        Eigen::MatrixXd solStates;    // [n, mu, vx, vy, w]
-        Eigen::MatrixXd solCommands;  // [diff_delta, diff_acc, delta, acc]
 
         // FORCESPRO:
         void set_params_bounds(); // here parameters & boundaries are added in the same for loop
@@ -126,6 +119,7 @@ class MPC{
         Eigen::MatrixXd vector2eigen(vector<double> vect);
         Eigen::MatrixXd output2eigen(double* array, int size);
         double getTorquefromThrottle(double throttle);
+        double ax_to_throttle(double ax){ return (this->m*ax*this->Rwheel)/maxTrq; }
 
 
     public:
@@ -156,6 +150,14 @@ class MPC{
 
         //Actual state of the car
         Eigen::VectorXd carState; // [x, y, theta, vx, vy, w, delta(steering), acc]
+
+        // Previous state
+        Eigen::MatrixXd lastState;    // [x, y, heading, vx, vy, w]
+        Eigen::MatrixXd lastCommands; // [diff_delta, diff_acc, delta, acc]
+
+        // Previous solution
+        Eigen::MatrixXd solStates;    // [n, mu, vx, vy, w]
+        Eigen::MatrixXd solCommands;  // [diff_delta, diff_acc, delta, acc]
 
 };
 
