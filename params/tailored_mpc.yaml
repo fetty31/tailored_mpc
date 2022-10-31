@@ -12,7 +12,7 @@ Vehicle:
   Lr: 0.822                                           # Distance from CoG to rear axis
   d_IMU: -0.318                                       # Distance from vectornav to CoG
   Rwheel: 0.2                                         # Effective wheel radius
-  maxTrq: 300                                         # Maximum torque
+  maxTrq: 700                                         # Maximum torque
 
 Topics:
   State: /AS/C/state
@@ -23,11 +23,11 @@ Topics:
 
 NLOP:
   Nstates: 7                                          # Number of states
-  Ncontrols: 2                                        # Number of controls
+  Ncontrols: 3                                        # Number of controls
   N: 40                                               # Prediction horizon
-  Npar: 27                                            # Number of parameters
+  Npar: 28                                            # Number of parameters
 
 Hz: 20                                                #[s] MPC frequency
-rk4_t: 0.025                                           #[s] Runge Kutta integration time (must match the time used in FORCES_problem.m)
+rk4_t: 0.025                                          #[s] Runge Kutta integration time (must match the time used in FORCES_problem.m)
 
 nPlanning: 1900                                       # n points saved from the planner

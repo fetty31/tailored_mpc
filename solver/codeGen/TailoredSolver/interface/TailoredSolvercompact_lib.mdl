@@ -60,13 +60,13 @@ Model {
       }
     }
   }
-  Created		  "10/13/2022 7:31:17 PM"
+  Created		  "10/31/2022 6:07:07 PM"
   Creator		  "embotech AG"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "embotech AG"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "10/13/2022 7:31:17 PM"
+  LastModifiedDate	  "10/31/2022 6:07:07 PM"
   RTWModifiedTimeStamp	  315310195
   ModelVersionFormat	  "1.%<AutoIncrement:2>"
   ConfigurationManager	  "None"
@@ -801,15 +801,15 @@ Model {
 	Help			"TailoredSolver_simulinkBlockcompact provides an easy Simulink interface for simulating your customized solver.  \n"
 	"\nOUTPUTS = TailoredSolver(INPUTS) solves an optimization problem where:\n\n"
 	"INPUTS:\n"
-	" - lb - column vector of length 360\n "
-" - ub - column vector of length 360\n "
+	" - lb - column vector of length 400\n "
+" - ub - column vector of length 400\n "
 " - hu - column vector of length 80\n "
-" - xinit - column vector of length 7\n "
-" - x0 - column vector of length 360\n "
-" - all_parameters - column vector of length 1080\n "
+" - xinit - column vector of length 10\n "
+" - x0 - column vector of length 400\n "
+" - all_parameters - column vector of length 1120\n "
 
 	"\nOUTPUTS:\n"
-	" - outputs - column vector of length 360\n "
+	" - outputs - column vector of length 400\n "
 
 	"\n For more information, see https://forces.embotech.com/Documentation/graphical_interface/index.html \n "
 

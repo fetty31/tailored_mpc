@@ -60,15 +60,15 @@ extern solver_int32_default TailoredSolver_adtool2forces(TailoredSolver_float *x
 	
 
 	/* Allocate working arrays for AD tool */
-	TailoredSolver_callback_float w[193];
+	TailoredSolver_callback_float w[183];
 	
     /* temporary storage for AD tool sparse output */
     TailoredSolver_callback_float this_f;
-    TailoredSolver_callback_float nabla_f_sparse[7];
+    TailoredSolver_callback_float nabla_f_sparse[8];
     TailoredSolver_callback_float h_sparse[2];
     TailoredSolver_callback_float nabla_h_sparse[4];
     TailoredSolver_callback_float c_sparse[7];
-    TailoredSolver_callback_float nabla_c_sparse[43];
+    TailoredSolver_callback_float nabla_c_sparse[48];
             
     
     /* pointers to row and column info for 

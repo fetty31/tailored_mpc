@@ -5,10 +5,6 @@ VisualizationTools::VisualizationTools(MPC *mpc){
     this->mpc = mpc;
 
     // RVIZ Solution MPC
-    // pubPredictedPath = n.advertise<nav_msgs::Path>("/vis/predicted/path", 1);
-    // pubPredictedHeading = n.advertise<visualization_msgs::MarkerArray>("/vis/predicted/heading", 1);
-    // pubPredictedSteering = n.advertise<visualization_msgs::MarkerArray>("/vis/predicted/steering", 1);
-
     pubPredictedPath = n.advertise<nav_msgs::Path>("/vis/predictedPath/path", 1);
     pubPredictedHeading = n.advertise<visualization_msgs::MarkerArray>("/vis/predictedPath/heading", 1);
     pubPredictedSteering = n.advertise<visualization_msgs::MarkerArray>("/vis/predictedPath/steering", 1);
@@ -16,14 +12,13 @@ VisualizationTools::VisualizationTools(MPC *mpc){
     debugPointsPath = n.advertise<visualization_msgs::MarkerArray>("/vis/predicted/points",1);
 
     // RVIZ Planner
-	// pubActualPath = n.advertise<nav_msgs::Path>("/vis/actual/path", 1);
 	pubActualPath = n.advertise<nav_msgs::Path>("/vis/actualPlanner/path", 1);
 
 }
 
 VisualizationTools::~VisualizationTools(){}
 
-visualization_msgs::MarkerArray VisualizationTools::getMarkersHeading(Eigen::MatrixXd &matrix){
+visualization_msgs::MarkerArray VisualizationTools::getMarkersHeading(Eigen::MatrixXd &state){
 
     size_t id = 0;
 
@@ -39,15 +34,15 @@ visualization_msgs::MarkerArray VisualizationTools::getMarkersHeading(Eigen::Mat
 
 	tf2::Quaternion q;
 	
-    for(unsigned int i = 0; i < matrix.rows(); i++ ){
+    for(unsigned int i = 0; i < state.rows(); i++ ){
 
 		marker.ns= "heading";
 		marker.id = id++;
 
-		q.setRPY( 0, 0, matrix(i, 2) );
+		q.setRPY( 0, 0, state(i, 2) );
 
-		marker.pose.position.x = matrix(i, 0);
-		marker.pose.position.y = matrix(i, 1);
+		marker.pose.position.x = state(i, 0);
+		marker.pose.position.y = state(i, 1);
 		marker.pose.position.z = 0.25;
 
 		marker.pose.orientation.x = q[0];
@@ -93,7 +88,8 @@ visualization_msgs::MarkerArray VisualizationTools::getMarkersSteering(Eigen::Ma
 		marker.ns= "steering";
 		marker.id = id++;
 
-		q.setRPY( 0, 0, state(i, 2) + commands(i, 2) * 3.9 );
+		// q.setRPY( 0, 0, -state(i, 2) + commands(i, 3)*3.9);
+		q.setRPY( 0, 0, state(i,2) + commands(i, 3)*3.9);
 
 		marker.pose.position.x = state(i, 0);
 		marker.pose.position.y = state(i, 1);
@@ -121,7 +117,7 @@ visualization_msgs::MarkerArray VisualizationTools::getMarkersSteering(Eigen::Ma
 
 }
 
-visualization_msgs::MarkerArray VisualizationTools::getMarkersPoint(Eigen::MatrixXd &matrix){
+visualization_msgs::MarkerArray VisualizationTools::getMarkersPoint(Eigen::MatrixXd &state){
     
     size_t id = 0;
 
@@ -142,13 +138,13 @@ visualization_msgs::MarkerArray VisualizationTools::getMarkersPoint(Eigen::Matri
 	marker.pose.orientation.w = 1.0;
 	
 	geometry_msgs::Point point;
-    for(unsigned int i = 0; i < matrix.rows(); i++ ){
+    for(unsigned int i = 0; i < state.rows(); i++ ){
 
 	    marker.ns = "spheres";
         marker.id = id++;
 
-        point.x = matrix(i, 0);
-        point.y = matrix(i, 1);
+        point.x = state(i, 0);
+        point.y = state(i, 1);
 
         marker.color.r = 1.0f;
         marker.color.g = 0.0f;

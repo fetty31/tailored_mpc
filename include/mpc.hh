@@ -31,13 +31,13 @@ struct Boundaries{
         // VARIABLES BOUNDARIES:
 
           // Bounds and initial guess for the control
-        vector<double> u_min =  { -3*M_PI/180, -5.0 }; // both max,min bounds will be overwriten by dynamic reconfigure callback
-        vector<double> u_max  = {  3*M_PI/180, 0.25  };
+        vector<double> u_min =  { -3*M_PI/180, -5.0, -100}; // both max,min bounds will be overwriten by dynamic reconfigure callback
+        vector<double> u_max  = {  3*M_PI/180, 0.25,  100};
         vector<double> u0 = {  0.0, 0.0  };
 
           // Bounds and initial guess for the state
-        vector<double> x_min  = { -23.0*M_PI/180, -1, -3, -150.0*M_PI/180, 0.0, -2.0, -100.0*M_PI/180 };
-        vector<double> x_max  = { 23.0*M_PI/180, 1, 3, 150.0*M_PI/180, 25.0, 2.0, 100.0*M_PI/180 };
+        vector<double> x_min  = { -23.0*M_PI/180, -1, -3, -50.0*M_PI/180, 0.0, -2.0, -20.0*M_PI/180 };
+        vector<double> x_max  = { 23.0*M_PI/180, 1, 3, 50.0*M_PI/180, 25.0, 2.0, 20.0*M_PI/180 };
         vector<double> x0 = { 0.0, -1.25, 0.0, 0.0, 15.0, 0.0, 0.0 };
 
 };
@@ -53,17 +53,19 @@ class MPC{
         bool dynParamFlag = false;  // flag for dynamic parameters set up
 
         // NLOP params
-        int n_states = 7;     // number of state vars
-        int n_controls = 2;   // number of control vars
-        int N = 40;           // horizon length
-        int Npar = 24;        // number of real time parameters
+        int n_states = 7;             // number of state vars
+        int n_controls = 3;           // number of control vars
+        int N = 40;                   // horizon length
+        int Npar = 27;                // number of real time parameters
+        int sizeU, sizeX;             // size of states and controls FORCES arrays
+        int sizeCommands, sizeStates; // size of commands and car state matrices
 
         // MPC
         int nPlanning = 1900;     // number of points wanted from the planner
         bool firstIter = true;    // first iteration flag
         int samplingS = 10;       // s sampling distance 
-        double delta_s = 0.025;   // planner discretization
-        double rk4_t = 0.025;     // Integration time
+        double delta_s = 0.025;   // planner discretization [m]
+        double rk4_t = 0.025;     // Integration time [s]
         
         // DYNAMIC PARAMETERS:
           // see "dynamic.cfg" for explanation
@@ -85,6 +87,7 @@ class MPC{
         double q_s = 1;
         double latency = 4;
         double Cm = 4000;
+        double dMtv = 1;
 
         // STATIC PARAMETERS: 
           // see "params.hh" for explanation
@@ -107,6 +110,7 @@ class MPC{
         // S prediction
         void s_prediction();
         Eigen::VectorXd predicted_s;
+        Eigen::VectorXd progress;
         double smax = 0;
 
         // FORCESPRO:
@@ -118,7 +122,7 @@ class MPC{
         void printVec(vector<double> &input, int firstElements=0);
         Eigen::MatrixXd vector2eigen(vector<double> vect);
         Eigen::MatrixXd output2eigen(double* array, int size);
-        double getTorquefromThrottle(double throttle);
+        double torque_to_throttle(double throttle);
         double ax_to_throttle(double ax){ return (this->m*ax*this->Rwheel)/maxTrq; }
 
 
@@ -149,15 +153,15 @@ class MPC{
         Eigen::MatrixXd planner; // [x, y, s, k, vx, L, R]
 
         //Actual state of the car
-        Eigen::VectorXd carState; // [x, y, theta, vx, vy, w, delta(steering), acc]
+        Eigen::VectorXd carState; // [x, y, theta, vx, vy, w, delta(steering), acc, Mtv]
 
         // Previous state
-        Eigen::MatrixXd lastState;    // [x, y, heading, vx, vy, w]
-        Eigen::MatrixXd lastCommands; // [diff_delta, diff_acc, delta, acc]
+        Eigen::MatrixXd lastState;    // [x, y, theta, vx, vy, w]
+        Eigen::MatrixXd lastCommands; // [diff_delta, diff_Fm, Mtv, delta, acc]
 
         // Previous solution
         Eigen::MatrixXd solStates;    // [n, mu, vx, vy, w]
-        Eigen::MatrixXd solCommands;  // [diff_delta, diff_acc, delta, acc]
+        Eigen::MatrixXd solCommands;  // [diff_delta, diff_acc, MTV, delta, Fm]
 
 };
 

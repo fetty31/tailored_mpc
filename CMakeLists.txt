@@ -3,7 +3,7 @@ project(tailored_mpc)
 
 #add_compile_options(-std=c++0x)
 set(CMAKE_CXX_FLAGS "-fpermissive -std=c++0x")
-# set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_BUILD_TYPE "Release")
 
 message(STATUS "TAILORED MPC says hi :)")
 find_package(catkin REQUIRED COMPONENTS

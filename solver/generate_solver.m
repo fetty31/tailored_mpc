@@ -12,13 +12,13 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
 
     %% Problem dimensions
     N = horizonLength;
-    Npar = 27;
+    Npar = 28;
     model = {};
-    model.N = N;             % horizon length
-    model.nvar = 9;          % number of variables
-    model.neq  = n_states;   % number of equality constraints
-    model.nh = 2;            % number of inequality constraint functions
-    model.npar = Npar;       % number of runtime parameters
+    model.N = N;                        % horizon length
+    model.nvar = n_states+n_controls;   % number of variables
+    model.neq  = n_states;              % number of equality constraints
+    model.nh = 2;                       % number of inequality constraint functions
+    model.npar = Npar;                  % number of runtime parameters
 
     %% Runge Kutta integration time
     global Ts
@@ -45,15 +45,15 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
     %% Inequality constraints
     % upper/lower variable bounds lb <= z <= ub
     %          inputs          |             states
-    % z = [diff_delta, delta_Fm, delta, Fm, n, mu, vx, vy, w]    
-    model.lbidx = [1, 2, 3, 4, 5, 6, 7, 8, 9]';
-    model.ubidx = [1, 2, 3, 4, 5, 6, 7, 8, 9]';
+    % z = [diff_delta, delta_Fm, Mtv, delta, Fm, n, mu, vx, vy, w]    
+    model.lbidx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]';
+    model.ubidx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]';
     model.lb = []; 
     model.ub = [];
     
     %% Initial conditions
     % Initial conditions on all states
-    model.xinitidx = 3:9; % use this to specify on which variables initial conditions are imposed
+    model.xinitidx = 1:10; % use this to specify on which variables initial conditions are imposed
 
     %% Linear subsystem
 %     model.linInIdx = [1, 2]';
@@ -70,13 +70,13 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
     % Define integrator
 %     codeoptions.nlp.integrator.type = 'ERK4';
 %     codeoptions.nlp.integrator.Ts = rkTime;
-%     codeoptions.nlp.integrator.nodes = 2;
+%     codeoptions.nlp.integrator.nodes = 1;
 %     codeoptions.nlp.integrator.differentiation_method = 'chainrule';
 
     codeoptions.maxit = 200;    % Maximum number of iterations
     codeoptions.optlevel = 2;   % 0: no optimization, 1: optimize for size, 2: optimize for speed, 3: optimize for size & speed
     codeoptions.platform = 'Gnu-x86_64'; % Specify the platform
-    codeoptions.printlevel = 1; % Optional, on some platforms printing is not supported
+    codeoptions.printlevel = 0; % Optional, on some platforms printing is not supported
     codeoptions.cleanup = 0; % To keep necessary files for target compile
     
     % Necessary to set bounds dynamically
@@ -101,6 +101,9 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
 
 %     codeoptions.parallel = 1; % Internal Parallelization
 %     codeoptions.nlp.max_num_threads = 5; % When using code generated integrators (RK4) we must specify the maximum number of threads available
+        
+    % Embotech solution for server error
+%     codeoptions.legacy_integrators = 1;
 
     %% Generate FORCESPRO solver
     cd(solverDir);
@@ -111,6 +114,7 @@ end
     
 function f = objective(z, p)
     
+    global Ts; 
     dRd = p(1);
     dRa = p(2);
     Lf = p(5);
@@ -119,56 +123,47 @@ function f = objective(z, p)
     q_n = p(20);
     q_s = p(23);
     q_mu = p(21);
-    k = p(26);
+    q_Mtv = p(27);
+    k = p(28);
+%     q_slack_vx = p(28);
     
     % Progress rate
-    sdot = (z(7)*cos(z(6)) - z(8)*sin(z(6)))/(1 - z(5)*k); % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
+    sdot = ( z(8)*cos(z(7)) - z(9)*sin(z(7)) )/(1 - z(6)*k) * Ts; % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
 
     % Slip difference
-    beta_dyn = atan(z(8)/z(7));
-    beta_kin = atan(z(3)*Lr/(Lr+Lf));
+    beta_dyn = atan(z(9)/z(8));
+    beta_kin = atan(z(4)*Lr/(Lr+Lf));
     diff_beta = beta_dyn - beta_kin;
 
     %Objective function
-    f = -q_s*sdot + dRd*(z(1))^2 + dRa*(z(2))^2 + q_slip*(diff_beta)^2 + q_mu*(z(6))^2 + q_n*(z(5))^2;
+    f = -q_s*sdot + dRd*(z(1))^2 + dRa*(z(2))^2 + q_Mtv*(z(3))^2 + q_slip*(diff_beta)^2 + q_mu*(z(7))^2 + q_n*(z(6))^2; %+ q_slack_vx*s3;
     
 end
 
-
-% function xnext = integrated_dynamics(z, p)
-% 
-%     global Ts
-% %     Ts = 25e-3;
-%     u = z(1:2);
-%     x = z(3:9);
-%   
-%     xnext = RK4(x, u, @my_continuous_dynamics, Ts, p);
-% end
 
 function xnext = integrated_dynamics(z, p)
 
     global Ts
-    u = z(1:2);
-    x = z(3:9);
-    U = u + x(1:2);
-
-    % implements a RK4 integrator for the dynamics
-    next_state = RK4( x(3:end), U, @my_continuous_dynamics, Ts, p);
-    xnext = [U; next_state];
+%     Ts = 25e-3;
+    u = z(1:3);
+    x = z(4:10);
+  
+    xnext = RK4(x, u, @my_continuous_dynamics, Ts, p);
 end
 
 function xdot = my_continuous_dynamics(x, u, p)
     
-    delta = u(1);
-    Fm = u(2);
-    n = x(1);
-    mu = x(2);
-    vx = x(3);
-    vy = x(4);
-    w = x(5);
+    delta = x(1);
+    Fm = x(2);
+    n = x(3);
+    mu = x(4);
+    vx = x(5);
+    vy = x(6);
+    w = x(7);
     
-%     diff_delta = u(1);
-%     diff_Fm = u(2);
+    diff_delta = u(1);
+    diff_Fm = u(2);
+    Mtv = u(3);
     
     m = p(3);
     I = p(4);
@@ -186,7 +181,7 @@ function xdot = my_continuous_dynamics(x, u, p)
     rho = p(16);
     Ar = p(17);
     Cm = p(26);
-    k = p(27);
+    k = p(28);
     
     % Slip angles
     alpha_R = atan((vy-Lr*w)/(vx));
@@ -202,19 +197,13 @@ function xdot = my_continuous_dynamics(x, u, p)
     sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
     
     % Differential equations (time dependent)
-%     xdot = [diff_delta;
-%             diff_Fm;
-%             vx*sin(mu) + vy*cos(mu);
-%             w - k*sdot;
-%             (1/m)*(Fx - Ff*sin(delta) + m*vy*w);
-%             (1/m)*(Fr + Cm*Fm*sin(delta) + Ff*cos(delta) - m*vx*w);
-%             (1/I)*((Ff*cos(delta) + Cm*Fm*sin(delta))*Lf - Fr*Lr)];
-
-    xdot = [vx*sin(mu) + vy*cos(mu);
+    xdot = [diff_delta;
+            diff_Fm;
+            vx*sin(mu) + vy*cos(mu);
             w - k*sdot;
             (1/m)*(Fx - Ff*sin(delta) + m*vy*w);
             (1/m)*(Fr + Cm*Fm*sin(delta) + Ff*cos(delta) - m*vx*w);
-            (1/I)*((Ff*cos(delta) + Cm*Fm*sin(delta))*Lf - Fr*Lr)];
+            (1/I)*((Ff*cos(delta) + Cm*Fm*sin(delta))*Lf - Fr*Lr + Mtv)];
     
 end
 
@@ -231,17 +220,17 @@ function h = nonlin_const(z, p)
     Bf = p(12); 
     Cm = p(26);
     
-    delta = z(3);
-    Fm = z(4);
-    n = z(5);
-    mu = z(6);
-    vx = z(7);
-    vy = z(8);
-    w = z(9);
+    delta = z(4);
+    Fm = z(5);
+    n = z(6);
+    mu = z(7);
+    vx = z(8);
+    vy = z(9);
+    w = z(10);
     
     % Length and width of the car
-    long = Lr+Lf;
-    width = 1.2;
+    long = 2.72;
+    width = 1.2 + 0.4;
 
     % Maximum longitudinal & lateral acceleration
     Ax_max = p(24);

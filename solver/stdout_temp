@@ -1,3 +1,4 @@
-Solver could not proceed, exiting. (Error code: 0x0193A).
-Solve time: 0.299 ms (1 iteration)
+
+OPTIMAL (within EQTOL=1.0e-06, INEQTOL=1.0e-06, STATTOL=1.0e-05, COMPTOL=1.0e-06).
+Solve time: 11.667 ms (71 iterations)
 

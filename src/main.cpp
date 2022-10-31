@@ -42,14 +42,13 @@ int main(int argc, char **argv) {
 	server.setCallback(f);
 
     mpc.mission = 1; // mision hardcoded
-    int it = 0;
 
-    ros::Duration(1).sleep();
+    ros::Duration(2).sleep();
 
     // ros::Rate r(int(1/mpc.T));
     ROS_INFO_STREAM("MPC: publish frequency: " << mpc.Hz << "Hz");
-    ros::Rate r(mpc.Hz);
 
+    ros::Rate r(mpc.Hz);
     // ros::Rate r(1);
     while(ros::ok()){
 
@@ -61,9 +60,6 @@ int main(int argc, char **argv) {
 
         rviz.rviz_predicted();
         rviz.rviz_actual();
-
-        cout << "iteration: " << it << endl;
-        it++;
 
         ros::spinOnce();
         r.sleep();
