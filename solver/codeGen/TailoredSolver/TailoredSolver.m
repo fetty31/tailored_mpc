@@ -4,7 +4,7 @@
 %   subject to the parameters supplied in the following struct:
 %       PARAMS.lb - column vector of length 400
 %       PARAMS.ub - column vector of length 400
-%       PARAMS.hu - column vector of length 80
+%       PARAMS.hu - column vector of length 160
 %       PARAMS.xinit - column vector of length 10
 %       PARAMS.x0 - column vector of length 400
 %       PARAMS.all_parameters - column vector of length 1120

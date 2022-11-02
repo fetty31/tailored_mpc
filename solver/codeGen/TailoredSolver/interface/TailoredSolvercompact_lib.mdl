@@ -60,13 +60,13 @@ Model {
       }
     }
   }
-  Created		  "10/31/2022 6:07:07 PM"
+  Created		  "11/2/2022 7:50:22 PM"
   Creator		  "embotech AG"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "embotech AG"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "10/31/2022 6:07:07 PM"
+  LastModifiedDate	  "11/2/2022 7:50:22 PM"
   RTWModifiedTimeStamp	  315310195
   ModelVersionFormat	  "1.%<AutoIncrement:2>"
   ConfigurationManager	  "None"
@@ -803,7 +803,7 @@ Model {
 	"INPUTS:\n"
 	" - lb - column vector of length 400\n "
 " - ub - column vector of length 400\n "
-" - hu - column vector of length 80\n "
+" - hu - column vector of length 160\n "
 " - xinit - column vector of length 10\n "
 " - x0 - column vector of length 400\n "
 " - all_parameters - column vector of length 1120\n "

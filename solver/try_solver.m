@@ -26,7 +26,7 @@ for e=1:its
     for i=1:N
         k = curvature(i*sampleS+n+N*(e-1));
         %param = [dRd, dRa, m, I,   Lf,    Lr,  Dr,    Df,     Cr,  Cf,   Br,      Bf,      u_r,  g,    Cd,   rho, Ar, q_slip, p_long, q_n, q_mu, lambda, q_s, ax_max, ay_max, Cm, dMtv, k]
-        param_k = [10, 10, 240, 93, .708, .822, 3152.3, 2785.4, 1.6, 1.6, 10.1507, 10.8529, .45, 9.81, .8727, 1.255, 1, 1,     0.5,    10,  10,    3,    100,  10,      12,  5000, 1,   k]';
+        param_k = [1, 1, 240, 93, .708, .822, 3152.3, 2785.4, 1.6, 1.6, 10.1507, 10.8529, .045, 9.81, .8727, 1.255, 1, 1,     0.5,    10,  1,    3,    100,  10,      12,  4000, 1,   k]';
         param_data = [param_data,param_k];
     end
     
@@ -53,10 +53,10 @@ for e=1:its
     
     if e==1
         problem.x0 = x0;
-        problem.xinit = [deg2rad(5), 0.01, 0.01, 0.05, 10, .1, .01]';
+        problem.xinit = [0,0,0,deg2rad(5), 0.01, 0.01, 0.05, 10, .1, .01]';
     else
         problem.x0 = repmat([0,0,0,controls(5*(e-2)+4),controls(5*(e-2)+5),states(5*(e-2)+1),states(5*(e-2)+2),states(5*(e-2)+3),states(5*(e-2)+4),states(5*(e-2)+5)]',N,1);
-        problem.xinit = [controls(5*(e-2)+4),controls(5*(e-2)+5),states(5*(e-2)+1),states(5*(e-2)+2),states(5*(e-2)+3),states(5*(e-2)+4),states(5*(e-2)+5)]';
+        problem.xinit = [0,0,0,controls(5*(e-2)+4),controls(5*(e-2)+5),states(5*(e-2)+1),states(5*(e-2)+2),states(5*(e-2)+3),states(5*(e-2)+4),states(5*(e-2)+5)]';
     end
 
     problem.all_parameters = reshape(param_data(:,1:N),Npar*N,1);

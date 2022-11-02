@@ -183,14 +183,14 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
     {
     mexErrMsgTxt("PARAMS.hu must be a double.");
     }
-    if( mxGetM(par) != 80 || mxGetN(par) != 1 ) 
+    if( mxGetM(par) != 160 || mxGetN(par) != 1 ) 
 	{
-    mexErrMsgTxt("PARAMS.hu must be of size [80 x 1]");
+    mexErrMsgTxt("PARAMS.hu must be of size [160 x 1]");
     }
 #endif	 
 	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
 	{
-		copyMArrayToC_double(mxGetPr(par), params.hu,80);
+		copyMArrayToC_double(mxGetPr(par), params.hu,160);
 
 	}
 	par = mxGetField(PARAMS, 0, "xinit");

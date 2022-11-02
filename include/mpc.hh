@@ -36,8 +36,8 @@ struct Boundaries{
         vector<double> u0 = {  0.0, 0.0  };
 
           // Bounds and initial guess for the state
-        vector<double> x_min  = { -23.0*M_PI/180, -1, -3, -50.0*M_PI/180, 0.0, -2.0, -20.0*M_PI/180 };
-        vector<double> x_max  = { 23.0*M_PI/180, 1, 3, 50.0*M_PI/180, 25.0, 2.0, 20.0*M_PI/180 };
+        vector<double> x_min  = { -23.0*M_PI/180, -1, -3, -50.0*M_PI/180, 2.0, -2.0, -50.0*M_PI/180 };
+        vector<double> x_max  = { 23.0*M_PI/180, 1, 3, 50.0*M_PI/180, 25.0, 2.0, 50.0*M_PI/180 };
         vector<double> x0 = { 0.0, -1.25, 0.0, 0.0, 15.0, 0.0, 0.0 };
 
 };
@@ -122,8 +122,11 @@ class MPC{
         void printVec(vector<double> &input, int firstElements=0);
         Eigen::MatrixXd vector2eigen(vector<double> vect);
         Eigen::MatrixXd output2eigen(double* array, int size);
-        double torque_to_throttle(double throttle);
-        double ax_to_throttle(double ax){ return (this->m*ax*this->Rwheel)/maxTrq; }
+        double throttle_to_torque(double throttle);
+        double ax_to_throttle(double ax){ 
+          if(ax >= 0) return min((this->m*ax*this->Rwheel)/maxTrq, 1.0);
+          else return max((this->m*ax*this->Rwheel)/maxTrq, -1.0);
+        }
 
 
     public:

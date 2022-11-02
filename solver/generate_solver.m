@@ -17,7 +17,7 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
     model.N = N;                        % horizon length
     model.nvar = n_states+n_controls;   % number of variables
     model.neq  = n_states;              % number of equality constraints
-    model.nh = 2;                       % number of inequality constraint functions
+    model.nh = 4;                       % number of inequality constraint functions
     model.npar = Npar;                  % number of runtime parameters
 
     %% Runge Kutta integration time
@@ -114,7 +114,8 @@ end
     
 function f = objective(z, p)
     
-    global Ts; 
+%     global Ts; 
+    rk_time = 25e-3;
     dRd = p(1);
     dRa = p(2);
     Lf = p(5);
@@ -128,7 +129,7 @@ function f = objective(z, p)
 %     q_slack_vx = p(28);
     
     % Progress rate
-    sdot = ( z(8)*cos(z(7)) - z(9)*sin(z(7)) )/(1 - z(6)*k) * Ts; % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
+    sdot = ( z(8)*cos(z(7)) - z(9)*sin(z(7)) )/(1 - z(6)*k) * rk_time; % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
 
     % Slip difference
     beta_dyn = atan(z(9)/z(8));
@@ -143,12 +144,13 @@ end
 
 function xnext = integrated_dynamics(z, p)
 
-    global Ts
-%     Ts = 25e-3;
+%     global Ts
+    rk_time = 25e-3;
     u = z(1:3);
     x = z(4:10);
   
-    xnext = RK4(x, u, @my_continuous_dynamics, Ts, p);
+%     xnext = RK4(x, u, @my_continuous_dynamics, Ts, p);
+    xnext = RK4(x, u, @my_continuous_dynamics, rk_time, p);
 end
 
 function xdot = my_continuous_dynamics(x, u, p)
@@ -243,13 +245,10 @@ function h = nonlin_const(z, p)
     Ff = Df*sin(Cf*atan(Bf*alpha_F));
 
     Fx = Cm*Fm*(1+cos(delta));
-    
-%     h = [(Fx/(Ax_max*m))^2 + (Fr/(Ay_max*m))^2; % <= lambda
-%          (Fx/(Ax_max*m))^2 + (Ff/(Ay_max*m))^2; % <= lambda
-%          n - long/2*sin(abs(mu)) + width/2*cos(mu); % <= L(s)
-%          -n + long/2*sin(abs(mu)) + width/2*cos(mu)]; % <= R(s)
 
     h = [ n - long/2*sin(abs(mu)) + width/2*cos(mu); % <= L(s)
-         -n + long/2*sin(abs(mu)) + width/2*cos(mu)]; % <= R(s)
+         -n + long/2*sin(abs(mu)) + width/2*cos(mu); % <= R(s)
+         (Fx/(Ax_max*m))^2 + (Fr/(Ay_max*m))^2; % <= lambda
+         (Fx/(Ax_max*m))^2 + (Ff/(Ay_max*m))^2]; % <= lambda]; 
      
 end

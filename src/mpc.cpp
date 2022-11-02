@@ -55,7 +55,7 @@ MPC::MPC(const Params& params){
 void MPC::stateCallback(const as_msgs::CarState::ConstPtr& msg){
 
     // carState << msg->odom.position.x, msg->odom.position.y, msg->odom.heading, msg->odom.velocity.x, msg->odom.velocity.y + msg->odom.velocity.w*d_IMU, msg->odom.velocity.w, msg->steering, msg->odom.acceleration.x, msg->Mtv;
-    carState << msg->odom.position.x, msg->odom.position.y, msg->odom.heading, msg->odom.velocity.x, msg->odom.velocity.y + msg->odom.velocity.w*d_IMU, msg->odom.velocity.w, msg->steering, msg->odom.acceleration.x, 0.0;
+    carState << msg->odom.position.x, msg->odom.position.y, msg->odom.heading, msg->odom.velocity.x, msg->odom.velocity.y, msg->odom.velocity.w, msg->steering, msg->odom.acceleration.x, 0.0;
     // carState << msg->odom.position.x, msg->odom.position.y, msg->odom.heading, msg->odom.velocity.x, msg->odom.velocity.y + msg->odom.velocity.w*d_IMU, msg->odom.velocity.w, 0.0, msg->odom.acceleration.x;
 
     stateFlag = true;
@@ -197,8 +197,8 @@ void MPC::initial_conditions(){
     forces.params.xinit[0] = 0.0;
     forces.params.xinit[1] = 0.0;
     forces.params.xinit[2] = carState(8);
-    forces.params.xinit[3] = 0.0; //carState(6);
-    forces.params.xinit[4] = 0.0; //ax_to_throttle(carState(7));
+    forces.params.xinit[3] = carState(6);
+    forces.params.xinit[4] = ax_to_throttle(carState(7));
     forces.params.xinit[5] = n0;
     forces.params.xinit[6] = mu0;
     forces.params.xinit[7] = carState(3);
@@ -317,19 +317,14 @@ void MPC::set_params_bounds(){
 
         progress(k) = planner(plannerIdx, 2);
 
-        cout << "PLANNER INDEX: " << plannerIdx << endl;
-
         this->forces.params.all_parameters[27 + k*this->Npar] = planner(plannerIdx, 3); // curvature 
         // cout << "Curvature: " << this->forces.params.all_parameters[27 + k*this->Npar] << endl;
 
         // Inequality constraints bounds:
-        // this->forces.params.hu[k*nh] =     this->lambda;
-        // this->forces.params.hu[k*nh + 1] = this->lambda;
-        // this->forces.params.hu[k*nh]     = 0.0;
-        // this->forces.params.hu[k*nh + 1] = 0.0;
-        this->forces.params.hu[k*nh + 1] = fabs(planner(plannerIdx, 5)); // L(s) ortogonal left dist from the path to the track limits
-        this->forces.params.hu[k*nh + 2] = fabs(planner(plannerIdx, 6)); // R(s) ortogonal right dist from the path to the track limits
-
+        this->forces.params.hu[k*nh]     = fabs(planner(plannerIdx, 5)); // L(s) ortogonal left dist from the path to the track limits
+        this->forces.params.hu[k*nh + 1] = fabs(planner(plannerIdx, 6)); // R(s) ortogonal right dist from the path to the track limits
+        this->forces.params.hu[k*nh + 2] = this->lambda;
+        this->forces.params.hu[k*nh + 3] = this->lambda;
 
         // Equality constraints bounds:
         this->forces.params.lb[k*Nvar] =     this->bounds.u_min[0];
@@ -447,11 +442,8 @@ void MPC::set_params_bounds(){
         }
     }
 
-
-    cout << "ALL PARAMETERS:\n";
-    for(int i=0;i<27;i++){
-        cout << forces.params.all_parameters[i] << endl;
-    }
+    cout << "PROGRESS: \n";
+    cout << progress << endl;
 
 }
 
@@ -480,6 +472,9 @@ void MPC::s_prediction(){
 
         double sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
 
+        cout << "sdot:\n";
+        cout << sdot << endl;
+
         predicted_s(i) = fmod( predicted_s(i-1) + sdot*this->rk4_t, this->smax );
 
         // Ensure sdot > 0
@@ -507,15 +502,18 @@ void MPC::s_prediction(){
 
     // If predicted s is too small set initial s again
     double totalLength = predicted_s(this->N-1) - predicted_s(0);
-    if(totalLength < 3){ 
+    if(totalLength < 1){ 
         ROS_ERROR("Predicted s smaller than threshold!");
         firstIter = true;    
     }
+
+    cout << "PREDICTED S:\n";
+    cout << predicted_s << endl;
 }
 
 void MPC::get_solution(){
 
-    // Change vec dimensions from x(5*N x 1) u(4*N x 1) to x(N x 5) u(N x 4)
+    // Change vec dimensions from x(5*N x 1) u(5*N x 1) to x(N x 5) u(N x 5)
     Eigen::MatrixXd u = output2eigen(forces.solution.U, sizeU);
     Eigen::MatrixXd x = output2eigen(forces.solution.X, sizeX);
 
@@ -536,7 +534,7 @@ void MPC::get_solution(){
 void MPC::msgCommands(as_msgs::CarCommands *msg){
 
     msg->header.stamp = ros::Time::now();
-    msg->motor = 0.1; //solCommands(this->latency, 4); //getTorquefromThrottle(solCommands(this->latency, 4));
+    msg->motor = solCommands(this->latency, 4); //getTorquefromThrottle(solCommands(this->latency, 4));
     msg->steering = solCommands(this->latency, 3);
     msg->Mtv = solCommands(this->latency, 2);
 
@@ -587,7 +585,7 @@ Eigen::MatrixXd MPC::output2eigen(double arr[], int size){
     return result;
 }
 
-double MPC::torque_to_throttle(double throttle){
+double MPC::throttle_to_torque(double throttle){
 
     return throttle*this->Cm*this->Rwheel;
 }

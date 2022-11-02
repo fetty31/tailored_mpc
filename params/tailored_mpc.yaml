@@ -12,7 +12,6 @@ Vehicle:
   Lr: 0.822                                           # Distance from CoG to rear axis
   d_IMU: -0.318                                       # Distance from vectornav to CoG
   Rwheel: 0.2                                         # Effective wheel radius
-  maxTrq: 700                                         # Maximum torque
 
 Topics:
   State: /AS/C/state

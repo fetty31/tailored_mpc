@@ -3,14 +3,14 @@ dictitems:
   Bf: 10.8529
   Br: 10.1507
   Cd: 0.8727
-  Cf: 1.6
-  Cm: 4000.0
-  Cr: 1.6
+  Cf: -1.6
+  Cm: 2000.0
+  Cr: -1.6
   Df: 2785.4
   Dr: 3152.3
-  dMtv: 1.0
-  dRa: 7.0
-  dRd: 10.0
+  dMtv: 0.01
+  dRa: 2.0
+  dRd: 8.0
   diff_Fm: 1000.0
   diff_delta: 100.0
   groups: !!python/object/new:dynamic_reconfigure.encoding.Config
@@ -18,14 +18,14 @@ dictitems:
       Bf: 10.8529
       Br: 10.1507
       Cd: 0.8727
-      Cf: 1.6
-      Cm: 4000.0
-      Cr: 1.6
+      Cf: -1.6
+      Cm: 2000.0
+      Cr: -1.6
       Df: 2785.4
       Dr: 3152.3
-      dMtv: 1.0
+      dMtv: 0.01
       dRa: 7.0
-      dRd: 10.0
+      dRd: 8.0
       diff_Fm: 1000.0
       diff_delta: 100.0
       groups: !!python/object/new:dynamic_reconfigure.encoding.Config
@@ -38,20 +38,20 @@ dictitems:
       parameters: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
       parent: 0
-      q_mu: 1.0
-      q_n: 1.0
-      q_s: 50.0
+      q_mu: 0.0
+      q_n: 5.0
+      q_s: 30.0
       q_slip: 2.0
       state: true
       type: ''
-      u_r: 0.45
+      u_r: 0.045
     state: []
   lambda: 3.0
   latency: 5.0
   p_long: 0.5
-  q_mu: 1.0
-  q_n: 1.0
-  q_s: 50.0
+  q_mu: 0.0
+  q_n: 5.0
+  q_s: 30.0
   q_slip: 2.0
-  u_r: 0.45
+  u_r: 0.045
 state: []
