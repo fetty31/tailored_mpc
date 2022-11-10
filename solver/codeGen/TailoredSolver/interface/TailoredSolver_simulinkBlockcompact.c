@@ -71,8 +71,8 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetNumContStates(S, 0);
     ssSetNumDiscStates(S, 0);
 
-	/* initialize input ports - there are 6 in total */
-    if (!ssSetNumInputPorts(S, 6)) return;
+	/* initialize input ports - there are 7 in total */
+    if (!ssSetNumInputPorts(S, 7)) return;
     	
 	/* Input Port 0 */
     ssSetInputPortMatrixDimensions(S,  0, 400, 1);
@@ -110,11 +110,18 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetInputPortRequiredContiguous(S, 4, 1); /*direct input signal access*/
 	
 	/* Input Port 5 */
-    ssSetInputPortMatrixDimensions(S,  5, 1120, 1);
+    ssSetInputPortMatrixDimensions(S,  5, 1240, 1);
     ssSetInputPortDataType(S, 5, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, 5, COMPLEX_NO); /* no complex signals suppported */
     ssSetInputPortDirectFeedThrough(S, 5, 1); /* Feedthrough enabled */
     ssSetInputPortRequiredContiguous(S, 5, 1); /*direct input signal access*/
+	
+	/* Input Port 6 */
+    ssSetInputPortMatrixDimensions(S,  6, 1, 1);
+    ssSetInputPortDataType(S, 6, SS_DOUBLE);
+    ssSetInputPortComplexSignal(S, 6, COMPLEX_NO); /* no complex signals suppported */
+    ssSetInputPortDirectFeedThrough(S, 6, 1); /* Feedthrough enabled */
+    ssSetInputPortRequiredContiguous(S, 6, 1); /*direct input signal access*/
  
 
 
@@ -222,6 +229,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 	const real_T *xinit = (const real_T*) ssGetInputPortSignal(S,3);
 	const real_T *x0 = (const real_T*) ssGetInputPortSignal(S,4);
 	const real_T *all_parameters = (const real_T*) ssGetInputPortSignal(S,5);
+	const real_T *num_of_threads = (const real_T*) ssGetInputPortSignal(S,6);
 	
     real_T *outputs = (real_T*) ssGetOutputPortSignal(S,0);
 	
@@ -263,10 +271,12 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 		params.x0[i] = (double) x0[i]; 
 	}
 
-	for( i=0; i<1120; i++)
+	for( i=0; i<1240; i++)
 	{ 
 		params.all_parameters[i] = (double) all_parameters[i]; 
 	}
+
+	params.num_of_threads = (solver_int32_unsigned) *num_of_threads;
 
 	
 

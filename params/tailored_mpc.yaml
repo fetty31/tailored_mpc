@@ -18,15 +18,25 @@ Topics:
   Commands: /AS/C/commands
   Planner: /AS/C/trajectory/partial
   Tro: /AS/C/trajectory/full
+  Debug:
+    Time: /AS/C/mpc/debug/time
+    ExitFlag: /AS/C/mpc/debug/exitflags
+  Vis:
+    PredictedSteering:  /vis/predictedPath/steering
+    PredictedPath:      /vis/predictedPath/path
+    PredictedHeading:   /vis/predictedPath/heading
+    ActualPath:         /vis/actualPlanner/path
   # TO DO: fill with other topics
 
 NLOP:
   Nstates: 7                                          # Number of states
   Ncontrols: 3                                        # Number of controls
   N: 40                                               # Prediction horizon
-  Npar: 28                                            # Number of parameters
+  Npar: 31                                            # Number of parameters
 
 Hz: 20                                                #[s] MPC frequency
 rk4_t: 0.025                                          #[s] Runge Kutta integration time (must match the time used in FORCES_problem.m)
+Nthreads: 5                                           # Number of threads
+TroProfile: false                                     # Set to true to follow TRO velocity profile 
 
 nPlanning: 1900                                       # n points saved from the planner

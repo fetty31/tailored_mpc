@@ -20,6 +20,11 @@ Params::Params(const ros::NodeHandle &nh) {
     nh.param<string>("/tailored_mpc/Topics/Commands", mpc.topics.commands, "/AS/C/commands");
     nh.param<string>("/tailored_mpc/Topics/Planner", mpc.topics.planner, "/AS/C/trajectory/partial");
     nh.param<string>("/tailored_mpc/Topics/Tro", mpc.topics.tro, "/AS/C/trajectory/full");
+        // Visualization topics
+    nh.param<string>("/tailored_mpc/Topics/Vis/PredictedSteering", mpc.topics.predictedSteering, "/AS/C/mpc/vis/predicted/steering");
+    nh.param<string>("/tailored_mpc/Topics/Vis/PredictedPath", mpc.topics.predictedPath, "/AS/C/mpc/vis/predicted/path");
+    nh.param<string>("/tailored_mpc/Topics/Vis/PredictedHeading", mpc.topics.predictedHeading, "/AS/C/mpc/vis/predicted/heading");
+    nh.param<string>("/tailored_mpc/Topics/Vis/ActualPath", mpc.topics.actualPath, "/AS/C/mpc/vis/actual/path");
 
     // NLOP
     nh.param<int>("/tailored_mpc/NLOP/Nstates", mpc.nlop.n_states, 7);
@@ -31,5 +36,7 @@ Params::Params(const ros::NodeHandle &nh) {
     nh.param<double>(("/tailored_mpc/rk4_t"), mpc.rk4_t, 0.025);
     nh.param<int>(("/tailored_mpc/nPlanning"), mpc.nPlanning, 1900);
     nh.param<int>(("/tailored_mpc/Hz"), mpc.Hz, 20);
+    nh.param<int>(("/tailored_mpc/Nthreads"), mpc.Nthreads, 2);
+    nh.param<bool>(("/tailored_mpc/TroProfile"), mpc.TroProfile, false);
 
 }

@@ -11,8 +11,13 @@ MPC::MPC(const Params& params){
 
     // MPC
     this->Hz = params.mpc.Hz;
-    this->rk4_t = params.mpc.rk4_t;
+    this->rk4_t = params.mpc.rk4_t*t_fact;
     this->nPlanning = params.mpc.nPlanning;
+    this->Nthreads = params.mpc.Nthreads;
+    this->troProfile = params.mpc.TroProfile;
+
+    cout << "rk4_t: " << rk4_t << endl;
+    cout << "troProfile: " << troProfile << endl;
 
     // Vehicle params
     this->m = params.vehicle.m;
@@ -42,7 +47,7 @@ MPC::MPC(const Params& params){
     lastCommands = Eigen::MatrixXd::Zero(N,sizeCommands);   // [diff_delta, diff_Fm, Mtv, delta, acc]
 
     solStates = Eigen::MatrixXd::Zero(N,sizeStates);        // [n, mu, vx, vy, w]
-    solCommands = Eigen::MatrixXd::Zero(N,sizeCommands);    // [diff_delta, diff_acc, MTV, delta, Fm]
+    solCommands = Eigen::MatrixXd::Zero(N,sizeCommands);    // [diff_delta, diff_acc, Mtv, delta, Fm]
 
 
     this->paramFlag = true;
@@ -65,32 +70,33 @@ void MPC::stateCallback(const as_msgs::CarState::ConstPtr& msg){
 
 void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
 
-    if (msg->objectives.size() < nPlanning){
-			ROS_WARN("MPC: Planner is too short!");
-			return;
+    if(!troActive){
+        if (msg->objectives.size() < nPlanning){
+                ROS_WARN("MPC: Planner is too short!");
+                return;
+        }
+
+        // Fill planner matrix
+        for (unsigned int i = 0; i < nPlanning ; i++)
+        {	
+            planner(i, 0) = msg->objectives[i].x;
+            planner(i, 1) = msg->objectives[i].y;
+            planner(i, 2) = msg->objectives[i].s; 
+            planner(i, 3) = msg->objectives[i].k; 
+            planner(i, 4) = msg->objectives[i].vx;
+            planner(i, 5) = msg->objectives[i].L;
+            planner(i, 6) = msg->objectives[i].R;
+        }
+
+        smax = 2000;
+        plannerFlag = true;
     }
-
-    // Fill planner matrix
-    for (unsigned int i = 0; i < nPlanning ; i++)
-    {	
-        planner(i, 0) = msg->objectives[i].x;
-        planner(i, 1) = msg->objectives[i].y;
-        planner(i, 2) = msg->objectives[i].s; 
-        planner(i, 3) = msg->objectives[i].k; 
-        planner(i, 4) = msg->objectives[i].vx;
-        planner(i, 5) = msg->objectives[i].L;
-        planner(i, 6) = msg->objectives[i].R;
-    }
-
-    smax = 20000;
-    plannerFlag = true;
-
 }
 
 void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
 
     if (msg->objectives.size() < nPlanning){
-			ROS_WARN("MPC: Planner is too short!");
+			ROS_WARN("MPC: TRO is too short!");
 			return;
     }
 
@@ -108,7 +114,7 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
 
     smax = msg->smax;
     cout << "SMAX: " << smax << endl;
-    plannerFlag = true;
+    plannerFlag = troActive = true;
 
 }
 
@@ -121,6 +127,9 @@ void MPC::solve(){
     if(paramFlag && dynParamFlag && plannerFlag && stateFlag){
         
         auto start_time = chrono::system_clock::now();
+
+        // Set number of internal threads
+        forces.params.num_of_threads = this->Nthreads;
 
         initial_conditions();
         set_params_bounds();
@@ -145,9 +154,14 @@ void MPC::solve(){
 
         auto finish_time = chrono::system_clock::now();
 
-        chrono::duration<double> elapsed_seconds = finish_time - start_time;
+        elapsed_time = finish_time - start_time;
 
-        ROS_WARN("TAILORED MPC elapsed time: %f ms", elapsed_seconds.count()*1000);
+        ROS_WARN("TAILORED MPC elapsed time: %f ms", elapsed_time.count()*1000);
+
+        // Save data
+        // save<float>("/home/fetty/Desktop/control_ws2022/src/control/tailored_mpc/debug/", "solve_time.txt", elapsed_time.count()*1000, true);
+        // save<int>("/home/fetty/Desktop/control_ws2022/src/control/tailored_mpc/debug/", "exit_flags.txt", forces.exit_flag, true);
+
         
     }else{
 
@@ -157,14 +171,11 @@ void MPC::solve(){
             ROS_ERROR_STREAM("Dyn params: " << dynParamFlag);
         }else{
             ROS_ERROR("MPC: No data from state car or planner");
-            ROS_ERROR_STREAM("Planner: " << plannerFlag);
-            ROS_ERROR_STREAM("State: " << stateFlag);
+            ROS_ERROR_STREAM("Planner status: " << plannerFlag);
+            ROS_ERROR_STREAM("State status: " << stateFlag);
         }
     }
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-//------------------------Auxiliar functions--------------------------------------------------
 
 void MPC::initial_conditions(){
 
@@ -270,11 +281,14 @@ void MPC::set_params_bounds(){
         this->forces.params.all_parameters[19 + k*this->Npar] = this->q_n;
         this->forces.params.all_parameters[20 + k*this->Npar] = this->q_mu;
         this->forces.params.all_parameters[21 + k*this->Npar] = this->lambda;
-        this->forces.params.all_parameters[22 + k*this->Npar] = this->q_s;
-        this->forces.params.all_parameters[23 + k*this->Npar] = 7; // CHANGE!! get parameters for maximum acc (x,y)
-        this->forces.params.all_parameters[24 + k*this->Npar] = 10;
+        this->forces.params.all_parameters[22 + k*this->Npar] = (k == N-1) ? this->q_sN : this->q_s;
+        this->forces.params.all_parameters[23 + k*this->Npar] = this->ax_max; 
+        this->forces.params.all_parameters[24 + k*this->Npar] = this->ay_max;
         this->forces.params.all_parameters[25 + k*this->Npar] = this->Cm; 
         this->forces.params.all_parameters[26 + k*this->Npar] = this->dMtv; 
+
+        this->forces.params.all_parameters[27 + k*this->Npar] = this->rk4_t; // It's actually rk4_t * t_fact (0.025s * scaling_factor)
+        this->forces.params.all_parameters[28 + k*this->Npar] = this->q_velN; 
 
         int plannerIdx = 0;
         if(firstIter){
@@ -294,8 +308,6 @@ void MPC::set_params_bounds(){
                 plannerIdx = id_k;
 
                 // Average of last 5 delta_s 
-                // TO DO: 
-                //      -make longer
                 if(k != 0 && id_sinit > this->N - 5){
 
                     diff_s = progress(k) - progress(k-1);
@@ -317,16 +329,16 @@ void MPC::set_params_bounds(){
 
         progress(k) = planner(plannerIdx, 2);
 
-        this->forces.params.all_parameters[27 + k*this->Npar] = planner(plannerIdx, 3); // curvature 
-        // cout << "Curvature: " << this->forces.params.all_parameters[27 + k*this->Npar] << endl;
+        this->forces.params.all_parameters[29 + k*this->Npar] = planner(plannerIdx, 4)*0.6; // planner velocity profile
+        this->forces.params.all_parameters[30 + k*this->Npar] = planner(plannerIdx, 3); // curvature 
 
         // Inequality constraints bounds:
         this->forces.params.hu[k*nh]     = fabs(planner(plannerIdx, 5)); // L(s) ortogonal left dist from the path to the track limits
         this->forces.params.hu[k*nh + 1] = fabs(planner(plannerIdx, 6)); // R(s) ortogonal right dist from the path to the track limits
-        this->forces.params.hu[k*nh + 2] = this->lambda;
+        this->forces.params.hu[k*nh + 2] = this->lambda; // forces ellipse contraint
         this->forces.params.hu[k*nh + 3] = this->lambda;
 
-        // Equality constraints bounds:
+        // Variables bounds:
         this->forces.params.lb[k*Nvar] =     this->bounds.u_min[0];
         this->forces.params.lb[k*Nvar + 1] = this->bounds.u_min[1];
         this->forces.params.lb[k*Nvar + 2] = this->bounds.u_min[2];
@@ -346,7 +358,7 @@ void MPC::set_params_bounds(){
         this->forces.params.ub[k*Nvar + 4] = this->bounds.x_max[1];
         this->forces.params.ub[k*Nvar + 5] = this->bounds.x_max[2];
         this->forces.params.ub[k*Nvar + 6] = this->bounds.x_max[3];
-        this->forces.params.ub[k*Nvar + 7] = this->bounds.x_max[4];
+        this->forces.params.ub[k*Nvar + 7] = (troActive && troProfile) ? planner(plannerIdx,4) : this->bounds.x_max[4];
         this->forces.params.ub[k*Nvar + 8] = this->bounds.x_max[5];
         this->forces.params.ub[k*Nvar + 9] = this->bounds.x_max[6];
 
@@ -415,17 +427,6 @@ void MPC::set_params_bounds(){
                 this->forces.params.x0[k*Nvar + 8] = carState(4);
                 this->forces.params.x0[k*Nvar + 9] = carState(5);
 
-                // this->forces.params.x0[k*Nvar] =     (this->forces.params.lb[k*Nvar] + this->forces.params.ub[k*Nvar])/2;
-                // this->forces.params.x0[k*Nvar + 1] = (this->forces.params.lb[k*Nvar + 1] + this->forces.params.ub[k*Nvar + 1])/2;
-                // this->forces.params.x0[k*Nvar + 2] = (this->forces.params.lb[k*Nvar + 2] + this->forces.params.ub[k*Nvar + 2])/2;
-                // this->forces.params.x0[k*Nvar + 3] = (this->forces.params.lb[k*Nvar + 3] + this->forces.params.ub[k*Nvar + 3])/2;
-                // this->forces.params.x0[k*Nvar + 4] = (this->forces.params.lb[k*Nvar + 4] + this->forces.params.ub[k*Nvar + 4])/2;
-                // this->forces.params.x0[k*Nvar + 5] = (this->forces.params.lb[k*Nvar + 5] + this->forces.params.ub[k*Nvar + 5])/2;
-                // this->forces.params.x0[k*Nvar + 6] = (this->forces.params.lb[k*Nvar + 6] + this->forces.params.ub[k*Nvar + 6])/2;
-                // this->forces.params.x0[k*Nvar + 7] = (this->forces.params.lb[k*Nvar + 7] + this->forces.params.ub[k*Nvar + 7])/2;
-                // this->forces.params.x0[k*Nvar + 8] = (this->forces.params.lb[k*Nvar + 8] + this->forces.params.ub[k*Nvar + 8])/2;
-                // this->forces.params.x0[k*Nvar + 9] = (this->forces.params.lb[k*Nvar + 9] + this->forces.params.ub[k*Nvar + 9])/2;
-
             }else{
                 this->forces.params.x0[k*Nvar] =     (this->forces.params.lb[k*Nvar] + this->forces.params.ub[k*Nvar])/2;
                 this->forces.params.x0[k*Nvar + 1] = (this->forces.params.lb[k*Nvar + 1] + this->forces.params.ub[k*Nvar + 1])/2;
@@ -442,8 +443,8 @@ void MPC::set_params_bounds(){
         }
     }
 
-    cout << "PROGRESS: \n";
-    cout << progress << endl;
+    // cout << "PROGRESS: \n";
+    // cout << progress << endl;
 
 }
 
@@ -468,12 +469,12 @@ void MPC::s_prediction(){
         double vx = solStates(i-1, 2);
         double vy = solStates(i-1, 3);
         double w = solStates(i-1, 4);
-        double k = forces.params.all_parameters[27 + (i-1)*this->Npar];
+        double k = forces.params.all_parameters[28 + (i-1)*this->Npar];
 
         double sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
 
-        cout << "sdot:\n";
-        cout << sdot << endl;
+        // cout << "sdot:\n";
+        // cout << sdot << endl;
 
         predicted_s(i) = fmod( predicted_s(i-1) + sdot*this->rk4_t, this->smax );
 
@@ -507,9 +508,12 @@ void MPC::s_prediction(){
         firstIter = true;    
     }
 
-    cout << "PREDICTED S:\n";
-    cout << predicted_s << endl;
+    // cout << "PREDICTED S:\n";
+    // cout << predicted_s << endl;
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+//------------------------Auxiliar functions--------------------------------------------------
 
 void MPC::get_solution(){
 
@@ -532,15 +536,16 @@ void MPC::get_solution(){
 }
 
 void MPC::msgCommands(as_msgs::CarCommands *msg){
-
+    
     msg->header.stamp = ros::Time::now();
-    msg->motor = solCommands(this->latency, 4); //getTorquefromThrottle(solCommands(this->latency, 4));
+    msg->motor = solCommands(this->latency, 4);
     msg->steering = solCommands(this->latency, 3);
     msg->Mtv = solCommands(this->latency, 2);
 
     cout << "steering: " << solCommands(this->latency, 3) << endl;
     cout << "motor: " << solCommands(this->latency, 4) << endl;
     cout << "Mtv: " << solCommands(this->latency, 2) << endl;
+
     return;
 }
 
@@ -590,6 +595,66 @@ double MPC::throttle_to_torque(double throttle){
     return throttle*this->Cm*this->Rwheel;
 }
 
+double MPC::ax_to_throttle(double ax){ 
+    if(ax >= 0) return min(ax/ax_max, 1.0);
+    else return max(ax/ax_max, -1.0);
+}
+
+void MPC::saveEigen(string filePath, string name, Eigen::MatrixXd data, bool erase){
+
+    try{
+        
+        // Write csv
+        ofstream file;
+        if(erase) file.open(filePath + name, ios::out | ios::trunc);
+        else file.open(filePath + name, ios::app);
+
+        //https://eigen.tuxfamily.org/dox/structEigen_1_1IOFormat.html
+        const static Eigen::IOFormat CSVFormat(Eigen::FullPrecision, Eigen::DontAlignCols, ", ", "\n");
+
+        if (file.is_open()){
+            file << data.format(CSVFormat);
+            file.close(); // Remeber to close the file!
+        }
+
+        // ROS_INFO_STREAM("MPC: matrix data SAVED AT: " << this->savePath+name);
+    }
+    catch (const std::exception& e)
+    {
+        ROS_ERROR_STREAM( "MPC::saveEigen Exception was thrown: " << e.what() );
+    }
+}
+
+template<typename mytype>
+void MPC::save(string filePath, string name, mytype data, bool time){
+
+    try{
+        
+        // Write csv
+        ofstream file;
+        file.open(filePath + name, ios::app);
+        if(time) file << ros::Time::now() << " : " << data << endl;
+        else file << data << endl;
+        file.close(); // Remeber to close the file!
+
+        // ROS_INFO_STREAM("MPC: data SAVED AT: " << this->savePath+name);
+    }
+    catch (const std::exception& e)
+    {
+        ROS_ERROR_STREAM( "MPC::save Exception was thrown: " << e.what() );
+    }
+}
+
+const string MPC::currentDateTime(){ // Get current date/time, format is YYYY-MM-DD.HH:mm:ss
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+
+    return buf;
+}
+
 
 void MPC::reconfigure(tailored_mpc::dynamicConfig& config){
 
@@ -614,6 +679,10 @@ void MPC::reconfigure(tailored_mpc::dynamicConfig& config){
         this->latency = config.latency;
         this->Cm = config.Cm;
         this->dMtv = config.dMtv;
+        this->ax_max = config.Ax_max;
+        this->ay_max = config.Ay_max;
+        this->q_sN = config.q_sN;
+        this->q_velN = config.q_velN;
 
         this->bounds.u_min[0] = -config.diff_delta;
         this->bounds.u_min[1] = -config.diff_Fm;
@@ -621,10 +690,13 @@ void MPC::reconfigure(tailored_mpc::dynamicConfig& config){
         this->bounds.u_max[0] = config.diff_delta;
         this->bounds.u_max[1] = config.diff_Fm;
 
+        this->bounds.x_max[4] = config.Vmax;
+        this->bounds.x_min[4] = config.Vmin;
+
         this->dynParamFlag = true;
 
     } catch (exception& e){
-        ROS_ERROR_STREAM("MPC RECONFIGURE DIED" << e.what());
+        ROS_ERROR_STREAM("MPC::RECONFIGURE DIED" << e.what());
     }
 
 }

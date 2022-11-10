@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(tailored_mpc)
 
 #add_compile_options(-std=c++0x)
-set(CMAKE_CXX_FLAGS "-fpermissive -std=c++0x")
+set(CMAKE_CXX_FLAGS "-fpermissive -fopenmp -std=c++0x")
 set(CMAKE_BUILD_TYPE "Release")
 
 message(STATUS "TAILORED MPC says hi :)")
@@ -14,6 +14,15 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
   as_msgs
 )
+
+find_package(OpenMP REQUIRED)
+if(OPENMP_FOUND)
+  message(STATUS "OPENMP FOUND")
+  set(OpenMP_FLAGS ${OpenMP_CXX_FLAGS})
+  set(OpenMP_LIBS gomp)
+else()
+  message(WARNING "OPENMP NOT FOUND, multithread isn't available")
+endif()
 
 find_library(FORCESPRO_LIBRARY libTailoredSolver.a PATHS ${PROJECT_SOURCE_DIR}/solver/codeGen/TailoredSolver/lib_target)
 
@@ -47,3 +56,6 @@ target_link_libraries(${PROJECT_NAME}_exec ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 add_dependencies(${PROJECT_NAME} as_msgs_generate_messages_cpp)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
+
+# Mandatory for parallelism (OpenMP)
+target_compile_options(${PROJECT_NAME} PRIVATE ${OpenMP_FLAGS})

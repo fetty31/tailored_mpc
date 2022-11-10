@@ -7,7 +7,8 @@
 %       PARAMS.hu - column vector of length 160
 %       PARAMS.xinit - column vector of length 10
 %       PARAMS.x0 - column vector of length 400
-%       PARAMS.all_parameters - column vector of length 1120
+%       PARAMS.all_parameters - column vector of length 1240
+%       PARAMS.num_of_threads - scalar
 %
 %   OUTPUT returns the values of the last iteration of the solver where
 %       OUTPUT.U - column vector of size 200

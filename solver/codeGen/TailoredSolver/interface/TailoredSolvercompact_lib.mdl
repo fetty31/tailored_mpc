@@ -60,13 +60,13 @@ Model {
       }
     }
   }
-  Created		  "11/2/2022 7:50:22 PM"
+  Created		  "11/10/2022 4:07:32 PM"
   Creator		  "embotech AG"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "embotech AG"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "11/2/2022 7:50:22 PM"
+  LastModifiedDate	  "11/10/2022 4:07:32 PM"
   RTWModifiedTimeStamp	  315310195
   ModelVersionFormat	  "1.%<AutoIncrement:2>"
   ConfigurationManager	  "None"
@@ -767,7 +767,7 @@ Model {
       BlockType		      S-Function
       Name		      "TailoredSolver"
       SID		      "1"
-      Ports		      [6, 1]
+      Ports		      [7, 1]
       Position		      [170, 99, 650, 180]
       ZOrder		      1
       FunctionName	      "TailoredSolver_simulinkBlockcompact"
@@ -806,7 +806,8 @@ Model {
 " - hu - column vector of length 160\n "
 " - xinit - column vector of length 10\n "
 " - x0 - column vector of length 400\n "
-" - all_parameters - column vector of length 1120\n "
+" - all_parameters - column vector of length 1240\n "
+" - num_of_threads - column vector of length 1\n "
 
 	"\nOUTPUTS:\n"
 	" - outputs - column vector of length 400\n "
@@ -819,6 +820,7 @@ Model {
 "port_label('input', 4, 'xinit') \n  "
 "port_label('input', 5, 'x0') \n  "
 "port_label('input', 6, 'all_parameters') \n  "
+"port_label('input', 7, 'num_of_threads') \n  "
 "port_label('output', 1, 'outputs') \n "
 "if( exist('FORCES_PRO_Logo.jpg','file') ), image(imread('FORCES_PRO_Logo.jpg'),'center','on'); elseif( exist(['interface',filesep,'FORCES_PRO_Logo.jpg'],'file') ), image(imread(['interface',filesep,'FORCES_PRO_Logo.jpg']),'center','on'); elseif( exist(['TailoredSolver',filesep,'interface',filesep,'FORCES_PRO_Logo.jpg'],'file') ), image(imread(['TailoredSolver',filesep,'interface',filesep,'FORCES_PRO_Logo.jpg']),'center','on'); end \n "
 

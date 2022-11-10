@@ -12,7 +12,7 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
 
     %% Problem dimensions
     N = horizonLength;
-    Npar = 28;
+    Npar = 31;
     model = {};
     model.N = N;                        % horizon length
     model.nvar = n_states+n_controls;   % number of variables
@@ -26,6 +26,7 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
 
     %% Objective function 
     model.objective = @objective;
+    model.objectiveN = @objectiveN;
     
     %% Dynamics, i.e. equality constraints 
     model.eq = @integrated_dynamics;
@@ -73,7 +74,7 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
 %     codeoptions.nlp.integrator.nodes = 1;
 %     codeoptions.nlp.integrator.differentiation_method = 'chainrule';
 
-    codeoptions.maxit = 200;    % Maximum number of iterations
+    codeoptions.maxit = 150;    % Maximum number of iterations
     codeoptions.optlevel = 2;   % 0: no optimization, 1: optimize for size, 2: optimize for speed, 3: optimize for size & speed
     codeoptions.platform = 'Gnu-x86_64'; % Specify the platform
     codeoptions.printlevel = 0; % Optional, on some platforms printing is not supported
@@ -97,13 +98,13 @@ function [model, codeoptions] = generate_solver(solverDir, rkTime, horizonLength
 %     codeoptions.nlp.integrator.attempt_subsystem_exploitation = 1; % exploit possible linear subsystems
 
 
-%     codeoptions.init = 1; % Solver initialization method (0: cold start; 1: centered start; 2: primal warm start; see https://forces.embotech.com/Documentation/solver_options/index.html#compiler-optimization-level)
+    codeoptions.init = 1; % Solver initialization method (0: cold start; 1: centered start; 2: primal warm start; see https://forces.embotech.com/Documentation/solver_options/index.html#compiler-optimization-level)
 
-%     codeoptions.parallel = 1; % Internal Parallelization
+    codeoptions.parallel = 1; % Internal Parallelization
 %     codeoptions.nlp.max_num_threads = 5; % When using code generated integrators (RK4) we must specify the maximum number of threads available
         
     % Embotech solution for server error
-%     codeoptions.legacy_integrators = 1;
+    codeoptions.legacy_integrators = 1;
 
     %% Generate FORCESPRO solver
     cd(solverDir);
@@ -114,8 +115,6 @@ end
     
 function f = objective(z, p)
     
-%     global Ts; 
-    rk_time = 25e-3;
     dRd = p(1);
     dRa = p(2);
     Lf = p(5);
@@ -125,11 +124,14 @@ function f = objective(z, p)
     q_s = p(23);
     q_mu = p(21);
     q_Mtv = p(27);
-    k = p(28);
+    q_vel = p(29);
+    velocity = p(30);
+    Ts = p(28);
+    k = p(31);
 %     q_slack_vx = p(28);
     
     % Progress rate
-    sdot = ( z(8)*cos(z(7)) - z(9)*sin(z(7)) )/(1 - z(6)*k) * rk_time; % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
+    sdot = ( z(8)*cos(z(7)) - z(9)*sin(z(7)) )/(1 - z(6)*k) * Ts; % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
 
     % Slip difference
     beta_dyn = atan(z(9)/z(8));
@@ -138,19 +140,50 @@ function f = objective(z, p)
 
     %Objective function
     f = -q_s*sdot + dRd*(z(1))^2 + dRa*(z(2))^2 + q_Mtv*(z(3))^2 + q_slip*(diff_beta)^2 + q_mu*(z(7))^2 + q_n*(z(6))^2; %+ q_slack_vx*s3;
+%     f = q_vel*(z(8)-velocity)^2 + dRd*(z(1))^2 + dRa*(z(2))^2 + q_Mtv*(z(3))^2 + q_slip*(diff_beta)^2 + q_mu*(z(7))^2 + q_n*(z(6))^2;
     
 end
 
+    
+function f = objectiveN(z, p)
+    
+    dRd = p(1);
+    dRa = p(2);
+    Lf = p(5);  
+    Lr = p(6);
+    q_slip = p(18);
+    q_n = p(20);
+    q_s = p(23);
+    q_mu = p(21);
+    q_Mtv = p(27);
+    q_vel = p(29);
+    k = p(31);
+    velocity = p(30);
+    Ts = p(28);
+%     q_slack_vx = p(28);
+    
+    % Progress rate
+    sdot = ( z(8)*cos(z(7)) - z(9)*sin(z(7)) )/(1 - z(6)*k) * Ts; % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
+
+    % Slip difference
+    beta_dyn = atan(z(9)/z(8));
+    beta_kin = atan(z(4)*Lr/(Lr+Lf));
+    diff_beta = beta_dyn - beta_kin;
+
+    %Objective function
+%     f = q_vel*(z(8)-velocity)^2; %+ q_slack_vx*s3;
+    f = -q_s*sdot + dRd*(z(1))^2 + dRa*(z(2))^2 + q_Mtv*(z(3))^2 + q_slip*(diff_beta)^2 + q_mu*(z(7))^2 + q_n*(z(6))^2;
+    
+end
 
 function xnext = integrated_dynamics(z, p)
 
-%     global Ts
-    rk_time = 25e-3;
     u = z(1:3);
     x = z(4:10);
-  
-%     xnext = RK4(x, u, @my_continuous_dynamics, Ts, p);
-    xnext = RK4(x, u, @my_continuous_dynamics, rk_time, p);
+    Ts = p(28);
+
+    xnext = RK4(x, u, @my_continuous_dynamics, Ts, p);
+
 end
 
 function xdot = my_continuous_dynamics(x, u, p)
@@ -183,7 +216,7 @@ function xdot = my_continuous_dynamics(x, u, p)
     rho = p(16);
     Ar = p(17);
     Cm = p(26);
-    k = p(28);
+    k = p(31);
     
     % Slip angles
     alpha_R = atan((vy-Lr*w)/(vx));

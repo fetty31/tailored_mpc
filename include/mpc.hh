@@ -3,10 +3,13 @@
 
 #include <ros/ros.h>
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include <chrono>
 #include <string>
 #include <vector>
+#include <stdio.h>
+#include <time.h>
 #include <eigen3/Eigen/Dense>
 
 // Dynamic reconfigure headers
@@ -31,8 +34,8 @@ struct Boundaries{
         // VARIABLES BOUNDARIES:
 
           // Bounds and initial guess for the control
-        vector<double> u_min =  { -3*M_PI/180, -5.0, -100}; // both max,min bounds will be overwriten by dynamic reconfigure callback
-        vector<double> u_max  = {  3*M_PI/180, 0.25,  100};
+        vector<double> u_min =  { -3*M_PI/180, -5.0, -300}; // both max,min bounds will be overwriten by dynamic reconfigure callback
+        vector<double> u_max  = {  3*M_PI/180, 0.25,  300};
         vector<double> u0 = {  0.0, 0.0  };
 
           // Bounds and initial guess for the state
@@ -49,8 +52,9 @@ class MPC{
         // Internal variables/methods of MPC
 
         bool plannerFlag = false, stateFlag = false;
-        bool paramFlag = false;     // flag for parameters set up
-        bool dynParamFlag = false;  // flag for dynamic parameters set up
+        bool paramFlag = false;                       // flag for parameters set up
+        bool dynParamFlag = false;                    // flag for dynamic parameters set up
+        bool troActive = false, troProfile = false;   // whether TRO/GRO are publishing
 
         // NLOP params
         int n_states = 7;             // number of state vars
@@ -69,8 +73,8 @@ class MPC{
         
         // DYNAMIC PARAMETERS:
           // see "dynamic.cfg" for explanation
-        double dRd = 1;
-        double dRa = 0.3; 
+        double dRd = 8;
+        double dRa = 2; 
         double Dr = 3152.3;
         double Df = 2785.4;
         double Cr = 1.6;
@@ -79,15 +83,21 @@ class MPC{
         double Bf = 10.8529;
         double u_r = 0.45;
         double Cd = 0.8727;
-        double q_slip = 0.1;
+        double q_slip = 2;
         double p_long = 0.5;
-        double q_n = 0.1;
+        double q_n = 5;
         double q_mu = 0.1;
         double lambda = 1;
-        double q_s = 1;
-        double latency = 4;
+        double q_s = 30;
+        int latency = 4;
         double Cm = 4000;
         double dMtv = 1;
+        double ax_max = 7;
+        double ay_max = 10;
+        double q_sN = 10;
+
+        double t_fact = 1;
+        double q_velN = 5;
 
         // STATIC PARAMETERS: 
           // see "params.hh" for explanation
@@ -102,7 +112,6 @@ class MPC{
         double width = 1.5;
         double d_IMU = -0.318;
         double Rwheel = 0.2;
-        double maxTrq = 300;
 
         // Initial conditions evaluation
         void initial_conditions();
@@ -123,10 +132,8 @@ class MPC{
         Eigen::MatrixXd vector2eigen(vector<double> vect);
         Eigen::MatrixXd output2eigen(double* array, int size);
         double throttle_to_torque(double throttle);
-        double ax_to_throttle(double ax){ 
-          if(ax >= 0) return min((this->m*ax*this->Rwheel)/maxTrq, 1.0);
-          else return max((this->m*ax*this->Rwheel)/maxTrq, -1.0);
-        }
+        double ax_to_throttle(double ax);
+        const string currentDateTime(); // get current date/time, format is YYYY-MM-DD.HH:mm:ss
 
 
     public:
@@ -135,6 +142,8 @@ class MPC{
 
         void reconfigure(tailored_mpc::dynamicConfig& config);
         void msgCommands(as_msgs::CarCommands *msg);
+        void saveEigen(string filePath, string name, Eigen::MatrixXd data, bool erase); // save matrix data into file
+        template<typename mytype> void save(string filePath, string name, mytype data, bool time);
 
         // Callbacks
         void stateCallback(const as_msgs::CarState::ConstPtr& msg);
@@ -149,8 +158,10 @@ class MPC{
         ForcesproSolver forces = ForcesproSolver();
 
         // MPC
-        double Hz = 20;   // [s]
-        int mission = 0;  // 0 for AX, 1 for TD, 2 for SkidPad, 3 for Acceleration
+        double Hz = 20;     // [Hz]
+        uint Nthreads = 1;  // number of internal threads
+        int mission = 0;    // 0 for AX, 1 for TD, 2 for SkidPad, 3 for Acceleration
+        chrono::duration<double> elapsed_time;
 
         // Planner's trajectory matrix 
         Eigen::MatrixXd planner; // [x, y, s, k, vx, L, R]

@@ -26,17 +26,23 @@ struct Params{
     struct MPC{
         int Hz;                 // frequency of MPC [Hz]
         double rk4_t;           // runge kutta integration time [s]
+        int Nthreads;           // number of threads
         int nPlanning;          // number of points we want from the planner
+        bool TroProfile;        // set to true to follow TRO velocity profile 
         struct Topics{
             string commands;        // Car Commands topic
             string state;           // Car State topic
             string planner;         // Planner topic
             string tro;             // Offline planner topic
+            string predictedSteering;
+            string predictedPath;
+            string predictedHeading;
+            string actualPath;
             
         } topics;
         struct NLOP{
             int n_states;           // Number of state variables [delta, acc, n, mu, Vx, Vy, w]
-            int n_controls;         // Number of controls variables [diffDelta, diffAcc] = [d(delta)/dt, d(acc)/dt]
+            int n_controls;         // Number of controls variables [diffDelta, diffAcc, Mtv] = [d(delta)/dt, d(acc)/dt, Mtv]
             int N;                  // Horizon length of the optimization problem 
             int Npar;               // Number of parameters for optimization problem [ 23 (MPC parameters) + (initial state) + n (curvature points == N) ]
 

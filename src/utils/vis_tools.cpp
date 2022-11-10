@@ -1,18 +1,19 @@
 #include "utils/vis_tools.hh"
 
-VisualizationTools::VisualizationTools(MPC *mpc){
+VisualizationTools::VisualizationTools(MPC *mpc, Params *params){
 
     this->mpc = mpc;
 
     // RVIZ Solution MPC
-    pubPredictedPath = n.advertise<nav_msgs::Path>("/vis/predictedPath/path", 1);
-    pubPredictedHeading = n.advertise<visualization_msgs::MarkerArray>("/vis/predictedPath/heading", 1);
-    pubPredictedSteering = n.advertise<visualization_msgs::MarkerArray>("/vis/predictedPath/steering", 1);
+    pubPredictedPath = n.advertise<nav_msgs::Path>(params->mpc.topics.predictedPath, 1);
+    pubPredictedHeading = n.advertise<visualization_msgs::MarkerArray>(params->mpc.topics.predictedHeading, 1);
+    pubPredictedSteering = n.advertise<visualization_msgs::MarkerArray>(params->mpc.topics.predictedSteering, 1);
 
+	// DEBUG
     debugPointsPath = n.advertise<visualization_msgs::MarkerArray>("/vis/predicted/points",1);
 
     // RVIZ Planner
-	pubActualPath = n.advertise<nav_msgs::Path>("/vis/actualPlanner/path", 1);
+	pubActualPath = n.advertise<nav_msgs::Path>(params->mpc.topics.actualPath, 1);
 
 }
 

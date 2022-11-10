@@ -57,6 +57,31 @@ void copyMValueToC_double(double * src, double * dest)
 
 /* copy functions */
 
+void copyCArrayToM_solver_int32_unsigned(solver_int32_unsigned *src, double *dest, solver_int32_default dim) 
+{
+    solver_int32_default i;
+    for( i = 0; i < dim; i++ ) 
+    {
+        *dest++ = (double)*src++;
+    }
+}
+
+void copyMArrayToC_solver_int32_unsigned(double *src, solver_int32_unsigned *dest, solver_int32_default dim) 
+{
+    solver_int32_default i;
+    for( i = 0; i < dim; i++ ) 
+    {
+        *dest++ = (solver_int32_unsigned) (*src++) ;
+    }
+}
+
+void copyMValueToC_solver_int32_unsigned(double * src, solver_int32_unsigned * dest)
+{
+	*dest = (solver_int32_unsigned) *src;
+}
+
+/* copy functions */
+
 void copyCArrayToM_solver_int32_default(solver_int32_default *src, double *dest, solver_int32_default dim) 
 {
     solver_int32_default i;
@@ -243,16 +268,24 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
     {
     mexErrMsgTxt("PARAMS.all_parameters must be a double.");
     }
-    if( mxGetM(par) != 1120 || mxGetN(par) != 1 ) 
+    if( mxGetM(par) != 1240 || mxGetN(par) != 1 ) 
 	{
-    mexErrMsgTxt("PARAMS.all_parameters must be of size [1120 x 1]");
+    mexErrMsgTxt("PARAMS.all_parameters must be of size [1240 x 1]");
     }
 #endif	 
 	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
 	{
-		copyMArrayToC_double(mxGetPr(par), params.all_parameters,1120);
+		copyMArrayToC_double(mxGetPr(par), params.all_parameters,1240);
 
 	}
+	par = mxGetField(PARAMS, 0, "num_of_threads");
+	if ( (par != NULL) && (mxGetN(par) != 0) && (mxGetM(par) != 0) )
+	{
+		copyMValueToC_solver_int32_unsigned(mxGetPr(par), &params.num_of_threads);
+
+	}
+
+
 
 
 	#if SET_PRINTLEVEL_TailoredSolver > 0

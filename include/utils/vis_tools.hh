@@ -6,6 +6,7 @@
 #include "nav_msgs/Path.h"
 #include <tf2/LinearMath/Quaternion.h>
 
+#include "params.hh"
 #include "../mpc.hh"
 
 using namespace std;
@@ -31,7 +32,7 @@ class VisualizationTools {
         // Node Handler
     	ros::NodeHandle n;
 
-        VisualizationTools(MPC *mpc);
+        VisualizationTools(MPC *mpc, Params *params);
         ~VisualizationTools();
 
         void rviz_predicted(){
