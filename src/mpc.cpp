@@ -275,10 +275,10 @@ void MPC::set_params_bounds(){
         this->forces.params.all_parameters[13 + k*this->Npar] = this->gravity;
         this->forces.params.all_parameters[14 + k*this->Npar] = this->Cd;
         this->forces.params.all_parameters[15 + k*this->Npar] = this->rho;   
-        this->forces.params.all_parameters[16 + k*this->Npar] = this->Ar; 
+        this->forces.params.all_parameters[16 + k*this->Npar] = this->Ar;
         this->forces.params.all_parameters[17 + k*this->Npar] = this->q_slip;
         this->forces.params.all_parameters[18 + k*this->Npar] = this->p_long;
-        this->forces.params.all_parameters[19 + k*this->Npar] = this->q_n;
+        this->forces.params.all_parameters[19 + k*this->Npar] = (k == N-1) ? this->q_nN : this->q_n;
         this->forces.params.all_parameters[20 + k*this->Npar] = this->q_mu;
         this->forces.params.all_parameters[21 + k*this->Npar] = this->lambda;
         this->forces.params.all_parameters[22 + k*this->Npar] = (k == N-1) ? this->q_sN : this->q_s;
@@ -329,7 +329,7 @@ void MPC::set_params_bounds(){
 
         progress(k) = planner(plannerIdx, 2);
 
-        this->forces.params.all_parameters[29 + k*this->Npar] = planner(plannerIdx, 4)*0.6; // planner velocity profile
+        this->forces.params.all_parameters[29 + k*this->Npar] = planner(plannerIdx, 4); // planner velocity profile
         this->forces.params.all_parameters[30 + k*this->Npar] = planner(plannerIdx, 3); // curvature 
 
         // Inequality constraints bounds:
@@ -673,6 +673,7 @@ void MPC::reconfigure(tailored_mpc::dynamicConfig& config){
         this->q_slip = config.q_slip;
         this->p_long = config.p_long;
         this->q_n = config.q_n;
+        this->q_nN = config.q_nN;
         this->q_mu = config.q_mu;
         this->lambda = config.lambda;
         this->q_s = config.q_s;

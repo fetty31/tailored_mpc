@@ -86,6 +86,7 @@ class MPC{
         double q_slip = 2;
         double p_long = 0.5;
         double q_n = 5;
+        double q_nN = 5;
         double q_mu = 0.1;
         double lambda = 1;
         double q_s = 30;
