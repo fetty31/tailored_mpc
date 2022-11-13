@@ -25,7 +25,6 @@ struct Params{
 
     struct MPC{
         int Hz;                 // frequency of MPC [Hz]
-        double rk4_t;           // runge kutta integration time [s]
         int Nthreads;           // number of threads
         int nPlanning;          // number of points we want from the planner
         bool TroProfile;        // set to true to follow TRO velocity profile 

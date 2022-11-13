@@ -118,12 +118,11 @@ function f = objective(z, p)
     q_s = p(23);
     q_mu = p(21);
     q_Mtv = p(27);
-    Ts = p(28);
     k = p(31);
     q_slack_vx = p(29);
     
     % Progress rate
-    sdot = ( z(9)*cos(z(8)) - z(10)*sin(z(8)) )/(1 - z(7)*k) * Ts; % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
+    sdot = ( z(9)*cos(z(8)) - z(10)*sin(z(8)) )/(1 - z(7)*k); % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
 
     % Slip difference
     beta_dyn = atan(z(10)/z(9));
@@ -191,14 +190,14 @@ function xdot = my_continuous_dynamics(x, u, p)
     %Progress rate change
     sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
     
-    % Differential equations (time dependent)
+    % Differential equations (space dependent)
     xdot = [diff_delta;
             diff_Fm;
-            vx*sin(mu) + vy*cos(mu);
-            w - k*sdot;
-            (1/m)*(Fx - Ff*sin(delta) + m*vy*w);
-            (1/m)*(Fr + Cm*Fm*sin(delta) + Ff*cos(delta) - m*vx*w);
-            (1/I)*((Ff*cos(delta) + Cm*Fm*sin(delta))*Lf - Fr*Lr + Mtv)];
+            (vx*sin(mu) + vy*cos(mu))/sdot;
+            w/sdot - k;
+            (1/(m*sdot))*(Fx - Ff*sin(delta) + m*vy*w);
+            (1/(m*sdot))*(Fr + Cm*Fm*sin(delta) + Ff*cos(delta) - m*vx*w);
+            (1/(I*sdot))*((Ff*cos(delta) + Cm*Fm*sin(delta))*Lf - Fr*Lr + Mtv)];
     
 end
 

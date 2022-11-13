@@ -30,10 +30,9 @@ Params::Params(const ros::NodeHandle &nh) {
     nh.param<int>("/tailored_mpc/NLOP/N", mpc.nlop.N, 40);
 
     // MPC period (1/freq)
-    nh.param<double>(("/tailored_mpc/rk4_t"), mpc.rk4_t, 0.025);
     nh.param<int>(("/tailored_mpc/nPlanning"), mpc.nPlanning, 1900);
     nh.param<int>(("/tailored_mpc/Hz"), mpc.Hz, 20);
-    nh.param<int>(("/tailored_mpc/Nthreads"), mpc.Nthreads, 2);
+    nh.param<int>(("/tailored_mpc/Nthreads"), mpc.Nthreads, 5);
     nh.param<bool>(("/tailored_mpc/TroProfile"), mpc.TroProfile, false);
 
 }

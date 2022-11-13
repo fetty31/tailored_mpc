@@ -68,7 +68,9 @@ class MPC{
         bool firstIter = true;    // first iteration flag
         int samplingS = 10;       // s sampling distance 
         double delta_s = 0.025;   // planner discretization [m]
-        double rk4_t = 0.025;     // Integration time [s]
+        double rk4_s = 0.066;     // Runge-Kutta integration distance (mpc's delta_s) [m]
+        double Dist_min = 2;      // min, max Look Ahead distances [m]
+        double Dist_max = 15;
         
         // DYNAMIC PARAMETERS:
           // see "dynamic.cfg" for explanation
@@ -95,8 +97,6 @@ class MPC{
         double ax_max = 7;
         double ay_max = 10;
         double q_sN = 10;
-
-        double t_fact = 1;
         double q_slack_vx = 0;
 
         // STATIC PARAMETERS: 
@@ -118,7 +118,8 @@ class MPC{
 
         // S prediction
         void s_prediction();
-        Eigen::VectorXd predicted_s;
+        Eigen::VectorXd predicted_s; 
+        Eigen::VectorXd predicted_t;
         Eigen::VectorXd progress;
         double smax = 0;
 
@@ -132,6 +133,7 @@ class MPC{
         Eigen::MatrixXd vector2eigen(vector<double> vect);
         Eigen::MatrixXd output2eigen(double* array, int size);
         double throttle_to_torque(double throttle);
+        double interpolate(double u0, double u1, double t0, double t1, double t);
         double ax_to_throttle(double ax);
         const string currentDateTime(); // get current date/time, format is YYYY-MM-DD.HH:mm:ss
 

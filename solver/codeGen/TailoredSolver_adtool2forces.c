@@ -60,7 +60,7 @@ extern solver_int32_default TailoredSolver_adtool2forces(TailoredSolver_float *x
 	
 
 	/* Allocate working arrays for AD tool */
-	TailoredSolver_callback_float w[184];
+	TailoredSolver_callback_float w[218];
 	
     /* temporary storage for AD tool sparse output */
     TailoredSolver_callback_float this_f;
@@ -68,7 +68,7 @@ extern solver_int32_default TailoredSolver_adtool2forces(TailoredSolver_float *x
     TailoredSolver_callback_float h_sparse[5];
     TailoredSolver_callback_float nabla_h_sparse[16];
     TailoredSolver_callback_float c_sparse[7];
-    TailoredSolver_callback_float nabla_c_sparse[48];
+    TailoredSolver_callback_float nabla_c_sparse[54];
             
     
     /* pointers to row and column info for 
@@ -82,7 +82,7 @@ extern solver_int32_default TailoredSolver_adtool2forces(TailoredSolver_float *x
 	in[2] = l;
 	in[3] = y;
 
-	if ((stage >= 0) && (stage < 39))
+	if ((stage >= 0) && (stage < 29))
 	{
 		out[0] = &this_f;
 		out[1] = nabla_f_sparse;
@@ -140,38 +140,38 @@ extern solver_int32_default TailoredSolver_adtool2forces(TailoredSolver_float *x
 
 	}
 
-	if ((stage >= 39) && (stage < 40))
+	if ((stage >= 29) && (stage < 30))
 	{
 		out[0] = &this_f;
 		out[1] = nabla_f_sparse;
-		TailoredSolver_objective_40(in, out, NULL, w, 0);
+		TailoredSolver_objective_30(in, out, NULL, w, 0);
 		if (nabla_f != NULL)
 		{
-			nrow = TailoredSolver_objective_40_sparsity_out(1)[0];
-			ncol = TailoredSolver_objective_40_sparsity_out(1)[1];
-			colind = TailoredSolver_objective_40_sparsity_out(1) + 2;
-			row = TailoredSolver_objective_40_sparsity_out(1) + 2 + (ncol + 1);
+			nrow = TailoredSolver_objective_30_sparsity_out(1)[0];
+			ncol = TailoredSolver_objective_30_sparsity_out(1)[1];
+			colind = TailoredSolver_objective_30_sparsity_out(1) + 2;
+			row = TailoredSolver_objective_30_sparsity_out(1) + 2 + (ncol + 1);
 			TailoredSolver_sparse2fullcopy(nrow, ncol, colind, row, nabla_f_sparse, nabla_f);
 		}
 
 		out[0] = h_sparse;
 		out[1] = nabla_h_sparse;
-		TailoredSolver_inequalities_40(in, out, NULL, w, 0);
+		TailoredSolver_inequalities_30(in, out, NULL, w, 0);
 		if (h != NULL)
 		{
-			nrow = TailoredSolver_inequalities_40_sparsity_out(0)[0];
-			ncol = TailoredSolver_inequalities_40_sparsity_out(0)[1];
-			colind = TailoredSolver_inequalities_40_sparsity_out(0) + 2;
-			row = TailoredSolver_inequalities_40_sparsity_out(0) + 2 + (ncol + 1);
+			nrow = TailoredSolver_inequalities_30_sparsity_out(0)[0];
+			ncol = TailoredSolver_inequalities_30_sparsity_out(0)[1];
+			colind = TailoredSolver_inequalities_30_sparsity_out(0) + 2;
+			row = TailoredSolver_inequalities_30_sparsity_out(0) + 2 + (ncol + 1);
 			TailoredSolver_sparse2fullcopy(nrow, ncol, colind, row, h_sparse, h);
 		}
 
 		if (nabla_h != NULL)
 		{
-			nrow = TailoredSolver_inequalities_40_sparsity_out(1)[0];
-			ncol = TailoredSolver_inequalities_40_sparsity_out(1)[1];
-			colind = TailoredSolver_inequalities_40_sparsity_out(1) + 2;
-			row = TailoredSolver_inequalities_40_sparsity_out(1) + 2 + (ncol + 1);
+			nrow = TailoredSolver_inequalities_30_sparsity_out(1)[0];
+			ncol = TailoredSolver_inequalities_30_sparsity_out(1)[1];
+			colind = TailoredSolver_inequalities_30_sparsity_out(1) + 2;
+			row = TailoredSolver_inequalities_30_sparsity_out(1) + 2 + (ncol + 1);
 			TailoredSolver_sparse2fullcopy(nrow, ncol, colind, row, nabla_h_sparse, nabla_h);
 		}
 

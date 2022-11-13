@@ -8,12 +8,10 @@ MPC::MPC(const Params& params){
 
     // MPC
     this->Hz = params.mpc.Hz;
-    this->rk4_t = params.mpc.rk4_t*t_fact;
     this->nPlanning = params.mpc.nPlanning;
     this->Nthreads = params.mpc.Nthreads;
     this->troProfile = params.mpc.TroProfile;
 
-    cout << "rk4_t: " << rk4_t << endl;
     cout << "troProfile: " << troProfile << endl;
 
     // Vehicle params
@@ -41,6 +39,7 @@ MPC::MPC(const Params& params){
     planner = Eigen::MatrixXd::Zero(nPlanning,7);
     carState = Eigen::VectorXd::Zero(9);
     predicted_s = Eigen::VectorXd::Zero(N);
+    predicted_t = Eigen::VectorXd::Zero(N);
     progress = Eigen::VectorXd::Zero(N); 
 
     lastState = Eigen::MatrixXd::Zero(N,6);                 // [x, y, theta, vx, vy, w]
@@ -74,17 +73,21 @@ void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
                 return;
         }
 
+        int size = min(int(msg->objectives.size()), nPlanning);
+
         // Fill planner matrix
-        for (unsigned int i = 0; i < nPlanning ; i++)
-        {	
-            planner(i, 0) = msg->objectives[i].x;
-            planner(i, 1) = msg->objectives[i].y;
-            planner(i, 2) = msg->objectives[i].s; 
-            planner(i, 3) = msg->objectives[i].k; 
-            planner(i, 4) = msg->objectives[i].vx;
-            planner(i, 5) = msg->objectives[i].L;
-            planner(i, 6) = msg->objectives[i].R;
+        for (unsigned int i = 0; i < size ; i++){	
+                planner(i, 0) = msg->objectives[i].x;
+                planner(i, 1) = msg->objectives[i].y;
+                planner(i, 2) = msg->objectives[i].s; 
+                planner(i, 3) = msg->objectives[i].k; 
+                planner(i, 4) = msg->objectives[i].vx;
+                planner(i, 5) = msg->objectives[i].L;
+                planner(i, 6) = msg->objectives[i].R;
         }
+
+        rk4_s = min(max(size*delta_s, Dist_min), Dist_max)/N;
+        ROS_WARN_STREAM("Delta_s: " << rk4_s);
 
         smax = 2000;
         plannerFlag = true;
@@ -98,20 +101,25 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
 			return;
     }
 
+    int size = min(int(msg->objectives.size()), nPlanning);
+
     // Fill planner matrix
-    for (unsigned int i = 0; i < nPlanning ; i++)
-    {	
-        planner(i, 0) = msg->objectives[i].x;
-        planner(i, 1) = msg->objectives[i].y;
-        planner(i, 2) = msg->objectives[i].s; 
-        planner(i, 3) = msg->objectives[i].k; 
-        planner(i, 4) = msg->objectives[i].vx;
-        planner(i, 5) = msg->objectives[i].L;
-        planner(i, 6) = msg->objectives[i].R;
+    for (unsigned int i = 0; i < size ; i++){	
+            planner(i, 0) = msg->objectives[i].x;
+            planner(i, 1) = msg->objectives[i].y;
+            planner(i, 2) = msg->objectives[i].s; 
+            planner(i, 3) = msg->objectives[i].k; 
+            planner(i, 4) = msg->objectives[i].vx;
+            planner(i, 5) = msg->objectives[i].L;
+            planner(i, 6) = msg->objectives[i].R;
     }
+
+    rk4_s = min(max(size*delta_s, Dist_min), Dist_max)/N;
+    ROS_WARN_STREAM("Delta_s: " << rk4_s);
 
     smax = msg->smax;
     cout << "SMAX: " << smax << endl;
+
     plannerFlag = troActive = true;
     ROS_WARN_ONCE("MPC: FOLLOWING TRO! :)");
 
@@ -286,7 +294,7 @@ void MPC::set_params_bounds(){
         this->forces.params.all_parameters[25 + k*this->Npar] = this->Cm; 
         this->forces.params.all_parameters[26 + k*this->Npar] = this->dMtv; 
 
-        this->forces.params.all_parameters[27 + k*this->Npar] = this->rk4_t; // It's actually rk4_t * t_fact (0.025s * scaling_factor)
+        this->forces.params.all_parameters[27 + k*this->Npar] = this->rk4_s; 
         this->forces.params.all_parameters[28 + k*this->Npar] = this->q_slack_vx; 
 
         int plannerIdx = 0;
@@ -457,9 +465,11 @@ void MPC::set_params_bounds(){
 
 void MPC::s_prediction(){
 
+    predicted_t.setZero();
     predicted_s.setZero();
-    cout << "S_PRED inicial: " << progress(0) << endl;
     predicted_s(0) = fmod(progress(0), smax);
+
+    cout << "S_PRED inicial: " << progress(0) << endl;
 
     lastState(0,0) = carState(0);
     lastState(0,1) = carState(1);
@@ -483,7 +493,8 @@ void MPC::s_prediction(){
         // cout << "sdot:\n";
         // cout << sdot << endl;
 
-        predicted_s(i) = fmod( predicted_s(i-1) + sdot*this->rk4_t, this->smax );
+        predicted_t(i) = predicted_t(i-1) + this->rk4_s/sdot;
+        predicted_s(i) = fmod( predicted_s(i-1) + this->rk4_s, this->smax );
 
         // Ensure sdot > 0
         if(sdot < 0){
@@ -493,9 +504,9 @@ void MPC::s_prediction(){
         }
 
         // Predict states evolution with Euler
-        lastState(i,0) = lastState(i-1,0) + (vx*cos(theta) - vy*sin(theta))*this->rk4_t;
-        lastState(i,1) = lastState(i-1,1) + (vx*sin(theta) + vy*cos(theta))*this->rk4_t;
-        lastState(i,2) = lastState(i-1,2) + w*this->rk4_t;
+        lastState(i,0) = lastState(i-1,0) + (vx*cos(theta) - vy*sin(theta))*this->rk4_s;
+        lastState(i,1) = lastState(i-1,1) + (vx*sin(theta) + vy*cos(theta))*this->rk4_s;
+        lastState(i,2) = lastState(i-1,2) + w*this->rk4_s;
         lastState(i,3) = vx;
         lastState(i,4) = vy;
         lastState(i,5) = w;
@@ -516,8 +527,8 @@ void MPC::s_prediction(){
         firstIter = true;    
     }
 
-    // cout << "PREDICTED S:\n";
-    // cout << predicted_s << endl;
+    cout << "PREDICTED t:\n";
+    cout << predicted_t << endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -538,23 +549,36 @@ void MPC::get_solution(){
     // cout << "solStates: " << endl;
     // cout << solStates << endl;
 
-    cout << "solCommands:\n";
-    cout << solCommands << endl;
+    // cout << "solCommands:\n";
+    // cout << solCommands << endl;
 
 }
 
 void MPC::msgCommands(as_msgs::CarCommands *msg){
+
+    // Chosen time
+    double t = 1/this->Hz + latency/Hz;
+
+    int idx = 0; // index of the chosen time within the predicted times vector
+    for(int i=0; i < this->N; i++){
+        if(predicted_t(i) > t) break;
+        else idx++;
+    }
     
     msg->header.stamp = ros::Time::now();
-    msg->motor = solCommands(this->latency, 5);
-    msg->steering = solCommands(this->latency, 4);
-    msg->Mtv = solCommands(this->latency, 3);
+    msg->motor      = interpolate(solCommands(idx, 5), solCommands(idx+1, 5), predicted_t(idx), predicted_t(idx+1), t);
+    msg->steering   = interpolate(solCommands(idx, 4), solCommands(idx+1, 4), predicted_t(idx), predicted_t(idx+1), t);
+    msg->Mtv        = interpolate(solCommands(idx, 3), solCommands(idx+1, 3), predicted_t(idx), predicted_t(idx+1), t);
 
-    cout << "steering: " << solCommands(this->latency, 4) << endl;
-    cout << "motor: " << solCommands(this->latency, 5) << endl;
-    cout << "Mtv: " << solCommands(this->latency, 3) << endl;
+    cout << "steering: " << interpolate(solCommands(idx, 4), solCommands(idx+1, 4), predicted_t(idx), predicted_t(idx+1), t) << endl;
+    cout << "motor: " << interpolate(solCommands(idx, 5), solCommands(idx+1, 5), predicted_t(idx), predicted_t(idx+1), t) << endl;
+    cout << "Mtv: " << interpolate(solCommands(idx, 3), solCommands(idx+1, 3), predicted_t(idx), predicted_t(idx+1), t) << endl;
 
     return;
+}
+
+double MPC::interpolate(double u0, double u1, double t0, double t1, double t){
+    return u0 + (t-t0)*(u1-u0)/(t1-t0);
 }
 
 vector<double> MPC::vconcat(const vector<double>& x, const vector<double>& y){
@@ -692,6 +716,8 @@ void MPC::reconfigure(tailored_mpc::dynamicConfig& config){
         this->ay_max = config.Ay_max;
         this->q_sN = config.q_sN;
         this->q_slack_vx = config.q_slack_vx;
+        this->Dist_min = config.Dist_min;
+        this->Dist_max = config.Dist_max;
 
         this->bounds.u_min[1] = -config.diff_delta;
         this->bounds.u_min[2] = -config.diff_Fm;

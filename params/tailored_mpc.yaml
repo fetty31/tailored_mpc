@@ -29,12 +29,10 @@ Topics:
   # TO DO: fill with other topics
 
 NLOP:
-  N: 40                                               # Prediction horizon
-  Npar: 31                                            # Number of parameters
+  N: 30                                               # Prediction horizon
 
 Hz: 30                                                #[s] MPC frequency
-rk4_t: 0.025                                          #[s] Runge Kutta integration time (must match the time used in FORCES_problem.m)
 Nthreads: 5                                           # Number of threads
-TroProfile: true                                     # Set to true to follow TRO velocity profile 
+TroProfile: false                                     # Set to true to follow TRO velocity profile 
 
-nPlanning: 1900                                       # n points saved from the planner
+nPlanning: 1900                                       # Maximum n points saved from the planner
