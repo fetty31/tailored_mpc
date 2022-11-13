@@ -17,7 +17,7 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
     model.N = N;                        % horizon length
     model.nvar = n_states+n_controls;   % number of variables
     model.neq  = n_states;              % number of equality constraints
-    model.nh = 4;                       % number of inequality constraint functions
+    model.nh = 5;                       % number of inequality constraint functions
     model.npar = Npar;                  % number of runtime parameters
 
     %% Objective function 
@@ -41,15 +41,15 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
     %% Inequality constraints
     % upper/lower variable bounds lb <= z <= ub
     %          inputs          |             states
-    % z = [diff_delta, delta_Fm, Mtv, delta, Fm, n, mu, vx, vy, w]    
-    model.lbidx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]';
-    model.ubidx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]';
+    % z = [v_slack, diff_delta, delta_Fm, Mtv, delta, Fm, n, mu, vx, vy, w]    
+    model.lbidx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]';
+    model.ubidx = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]';
     model.lb = []; 
     model.ub = [];
     
     %% Initial conditions
     % Initial conditions on all states
-    model.xinitidx = 1:10; % use this to specify on which variables initial conditions are imposed
+    model.xinitidx = 2:11; % use this to specify on which variables initial conditions are imposed
 
     %% Linear subsystem
 %     model.linInIdx = [1, 2]';
@@ -92,7 +92,7 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
 
 %     codeoptions.nlp.integrator.attempt_subsystem_exploitation = 1; % exploit possible linear subsystems
 
-    codeoptions.init = 0; % Solver initialization method (0: cold start; 1: centered start; 2: primal warm start; see https://forces.embotech.com/Documentation/solver_options/index.html#compiler-optimization-level)
+    codeoptions.init = 1; % Solver initialization method (0: cold start; 1: centered start; 2: primal warm start; see https://forces.embotech.com/Documentation/solver_options/index.html#compiler-optimization-level)
 
     codeoptions.parallel = 1; % Internal Parallelization
 %     codeoptions.nlp.max_num_threads = 5; % When using code generated integrators (RK4) we must specify the maximum number of threads available
@@ -120,26 +120,26 @@ function f = objective(z, p)
     q_Mtv = p(27);
     Ts = p(28);
     k = p(31);
-%     q_slack_vx = p(28);
+    q_slack_vx = p(29);
     
     % Progress rate
-    sdot = ( z(8)*cos(z(7)) - z(9)*sin(z(7)) )/(1 - z(6)*k) * Ts; % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
+    sdot = ( z(9)*cos(z(8)) - z(10)*sin(z(8)) )/(1 - z(7)*k) * Ts; % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
 
     % Slip difference
-    beta_dyn = atan(z(9)/z(8));
-    beta_kin = atan(z(4)*Lr/(Lr+Lf));
+    beta_dyn = atan(z(10)/z(9));
+    beta_kin = atan(z(5)*Lr/(Lr+Lf));
     diff_beta = beta_dyn - beta_kin;
 
     %Objective function
-    f = -q_s*sdot + dRd*(z(1))^2 + dRa*(z(2))^2 + q_Mtv*(z(3))^2 + q_slip*(diff_beta)^2 + q_mu*(z(7))^2 + q_n*(z(6))^2; %+ q_slack_vx*s3;
+    f = -q_s*sdot + dRd*(z(2))^2 + dRa*(z(3))^2 + q_Mtv*(z(4))^2 + q_slip*(diff_beta)^2 + q_mu*(z(8))^2 + q_n*(z(7))^2 + q_slack_vx*z(1);
     
 end
 
 
 function xnext = integrated_dynamics(z, p)
 
-    u = z(1:3);
-    x = z(4:10);
+    u = z(1:4);
+    x = z(5:11);
     Ts = p(28);
 
     xnext = RK4(x, u, @my_continuous_dynamics, Ts, p);
@@ -156,9 +156,9 @@ function xdot = my_continuous_dynamics(x, u, p)
     vy = x(6);
     w = x(7);
     
-    diff_delta = u(1);
-    diff_Fm = u(2);
-    Mtv = u(3);
+    diff_delta = u(2);
+    diff_Fm = u(3);
+    Mtv = u(4);
     
     m = p(3);
     I = p(4);
@@ -215,13 +215,14 @@ function h = nonlin_const(z, p)
     Bf = p(12); 
     Cm = p(26);
     
-    delta = z(4);
-    Fm = z(5);
-    n = z(6);
-    mu = z(7);
-    vx = z(8);
-    vy = z(9);
-    w = z(10);
+    s1 = z(1);
+    delta = z(5);
+    Fm = z(6);
+    n = z(7);
+    mu = z(8);
+    vx = z(9);
+    vy = z(10);
+    w = z(11);
     
     % Length and width of the car
     long = 2.72;
@@ -242,6 +243,7 @@ function h = nonlin_const(z, p)
     h = [ n - long/2*sin(abs(mu)) + width/2*cos(mu); % <= L(s)
          -n + long/2*sin(abs(mu)) + width/2*cos(mu); % <= R(s)
          (Fx/(Ax_max*m))^2 + (Fr/(Ay_max*m))^2; % <= lambda
-         (Fx/(Ax_max*m))^2 + (Ff/(Ay_max*m))^2]; % <= lambda]; 
+         (Fx/(Ax_max*m))^2 + (Ff/(Ay_max*m))^2; % <= lambda
+         vx - s1]; 
      
 end

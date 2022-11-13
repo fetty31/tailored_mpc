@@ -34,8 +34,8 @@ struct Boundaries{
         // VARIABLES BOUNDARIES:
 
           // Bounds and initial guess for the control
-        vector<double> u_min =  { -3*M_PI/180, -5.0, -300}; // both max,min bounds will be overwriten by dynamic reconfigure callback
-        vector<double> u_max  = {  3*M_PI/180, 0.25,  300};
+        vector<double> u_min =  { 0.0, -3*M_PI/180, -5.0, -300}; // delta, Fm max,min bounds will be overwriten by dynamic reconfigure callback
+        vector<double> u_max  = { 3*M_PI/180, 0.25,  300};
         vector<double> u0 = {  0.0, 0.0  };
 
           // Bounds and initial guess for the state
@@ -57,12 +57,11 @@ class MPC{
         bool troActive = false, troProfile = false;   // whether TRO/GRO are publishing
 
         // NLOP params
-        int n_states = 7;             // number of state vars
-        int n_controls = 3;           // number of control vars
+        int n_states = 5;             // number of state vars
+        int n_controls = 6;           // number of control vars
         int N = 40;                   // horizon length
-        int Npar = 27;                // number of real time parameters
+        int Npar = 31;                // number of real time parameters
         int sizeU, sizeX;             // size of states and controls FORCES arrays
-        int sizeCommands, sizeStates; // size of commands and car state matrices
 
         // MPC
         int nPlanning = 1900;     // number of points wanted from the planner
@@ -98,7 +97,7 @@ class MPC{
         double q_sN = 10;
 
         double t_fact = 1;
-        double q_velN = 5;
+        double q_slack_vx = 0;
 
         // STATIC PARAMETERS: 
           // see "params.hh" for explanation
@@ -172,11 +171,11 @@ class MPC{
 
         // Previous state
         Eigen::MatrixXd lastState;    // [x, y, theta, vx, vy, w]
-        Eigen::MatrixXd lastCommands; // [diff_delta, diff_Fm, Mtv, delta, acc]
+        Eigen::MatrixXd lastCommands; // [slack_vx, diff_delta, diff_Fm, Mtv, delta, Fm]
 
         // Previous solution
         Eigen::MatrixXd solStates;    // [n, mu, vx, vy, w]
-        Eigen::MatrixXd solCommands;  // [diff_delta, diff_acc, MTV, delta, Fm]
+        Eigen::MatrixXd solCommands;  // [slack_vx, diff_delta, diff_acc, Mtv, delta, Fm]
 
 };
 

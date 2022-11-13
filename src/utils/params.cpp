@@ -27,10 +27,7 @@ Params::Params(const ros::NodeHandle &nh) {
     nh.param<string>("/tailored_mpc/Topics/Vis/ActualPath", mpc.topics.actualPath, "/AS/C/mpc/vis/actual/path");
 
     // NLOP
-    nh.param<int>("/tailored_mpc/NLOP/Nstates", mpc.nlop.n_states, 7);
-    nh.param<int>("/tailored_mpc/NLOP/Ncontrols", mpc.nlop.n_controls, 2);
     nh.param<int>("/tailored_mpc/NLOP/N", mpc.nlop.N, 40);
-    nh.param<int>("/tailored_mpc/NLOP/Npar", mpc.nlop.Npar, 23);
 
     // MPC period (1/freq)
     nh.param<double>(("/tailored_mpc/rk4_t"), mpc.rk4_t, 0.025);

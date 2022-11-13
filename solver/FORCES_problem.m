@@ -18,13 +18,13 @@ addpath(solverDir);
 %% Problem info
 N = 40; % Horizon Length
 n_states = 7;
-n_controls = 3;
+n_controls = 4;
 
 % Call function that generates the solver
 cd(solverDir);
 [model, codeoptions] = generate_solver(solverDir, N, n_states, n_controls);
-output1= newOutput('U',1:N,1:5);
-output2= newOutput('X',1:N,6:n_states+n_controls);
+output1= newOutput('U',1:N,1:6);
+output2= newOutput('X',1:N,7:n_states+n_controls);
 [stages, options, formulation] = FORCES_NLP(model, codeoptions, [output1, output2]);
 cd(filePath);
 

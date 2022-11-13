@@ -168,14 +168,14 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
     {
     mexErrMsgTxt("PARAMS.lb must be a double.");
     }
-    if( mxGetM(par) != 400 || mxGetN(par) != 1 ) 
+    if( mxGetM(par) != 440 || mxGetN(par) != 1 ) 
 	{
-    mexErrMsgTxt("PARAMS.lb must be of size [400 x 1]");
+    mexErrMsgTxt("PARAMS.lb must be of size [440 x 1]");
     }
 #endif	 
 	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
 	{
-		copyMArrayToC_double(mxGetPr(par), params.lb,400);
+		copyMArrayToC_double(mxGetPr(par), params.lb,440);
 
 	}
 	par = mxGetField(PARAMS, 0, "ub");
@@ -208,14 +208,14 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
     {
     mexErrMsgTxt("PARAMS.hu must be a double.");
     }
-    if( mxGetM(par) != 160 || mxGetN(par) != 1 ) 
+    if( mxGetM(par) != 200 || mxGetN(par) != 1 ) 
 	{
-    mexErrMsgTxt("PARAMS.hu must be of size [160 x 1]");
+    mexErrMsgTxt("PARAMS.hu must be of size [200 x 1]");
     }
 #endif	 
 	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
 	{
-		copyMArrayToC_double(mxGetPr(par), params.hu,160);
+		copyMArrayToC_double(mxGetPr(par), params.hu,200);
 
 	}
 	par = mxGetField(PARAMS, 0, "xinit");
@@ -248,14 +248,14 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
     {
     mexErrMsgTxt("PARAMS.x0 must be a double.");
     }
-    if( mxGetM(par) != 400 || mxGetN(par) != 1 ) 
+    if( mxGetM(par) != 440 || mxGetN(par) != 1 ) 
 	{
-    mexErrMsgTxt("PARAMS.x0 must be of size [400 x 1]");
+    mexErrMsgTxt("PARAMS.x0 must be of size [440 x 1]");
     }
 #endif	 
 	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
 	{
-		copyMArrayToC_double(mxGetPr(par), params.x0,400);
+		copyMArrayToC_double(mxGetPr(par), params.x0,440);
 
 	}
 	par = mxGetField(PARAMS, 0, "all_parameters");
@@ -314,8 +314,8 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
 
 	/* copy output to matlab arrays */
 	plhs[0] = mxCreateStructMatrix(1, 1, 2, outputnames);
-		outvar = mxCreateDoubleMatrix(200, 1, mxREAL);
-	copyCArrayToM_double( output.U, mxGetPr(outvar), 200);
+		outvar = mxCreateDoubleMatrix(240, 1, mxREAL);
+	copyCArrayToM_double( output.U, mxGetPr(outvar), 240);
 	mxSetField(plhs[0], 0, "U", outvar);
 
 	outvar = mxCreateDoubleMatrix(200, 1, mxREAL);

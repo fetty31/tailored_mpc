@@ -29,12 +29,10 @@ Topics:
   # TO DO: fill with other topics
 
 NLOP:
-  Nstates: 7                                          # Number of states
-  Ncontrols: 3                                        # Number of controls
   N: 40                                               # Prediction horizon
   Npar: 31                                            # Number of parameters
 
-Hz: 20                                                #[s] MPC frequency
+Hz: 30                                                #[s] MPC frequency
 rk4_t: 0.025                                          #[s] Runge Kutta integration time (must match the time used in FORCES_problem.m)
 Nthreads: 5                                           # Number of threads
 TroProfile: true                                     # Set to true to follow TRO velocity profile 
