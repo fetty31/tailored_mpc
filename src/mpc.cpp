@@ -38,9 +38,6 @@ MPC::MPC(const Params& params){
     this->n_states = int(sizeX/N);      // number of car state variables
     this->n_controls = int(sizeU/N);    // number of commands variables    
 
-    cout << "n_states: " << n_states << endl;
-    cout << "n_controls: " << n_controls << endl;
-
     planner = Eigen::MatrixXd::Zero(nPlanning,7);
     carState = Eigen::VectorXd::Zero(9);
     predicted_s = Eigen::VectorXd::Zero(N);
