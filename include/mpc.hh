@@ -43,6 +43,8 @@ struct Boundaries{
         vector<double> x_max  = { 23.0*M_PI/180, 1, 3, 50.0*M_PI/180, 25.0, 2.0, 50.0*M_PI/180 };
         vector<double> x0 = { 0.0, -1.25, 0.0, 0.0, 15.0, 0.0, 0.0 };
 
+        double vx_N = 25; // Maximum longitudinal velocity at N stage
+
 };
 
 class MPC{
@@ -55,6 +57,9 @@ class MPC{
         bool paramFlag = false;                       // flag for parameters set up
         bool dynParamFlag = false;                    // flag for dynamic parameters set up
         bool troActive = false, troProfile = false;   // whether TRO/GRO are publishing
+        bool firstIter = true;                        // first iteration flag
+        bool firstOpt = false;                        // first optimal solution flag
+        bool running = false;                         // running flag
 
         // NLOP params
         int n_states = 5;             // number of state vars
@@ -62,10 +67,11 @@ class MPC{
         int N = 40;                   // horizon length
         int Npar = 31;                // number of real time parameters
         int sizeU, sizeX;             // size of states and controls FORCES arrays
+        int u_idx = 0;                // index of commands sent to control master
+        int optCount = 0;             // optimum flags counter
 
         // MPC
         int nPlanning = 1900;     // number of points wanted from the planner
-        bool firstIter = true;    // first iteration flag
         int samplingS = 10;       // s sampling distance 
         double delta_s = 0.025;   // planner discretization [m]
         double rk4_s = 0.066;     // Runge-Kutta integration distance (mpc's delta_s) [m]
@@ -116,11 +122,9 @@ class MPC{
         // Initial conditions evaluation
         void initial_conditions();
 
-        // S prediction
-        void s_prediction();
-        Eigen::VectorXd predicted_s; 
+        // Time prediction
+        void t_prediction();
         Eigen::VectorXd predicted_t;
-        Eigen::VectorXd progress;
         double smax = 0;
 
         // FORCESPRO:
@@ -129,12 +133,16 @@ class MPC{
 
         // Aux:
         vector<double> vconcat(const vector<double>& x, const vector<double>& y);
+
         void printVec(vector<double> &input, int firstElements=0);
+
         Eigen::MatrixXd vector2eigen(vector<double> vect);
         Eigen::MatrixXd output2eigen(double* array, int size);
+
         double throttle_to_torque(double throttle);
-        double interpolate(double u0, double u1, double t0, double t1, double t);
+        double interpolate(double u0, double u1, double t0, double t1, double t, double ub, double lb);
         double ax_to_throttle(double ax);
+
         const string currentDateTime(); // get current date/time, format is YYYY-MM-DD.HH:mm:ss
 
 

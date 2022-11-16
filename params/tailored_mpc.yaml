@@ -31,8 +31,8 @@ Topics:
 NLOP:
   N: 30                                               # Prediction horizon
 
-Hz: 30                                                #[s] MPC frequency
-Nthreads: 5                                           # Number of threads
+Hz: 25                                                # MPC frequency
+Nthreads: 10                                          # Number of threads
 TroProfile: false                                     # Set to true to follow TRO velocity profile 
 
 nPlanning: 1900                                       # Maximum n points saved from the planner

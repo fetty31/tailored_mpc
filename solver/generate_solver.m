@@ -69,7 +69,7 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
 %     codeoptions.nlp.integrator.nodes = 1;
 %     codeoptions.nlp.integrator.differentiation_method = 'chainrule';
 
-    codeoptions.maxit = 150;    % Maximum number of iterations
+    codeoptions.maxit = 250;    % Maximum number of iterations
     codeoptions.optlevel = 2;   % 0: no optimization, 1: optimize for size, 2: optimize for speed, 3: optimize for size & speed
     codeoptions.platform = 'Gnu-x86_64'; % Specify the platform
     codeoptions.printlevel = 0; % Optional, on some platforms printing is not supported

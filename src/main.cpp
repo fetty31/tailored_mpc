@@ -98,7 +98,6 @@ int main(int argc, char **argv) {
         exitflag_msg.data = mpc.forces.exit_flag;
         pubExitflag.publish(exitflag_msg);
 
-
         rviz.rviz_predicted();  // visualize predicted states
         rviz.rviz_actual();     // visualize actual states
 
