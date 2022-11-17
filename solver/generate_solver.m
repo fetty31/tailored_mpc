@@ -12,7 +12,7 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
 
     %% Problem dimensions
     N = horizonLength;
-    Npar = 31;
+    Npar = 32;
     model = {};
     model.N = N;                        % horizon length
     model.nvar = n_states+n_controls;   % number of variables
@@ -41,15 +41,15 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
     %% Inequality constraints
     % upper/lower variable bounds lb <= z <= ub
     %          inputs          |             states
-    % z = [v_slack, diff_delta, delta_Fm, Mtv, delta, Fm, n, mu, vx, vy, w]    
-    model.lbidx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]';
-    model.ubidx = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]';
+    % z = [v_slack, track_slack, diff_delta, delta_Fm, Mtv, delta, Fm, n, mu, vx, vy, w]    
+    model.lbidx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]';
+    model.ubidx = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]';
     model.lb = []; 
     model.ub = [];
     
     %% Initial conditions
     % Initial conditions on all states
-    model.xinitidx = 2:11; % use this to specify on which variables initial conditions are imposed
+    model.xinitidx = 3:12; % use this to specify on which variables initial conditions are imposed
 
     %% Linear subsystem
 %     model.linInIdx = [1, 2]';
@@ -69,7 +69,7 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
 %     codeoptions.nlp.integrator.nodes = 1;
 %     codeoptions.nlp.integrator.differentiation_method = 'chainrule';
 
-    codeoptions.maxit = 250;    % Maximum number of iterations
+    codeoptions.maxit = 200;    % Maximum number of iterations
     codeoptions.optlevel = 2;   % 0: no optimization, 1: optimize for size, 2: optimize for speed, 3: optimize for size & speed
     codeoptions.platform = 'Gnu-x86_64'; % Specify the platform
     codeoptions.printlevel = 0; % Optional, on some platforms printing is not supported
@@ -118,27 +118,28 @@ function f = objective(z, p)
     q_s = p(23);
     q_mu = p(21);
     q_Mtv = p(27);
-    k = p(31);
+    k = p(32);
     q_slack_vx = p(29);
+    q_slack_track = p(31);
     
     % Progress rate
-    sdot = ( z(9)*cos(z(8)) - z(10)*sin(z(8)) )/(1 - z(7)*k); % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
+    sdot = ( z(10)*cos(z(9)) - z(11)*sin(z(9)) )/(1 - z(8)*k); % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
 
     % Slip difference
-    beta_dyn = atan(z(10)/z(9));
-    beta_kin = atan(z(5)*Lr/(Lr+Lf));
+    beta_dyn = atan(z(11)/z(10));
+    beta_kin = atan(z(6)*Lr/(Lr+Lf));
     diff_beta = beta_dyn - beta_kin;
 
     %Objective function
-    f = -q_s*sdot + dRd*(z(2))^2 + dRa*(z(3))^2 + q_Mtv*(z(4))^2 + q_slip*(diff_beta)^2 + q_mu*(z(8))^2 + q_n*(z(7))^2 + q_slack_vx*z(1);
+    f = -q_s*sdot + dRd*(z(3))^2 + dRa*(z(4))^2 + q_Mtv*(z(5))^2 + q_slip*(diff_beta)^2 + q_mu*(z(9))^2 + q_n*(z(8))^2 + q_slack_vx*z(1) + q_slack_track*z(2);
     
 end
 
 
 function xnext = integrated_dynamics(z, p)
 
-    u = z(1:4);
-    x = z(5:11);
+    u = z(1:5);
+    x = z(6:12);
     Ts = p(28);
 
     xnext = RK4(x, u, @my_continuous_dynamics, Ts, p);
@@ -155,9 +156,9 @@ function xdot = my_continuous_dynamics(x, u, p)
     vy = x(6);
     w = x(7);
     
-    diff_delta = u(2);
-    diff_Fm = u(3);
-    Mtv = u(4);
+    diff_delta = u(3);
+    diff_Fm = u(4);
+    Mtv = u(5);
     
     m = p(3);
     I = p(4);
@@ -175,7 +176,7 @@ function xdot = my_continuous_dynamics(x, u, p)
     rho = p(16);
     Ar = p(17);
     Cm = p(26);
-    k = p(31);
+    k = p(32);
     
     % Slip angles
     alpha_R = atan((vy-Lr*w)/(vx));
@@ -215,13 +216,15 @@ function h = nonlin_const(z, p)
     Cm = p(26);
     
     s1 = z(1);
-    delta = z(5);
-    Fm = z(6);
-    n = z(7);
-    mu = z(8);
-    vx = z(9);
-    vy = z(10);
-    w = z(11);
+    s2 = z(2);
+
+    delta = z(6);
+    Fm = z(7);
+    n = z(8);
+    mu = z(9);
+    vx = z(10);
+    vy = z(11);
+    w = z(12);
     
     % Length and width of the car
     long = 2.72;
@@ -239,8 +242,8 @@ function h = nonlin_const(z, p)
 
     Fx = Cm*Fm*(1+cos(delta));
 
-    h = [ n - long/2*sin(abs(mu)) + width/2*cos(mu); % <= L(s)
-         -n + long/2*sin(abs(mu)) + width/2*cos(mu); % <= R(s)
+    h = [ n - long/2*sin(abs(mu)) + width/2*cos(mu) - s2; % <= L(s)
+         -n + long/2*sin(abs(mu)) + width/2*cos(mu) - s2; % <= R(s)
          (Fx/(Ax_max*m))^2 + (Fr/(Ay_max*m))^2; % <= lambda
          (Fx/(Ax_max*m))^2 + (Ff/(Ay_max*m))^2; % <= lambda
          vx - s1]; % <= Vmax

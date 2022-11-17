@@ -30,6 +30,7 @@ Topics:
 
 NLOP:
   N: 40                                               # Prediction horizon
+  Nslacks: 2                                          # Number of slacks variables
 
 Hz: 20                                                # MPC frequency
 Nthreads: 10                                          # Number of threads

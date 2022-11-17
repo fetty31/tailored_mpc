@@ -34,7 +34,7 @@ struct Boundaries{
         // VARIABLES BOUNDARIES:
 
           // Bounds and initial guess for the control
-        vector<double> u_min =  { 0.0, -3*M_PI/180, -5.0, -300}; // delta, Fm max,min bounds will be overwriten by dynamic reconfigure callback
+        vector<double> u_min =  { 0.0, 0.0, -3*M_PI/180, -5.0, -300}; // delta, Fm max,min bounds will be overwriten by dynamic reconfigure callback
         vector<double> u_max  = { 3*M_PI/180, 0.25,  300};
         vector<double> u0 = {  0.0, 0.0  };
 
@@ -65,6 +65,7 @@ class MPC{
         int n_states = 5;             // number of state vars
         int n_controls = 6;           // number of control vars
         int N = 40;                   // horizon length
+        int Nslacks = 2;              // number of slack vars
         int Npar = 31;                // number of real time parameters
         int sizeU, sizeX;             // size of states and controls FORCES arrays
         int u_idx = 0;                // index of commands sent to control master
@@ -104,6 +105,7 @@ class MPC{
         double ay_max = 10;
         double q_sN = 10;
         double q_slack_vx = 0;
+        double q_slack_track = 0;
 
         // STATIC PARAMETERS: 
           // see "params.hh" for explanation
@@ -148,7 +150,7 @@ class MPC{
 
     public:
 
-        MPC(const Params& params);
+        MPC(const Params* params);
 
         void reconfigure(tailored_mpc::dynamicConfig& config);
         void msgCommands(as_msgs::CarCommands *msg);

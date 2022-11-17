@@ -16,14 +16,17 @@ void dynamicCallback(tailored_mpc::dynamicConfig &config, uint32_t level, MPC* m
 
 }
 
-void my_handler(int sig){
+void my_SIGhandler(int sig){
 
     ROS_ERROR("MPC says Goodbye :)");
 	as_msgs::CarCommands msgCommands;
-	msgCommands.motor = 0.0;
+	msgCommands.motor = -0.5;
 	msgCommands.steering = 0.0;
     msgCommands.Mtv = 0.0;
-	pubCommands.publish(msgCommands);
+	for(int i=0; i<5; i++){ 
+        pubCommands.publish(msgCommands);
+        ros::Duration(0.1).sleep();
+    }
     ros::shutdown();
 }
 
@@ -32,22 +35,19 @@ int main(int argc, char **argv) {
     // Init Node:
     ros::init(argc, argv, "tailored_mpc");
 
-	struct sigaction sigIntHandler;
-    
-    // Signal handler for publishing 0s when dying
-    sigIntHandler.sa_handler = my_handler; 
-    sigemptyset(&sigIntHandler.sa_mask);
-    sigIntHandler.sa_flags = 0;
-    sigaction(SIGINT, &sigIntHandler, NULL);
-
     // Handle Connections:
-    ros::NodeHandle nh;
+    ros::NodeHandle nh("~");
+
+    // Signal handler for publishing 0s when dying
+    signal(SIGINT,  my_SIGhandler); // override default ros sigint signal
+    // signal(SIGTERM, my_SIGhandler);
+    // signal(SIGKILL, my_SIGhandler);
 
     // Params object
-    Params params = Params(nh);
+    Params params = Params(&nh);
 
     // MPC object
-    MPC mpc(params);
+    MPC mpc(&params);
 
     // Visualization tools
     VisualizationTools rviz = VisualizationTools(&mpc, &params);
@@ -59,8 +59,8 @@ int main(int argc, char **argv) {
     pubCommands = nh.advertise<as_msgs::CarCommands>(params.mpc.topics.commands, 1);
 
     string timeTopic, exitFlagTopic;
-    nh.param<string>("/tailored_mpc/Topics/Debug/Time", timeTopic, "/AS/C/mpc/debug/time");
-    nh.param<string>("/tailored_mpc/Topics/Debug/ExitFlag", exitFlagTopic, "/AS/C/mpc/debug/exitflags");
+    nh.param<string>("Topics/Debug/Time", timeTopic, "/AS/C/mpc/debug/time");
+    nh.param<string>("Topics/Debug/ExitFlag", exitFlagTopic, "/AS/C/mpc/debug/exitflags");
     ros::Publisher pubTime = nh.advertise<std_msgs::Float32>(timeTopic, 10);
     ros::Publisher pubExitflag = nh.advertise<std_msgs::Int32>(exitFlagTopic, 10);
 

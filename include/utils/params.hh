@@ -9,7 +9,7 @@ using namespace std;
 struct Params{
 
     // Constructor
-    Params(const ros::NodeHandle &nh);
+    Params(const ros::NodeHandle* nh);
 
     struct Vehicle{
         int m;                          // Car's mass (without pilot)
@@ -40,7 +40,8 @@ struct Params{
             
         } topics;
         struct NLOP{
-            int N;  // Horizon length of the optimization problem 
+            int N;          // Horizon length of the optimization problem 
+            int Nslacks;    // Number of slacks variables
 
         } nlop;
     } mpc;
