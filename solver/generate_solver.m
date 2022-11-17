@@ -92,7 +92,7 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
 
 %     codeoptions.nlp.integrator.attempt_subsystem_exploitation = 1; % exploit possible linear subsystems
 
-    codeoptions.init = 1; % Solver initialization method (0: cold start; 1: centered start; 2: primal warm start; see https://forces.embotech.com/Documentation/solver_options/index.html#compiler-optimization-level)
+%     codeoptions.init = 1; % Solver initialization method (0: cold start; 1: centered start; 2: primal warm start; see https://forces.embotech.com/Documentation/solver_options/index.html#compiler-optimization-level)
 
     codeoptions.parallel = 1; % Internal Parallelization
 %     codeoptions.nlp.max_num_threads = 5; % When using code generated integrators (RK4) we must specify the maximum number of threads available
@@ -243,6 +243,6 @@ function h = nonlin_const(z, p)
          -n + long/2*sin(abs(mu)) + width/2*cos(mu); % <= R(s)
          (Fx/(Ax_max*m))^2 + (Fr/(Ay_max*m))^2; % <= lambda
          (Fx/(Ax_max*m))^2 + (Ff/(Ay_max*m))^2; % <= lambda
-         vx - s1]; 
+         vx - s1]; % <= Vmax
      
 end

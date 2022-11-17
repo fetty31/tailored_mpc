@@ -16,7 +16,7 @@ end
 addpath(solverDir);
 
 %% Problem info
-N = 30; % Horizon Length
+N = 40; % Horizon Length
 n_states = 7;
 n_controls = 4;
 

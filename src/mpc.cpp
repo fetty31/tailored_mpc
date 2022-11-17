@@ -477,8 +477,8 @@ void MPC::t_prediction(){
     cout << "diff_y: " << diff_y << endl;
     cout << "diff: " << sqrt(pow(diff_x,2)+pow(diff_y,2)) << endl;
 
-    cout << "PREDICTED t:\n";
-    cout << predicted_t << endl;
+    // cout << "PREDICTED t:\n";
+    // cout << predicted_t << endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -499,8 +499,8 @@ void MPC::get_solution(){
     // cout << "solStates: " << endl;
     // cout << solStates << endl;
 
-    // cout << "solCommands:\n";
-    // cout << solCommands << endl;
+    cout << "solCommands:\n";
+    cout << solCommands << endl;
 
 }
 

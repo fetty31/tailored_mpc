@@ -29,9 +29,9 @@ Topics:
   # TO DO: fill with other topics
 
 NLOP:
-  N: 30                                               # Prediction horizon
+  N: 40                                               # Prediction horizon
 
-Hz: 25                                                # MPC frequency
+Hz: 20                                                # MPC frequency
 Nthreads: 10                                          # Number of threads
 TroProfile: false                                     # Set to true to follow TRO velocity profile 
 

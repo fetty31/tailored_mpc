@@ -34,17 +34,17 @@ void TailoredSolver_inequalities_1_incref(void);
 
 const casadi_int* TailoredSolver_inequalities_1_sparsity_out(casadi_int i);
 
-int TailoredSolver_objective_30(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int TailoredSolver_objective_40(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 
-void TailoredSolver_objective_30_incref(void);
+void TailoredSolver_objective_40_incref(void);
 
-const casadi_int* TailoredSolver_objective_30_sparsity_out(casadi_int i);
+const casadi_int* TailoredSolver_objective_40_sparsity_out(casadi_int i);
 
-int TailoredSolver_inequalities_30(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int TailoredSolver_inequalities_40(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 
-void TailoredSolver_inequalities_30_incref(void);
+void TailoredSolver_inequalities_40_incref(void);
 
-const casadi_int* TailoredSolver_inequalities_30_sparsity_out(casadi_int i);
+const casadi_int* TailoredSolver_inequalities_40_sparsity_out(casadi_int i);
 
 #ifdef __cplusplus
 } /* extern "C" */
