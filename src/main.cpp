@@ -18,7 +18,6 @@ void dynamicCallback(tailored_mpc::dynamicConfig &config, uint32_t level, MPC* m
 
 void my_SIGhandler(int sig){
 
-    ROS_ERROR("MPC says Goodbye :)");
 	as_msgs::CarCommands msgCommands;
 	msgCommands.motor = -0.5;
 	msgCommands.steering = 0.0;
@@ -27,6 +26,8 @@ void my_SIGhandler(int sig){
         pubCommands.publish(msgCommands);
         ros::Duration(0.1).sleep();
     }
+
+    ROS_ERROR("MPC says Goodbye :)");
     ros::shutdown();
 }
 
@@ -58,6 +59,7 @@ int main(int argc, char **argv) {
     ros::Subscriber subTro = nh.subscribe(params.mpc.topics.tro, 1, &MPC::troCallback, &mpc);
     pubCommands = nh.advertise<as_msgs::CarCommands>(params.mpc.topics.commands, 1);
 
+    // Debug
     string timeTopic, exitFlagTopic;
     nh.param<string>("Topics/Debug/Time", timeTopic, "/AS/C/mpc/debug/time");
     nh.param<string>("Topics/Debug/ExitFlag", exitFlagTopic, "/AS/C/mpc/debug/exitflags");
@@ -78,6 +80,11 @@ int main(int argc, char **argv) {
     ROS_INFO_STREAM("MPC: publish frequency: " << mpc.Hz << "Hz");
     ROS_WARN_STREAM("MPC: internal threads: " << mpc.Nthreads);
 
+    // Msgs declaration
+    as_msgs::CarCommands msg;
+    std_msgs::Float32 time_msg;
+    std_msgs::Int32 exitflag_msg;
+
     ros::Rate r(mpc.Hz);
     // launch-prefix="gdb -ex run --args"
 
@@ -85,16 +92,16 @@ int main(int argc, char **argv) {
 
         mpc.solve(); // Solve the NLOP
 
-        as_msgs::CarCommands msg;
+        msg = as_msgs::CarCommands();
         mpc.msgCommands(&msg);
-        pubCommands.publish(msg); // publish car commands
+        if(mpc.forces.exit_flag == 1 || mpc.forces.exit_flag == 0) pubCommands.publish(msg); // publish car commands
 
         // DEBUG
-        std_msgs::Float32 time_msg;
+        time_msg = std_msgs::Float32();
         time_msg.data = mpc.elapsed_time.count()*1000;
         pubTime.publish(time_msg);
 
-        std_msgs::Int32 exitflag_msg;
+        exitflag_msg = std_msgs::Int32();
         exitflag_msg.data = mpc.forces.exit_flag;
         pubExitflag.publish(exitflag_msg);
 

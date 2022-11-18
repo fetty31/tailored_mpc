@@ -1,78 +1,78 @@
 !!python/object/new:dynamic_reconfigure.encoding.Config
 dictitems:
-  Ax_max: 6.0
-  Ay_max: 8.0
-  Bf: 10.8529
-  Br: 10.1507
+  Ax_max: 7.0
+  Ay_max: 15.0
+  Bf: -10.7383
+  Br: -10.7383
   Cd: 0.8727
-  Cf: -1.1705
+  Cf: 1.4776
   Cm: 2000.0
-  Cr: -1.1705
-  Df: 2500.0
+  Cr: 1.4776
+  Df: 2863.8
   Dist_max: 11.0
   Dist_min: 2.0
-  Dr: 3000.0
+  Dr: 3200.0
   Vmax: 10.0
-  VmaxN: 5.0
+  VmaxN: 8.0
   Vmin: 3.0
   dMtv: 1.0
   dRa: 0.1
-  dRd: 0.3
+  dRd: 0.01
   diff_Fm: 1000.0
-  diff_delta: 0.08
+  diff_delta: 15
   groups: !!python/object/new:dynamic_reconfigure.encoding.Config
     dictitems:
-      Ax_max: 6.0
-      Ay_max: 8.0
-      Bf: 10.8529
-      Br: 10.1507
+      Ax_max: 7.0
+      Ay_max: 15.0
+      Bf: -10.7383
+      Br: -10.7383
       Cd: 0.8727
-      Cf: -1.1705
+      Cf: 1.4776
       Cm: 2000.0
-      Cr: -1.1705
-      Df: 2500.0
+      Cr: 1.4776
+      Df: 2863.8
       Dist_max: 11.0
       Dist_min: 2.0
-      Dr: 3000.0
+      Dr: 3200.0
       Vmax: 10.0
-      VmaxN: 5.0
+      VmaxN: 8.0
       Vmin: 3.0
       dMtv: 1.0
       dRa: 0.1
-      dRd: 0.3
+      dRd: 0.01
       diff_Fm: 1000.0
-      diff_delta: 0.08
+      diff_delta: 15
       groups: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
       id: 0
-      lambda: 2.5
+      lambda: 5.0
       latency: 3.0
       name: Default
       p_long: 0.5
       parameters: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
       parent: 0
-      q_mu: 0.1
-      q_n: 0.9
-      q_nN: 5.0
-      q_s: 0.05
-      q_sN: 0.05
-      q_slack_track: 10.0
+      q_mu: 0.0
+      q_n: 0.1
+      q_nN: 0.1
+      q_s: 0.08
+      q_sN: 0.08
+      q_slack_track: 1000.0
       q_slack_vx: 10.0
       q_slip: 0.2
       state: true
       type: ''
       u_r: 0.045
     state: []
-  lambda: 2.5
+  lambda: 5.0
   latency: 3.0
   p_long: 0.5
-  q_mu: 0.1
-  q_n: 0.9
-  q_nN: 5.0
-  q_s: 0.05
-  q_sN: 0.05
-  q_slack_track: 10.0
+  q_mu: 0.0
+  q_n: 0.1
+  q_nN: 0.1
+  q_s: 0.08
+  q_sN: 0.08
+  q_slack_track: 1000.0
   q_slack_vx: 10.0
   q_slip: 0.2
   u_r: 0.045

@@ -31,6 +31,9 @@ MPC::MPC(const Params* params){
     this->sizeU = sizeof(forces.solution.U)/sizeof(forces.solution.U[0]); // size of control FORCES array
     this->sizeX = sizeof(forces.solution.X)/sizeof(forces.solution.X[0]); // size of states FORCES array
 
+    cout << "sizeU: "  << sizeU << endl;
+    cout << "sizeX: "  << sizeX << endl;
+
     int sizeParam = sizeof(forces.params.all_parameters)/sizeof(forces.params.all_parameters[0]); // size of params FORCES array
     this->Npar = int(sizeParam/N);
 
@@ -334,7 +337,7 @@ void MPC::set_params_bounds(){
         if(!firstIter){
             if((u_idx+k) < this->N - 1){
                 if(this->forces.exit_flag == 1){
-                    this->forces.params.x0[k*Nvar]     =  0.0;
+                    this->forces.params.x0[k*Nvar]     = 0.0;
                     this->forces.params.x0[k*Nvar + 1] = 0.0;
                     this->forces.params.x0[k*Nvar + 2] = solCommands(u_idx+k, 2);
                     this->forces.params.x0[k*Nvar + 3] = solCommands(u_idx+k, 3);
@@ -513,6 +516,15 @@ void MPC::get_solution(){
     cout << "solCommands:\n";
     cout << solCommands << endl;
 
+    cout << "forces.solution.u: \n";
+    cout << forces.solution.U[sizeU-7] << endl;
+    cout << forces.solution.U[sizeU-6] << endl;
+    cout << forces.solution.U[sizeU-5] << endl;
+    cout << forces.solution.U[sizeU-4] << endl;
+    cout << forces.solution.U[sizeU-3] << endl;
+    cout << forces.solution.U[sizeU-2] << endl;
+    cout << forces.solution.U[sizeU-1] << endl;
+
 }
 
 void MPC::msgCommands(as_msgs::CarCommands *msg){
@@ -687,10 +699,10 @@ void MPC::reconfigure(tailored_mpc::dynamicConfig& config){
         this->Dist_min = config.Dist_min;
         this->Dist_max = config.Dist_max;
 
-        this->bounds.u_min[2] = -config.diff_delta;
+        this->bounds.u_min[2] = -config.diff_delta*M_PI/180.0;
         this->bounds.u_min[3] = -config.diff_Fm;
 
-        this->bounds.u_max[0] = config.diff_delta;
+        this->bounds.u_max[0] = config.diff_delta*M_PI/180.0;
         this->bounds.u_max[1] = config.diff_Fm;
 
         this->bounds.x_max[4] = config.Vmax;
