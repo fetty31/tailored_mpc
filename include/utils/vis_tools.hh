@@ -32,7 +32,7 @@ class VisualizationTools {
         // Node Handler
     	ros::NodeHandle n;
 
-        VisualizationTools(MPC *mpc, Params *params);
+        VisualizationTools(MPC *mpc, const Params *params);
         ~VisualizationTools();
 
         void rviz_predicted(){

@@ -21,6 +21,7 @@ Topics:
   Debug:
     Time: /AS/C/mpc/debug/time
     ExitFlag: /AS/C/mpc/debug/exitflags
+    Curvature: /AS/C/mpc/debug/curvature
   Vis:
     PredictedSteering:  /vis/predictedPath/steering
     PredictedPath:      /vis/predictedPath/path

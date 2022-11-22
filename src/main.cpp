@@ -6,6 +6,8 @@
 
 #include "std_msgs/Float32.h"
 #include "std_msgs/Int32.h"
+#include "std_msgs/Float64MultiArray.h"
+#include "std_msgs/MultiArrayDimension.h"
 
 ros::Publisher pubCommands; // Commands publisher
 
@@ -19,12 +21,12 @@ void dynamicCallback(tailored_mpc::dynamicConfig &config, uint32_t level, MPC* m
 void my_SIGhandler(int sig){
 
 	as_msgs::CarCommands msgCommands;
-	msgCommands.motor = -0.5;
+	msgCommands.motor = -1.0;
 	msgCommands.steering = 0.0;
     msgCommands.Mtv = 0.0;
 	for(int i=0; i<5; i++){ 
         pubCommands.publish(msgCommands);
-        ros::Duration(0.1).sleep();
+        ros::Duration(0.05).sleep();
     }
 
     ROS_ERROR("MPC says Goodbye :)");
@@ -60,16 +62,17 @@ int main(int argc, char **argv) {
     pubCommands = nh.advertise<as_msgs::CarCommands>(params.mpc.topics.commands, 1);
 
     // Debug
-    string timeTopic, exitFlagTopic;
+    string timeTopic, exitFlagTopic, CurvTopic;
     nh.param<string>("Topics/Debug/Time", timeTopic, "/AS/C/mpc/debug/time");
     nh.param<string>("Topics/Debug/ExitFlag", exitFlagTopic, "/AS/C/mpc/debug/exitflags");
+    nh.param<string>("Topics/Debug/Curvature", CurvTopic, "/AS/C/mpc/debug/curvature");
     ros::Publisher pubTime = nh.advertise<std_msgs::Float32>(timeTopic, 10);
     ros::Publisher pubExitflag = nh.advertise<std_msgs::Int32>(exitFlagTopic, 10);
+    ros::Publisher pubCurvature = nh.advertise<std_msgs::Float64MultiArray>(CurvTopic, 10);
 
     // Dynamic reconfigure
 	dynamic_reconfigure::Server<tailored_mpc::dynamicConfig> server;
 	dynamic_reconfigure::Server<tailored_mpc::dynamicConfig>::CallbackType f;
-   
 	f = boost::bind(&dynamicCallback, _1, _2, &mpc);
 	server.setCallback(f);
 
@@ -85,10 +88,19 @@ int main(int argc, char **argv) {
     std_msgs::Float32 time_msg;
     std_msgs::Int32 exitflag_msg;
 
+    std_msgs::Float64MultiArray curv_msg;
+    curv_msg.layout.dim.push_back(std_msgs::MultiArrayDimension()); // set up dimensions
+    curv_msg.layout.dim[0].size = 2;     // 2 curvatures
+    curv_msg.layout.dim[0].stride = 1;   // we have a stride of 1
+    curv_msg.layout.dim[0].label = "curv"; 
+
     ros::Rate r(mpc.Hz);
     // launch-prefix="gdb -ex run --args"
 
     while(ros::ok()){
+
+        curv_msg.data.clear();
+        curv_msg.data.push_back(mpc.planner(0, 3)); // save raw curvature (just after callbacks have been called)
 
         mpc.solve(); // Solve the NLOP
 
@@ -104,6 +116,10 @@ int main(int argc, char **argv) {
         exitflag_msg = std_msgs::Int32();
         exitflag_msg.data = mpc.forces.exit_flag;
         pubExitflag.publish(exitflag_msg);
+
+        
+        curv_msg.data.push_back(mpc.planner(0, 3)); // save smooth curvature
+        pubCurvature.publish(curv_msg);
 
         rviz.rviz_predicted();  // visualize predicted states
         rviz.rviz_actual();     // visualize actual states

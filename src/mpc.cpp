@@ -81,15 +81,24 @@ void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
         int size = min(int(msg->objectives.size()), nPlanning);
 
         // Fill planner matrix
+        this->trajPoints.clear();
+        this->trajPoints.reserve(size);
+        kdt::Point p;
         for (unsigned int i = 0; i < size ; i++){	
-                planner(i, 0) = msg->objectives[i].x;
-                planner(i, 1) = msg->objectives[i].y;
-                planner(i, 2) = msg->objectives[i].s; 
-                planner(i, 3) = msg->objectives[i].k; 
-                planner(i, 4) = msg->objectives[i].vx;
-                planner(i, 5) = msg->objectives[i].L;
-                planner(i, 6) = msg->objectives[i].R;
+            planner(i, 0) = msg->objectives[i].x;
+            planner(i, 1) = msg->objectives[i].y;
+            planner(i, 2) = msg->objectives[i].s; 
+            planner(i, 3) = msg->objectives[i].k; 
+            planner(i, 4) = msg->objectives[i].vx;
+            planner(i, 5) = msg->objectives[i].L;
+            planner(i, 6) = msg->objectives[i].R;
+
+            p[0] = msg->objectives[i].x;
+            p[1] = msg->objectives[i].y;
+            trajPoints.push_back(p);
         }
+
+        kdTree.build(trajPoints); // build KDtree
 
         rk4_s = min(max(size*delta_s, Dist_min), Dist_max)/N;
         ROS_WARN_STREAM("Delta_s: " << rk4_s);
@@ -110,18 +119,27 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
     int size = min(int(msg->objectives.size()), nPlanning);
 
     // Fill planner matrix
+    this->trajPoints.clear();
+    this->trajPoints.reserve(size);
+    kdt::Point p;
     for (unsigned int i = 0; i < size ; i++){	
-            planner(i, 0) = msg->objectives[i].x;
-            planner(i, 1) = msg->objectives[i].y;
-            planner(i, 2) = msg->objectives[i].s; 
-            planner(i, 3) = msg->objectives[i].k; 
-            planner(i, 4) = msg->objectives[i].vx;
-            planner(i, 5) = msg->objectives[i].L;
-            planner(i, 6) = msg->objectives[i].R;
+        planner(i, 0) = msg->objectives[i].x;
+        planner(i, 1) = msg->objectives[i].y;
+        planner(i, 2) = msg->objectives[i].s; 
+        planner(i, 3) = msg->objectives[i].k; 
+        planner(i, 4) = msg->objectives[i].vx;
+        planner(i, 5) = msg->objectives[i].L;
+        planner(i, 6) = msg->objectives[i].R;
+
+        p[0] = msg->objectives[i].x;
+        p[1] = msg->objectives[i].y;
+        trajPoints.push_back(p);
     }
 
+    kdTree.build(trajPoints); // build KDtree
+
     rk4_s = min(max(size*delta_s, Dist_min), Dist_max)/N;
-    ROS_WARN_STREAM("Delta_s: " << rk4_s);
+    ROS_WARN_STREAM("rk4_s: " << rk4_s);
 
     smax = msg->smax;
     cout << "SMAX: " << smax << endl;
@@ -144,8 +162,9 @@ void MPC::solve(){
         // Set number of internal threads
         forces.params.num_of_threads = this->Nthreads;
 
-        initial_conditions();
-        set_params_bounds();
+        initial_conditions();   // Compute initial state
+        smoothing();            // Smoothing filter applied to curvature
+        set_params_bounds();    // Set parameters & bounds for the NLOP
 
         /* Get i-th memory buffer */
         int i = 0;
@@ -201,13 +220,24 @@ void MPC::solve(){
 
 void MPC::initial_conditions(){
 
+    kdt::Point state;
+    state[0] = carState(0);
+    state[1] = carState(1);
+    idtree = kdTree.nnSearch(state);
+
+    if(int(rk4_s/delta_s)*N + idtree > planner.rows()){
+        idtree = 0; // Assure we have sufficient points
+        ROS_ERROR("KDTree id too big!!");
+    }
+    cout << "idtree: " << idtree << endl;
+
     // Calculate tangent vector of the trajectory
     Eigen::Vector2d tangent;
-    tangent << planner(1,0) - planner(0,0), planner(1,1) - planner(0,1);
+    tangent << planner(idtree+1,0) - planner(idtree,0), planner(idtree+1,1) - planner(idtree,1);
 
     // Calculate vector from car to first point of the trajectory
     Eigen::Vector2d s0_to_car;
-    s0_to_car << carState(0) - planner(0,0), carState(1) - planner(0,1);
+    s0_to_car << carState(0) - planner(idtree,0), carState(1) - planner(idtree,1);
 
     // Calculate cross product to get angle
     double cross = s0_to_car(0)*tangent(1) - s0_to_car(1)*tangent(0);
@@ -290,7 +320,7 @@ void MPC::set_params_bounds(){
         this->forces.params.all_parameters[27 + k*this->Npar] = this->rk4_s; 
         this->forces.params.all_parameters[28 + k*this->Npar] = this->q_slack_vx; 
 
-        plannerIdx = int(rk4_s/delta_s)*k;
+        plannerIdx = int(rk4_s/delta_s)*k + idtree;
 
         this->forces.params.all_parameters[29 + k*this->Npar] = planner(plannerIdx, 4); // planner velocity profile
         this->forces.params.all_parameters[30 + k*this->Npar] = this->q_slack_track;
@@ -612,6 +642,15 @@ double MPC::ax_to_throttle(double ax){
     else return max(ax/ax_max, -1.0);
 }
 
+void MPC::smoothing(){
+
+    vector<double> rawCurvature(planner.rows()), softCurvature(planner.rows());
+    for(unsigned int i=0; i < planner.rows(); i++) rawCurvature[i] = planner(i, 3);
+
+    softCurvature = sg_smooth(rawCurvature, SG_window, SG_order); // Savitzky-golay filter (smoother curvature)
+    for(unsigned int j=0; j < planner.rows(); j++) planner(j, 3) = softCurvature[j];
+}
+
 void MPC::saveEigen(string filePath, string name, Eigen::MatrixXd data, bool erase){
 
     try{
@@ -698,6 +737,8 @@ void MPC::reconfigure(tailored_mpc::dynamicConfig& config){
         this->q_slack_track = config.q_slack_track;
         this->Dist_min = config.Dist_min;
         this->Dist_max = config.Dist_max;
+        this->SG_order = config.SG_order;
+        this->SG_window = config.SG_window;
 
         this->bounds.u_min[2] = -config.diff_delta*M_PI/180.0;
         this->bounds.u_min[3] = -config.diff_Fm;

@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <eigen3/Eigen/Dense>
+#include <boost/thread/thread.hpp>
 
 // Dynamic reconfigure headers
 #include <dynamic_reconfigure/server.h>
@@ -23,6 +24,8 @@
 
 // Utilities for parameters
 #include "utils/params.hh"
+#include "utils/kdtree.h"
+#include "utils/SGSmooth.hpp"
 
 // Include headers of both solvers
 #include "forces.hh"
@@ -78,6 +81,7 @@ class MPC{
         double rk4_s = 0.066;     // Runge-Kutta integration distance (mpc's delta_s) [m]
         double Dist_min = 2;      // min, max Look Ahead distances [m]
         double Dist_max = 15;
+        int SG_order = 5, SG_window = 19;  // Savitzky-Golay filter polynomial order & window 
         
         // DYNAMIC PARAMETERS:
           // see "dynamic.cfg" for explanation
@@ -137,6 +141,7 @@ class MPC{
         vector<double> vconcat(const vector<double>& x, const vector<double>& y);
 
         void printVec(vector<double> &input, int firstElements=0);
+        void smoothing(); // Smoothing with savitzky-golay filter
 
         Eigen::MatrixXd vector2eigen(vector<double> vect);
         Eigen::MatrixXd output2eigen(double* array, int size);
@@ -161,6 +166,9 @@ class MPC{
         void stateCallback(const as_msgs::CarState::ConstPtr& msg);
         void plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg);
         void troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg);
+        kdt::KDTree<kdt::Point> kdTree;
+        vector<kdt::Point> trajPoints;
+        int idtree = 0;
 
         // Solve method
         void solve();

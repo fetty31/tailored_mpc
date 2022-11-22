@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(tailored_mpc)
 
 #add_compile_options(-std=c++0x)
-set(CMAKE_CXX_FLAGS "-fpermissive -fopenmp -std=c++0x")
+set(CMAKE_CXX_FLAGS "-fpermissive -fopenmp -std=c++11")
 set(CMAKE_BUILD_TYPE "Release")
 
 message(STATUS "TAILORED MPC says hi :)")
@@ -51,7 +51,11 @@ add_library(${PROJECT_NAME}
   solver/codeGen/TailoredSolver_adtool2forces.c
 )
 
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${FORCESPRO_LIBRARY})
+add_library(sgsmooth
+  src/utils/SGSmooth.cpp
+)
+
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${FORCESPRO_LIBRARY} sgsmooth)
 target_link_libraries(${PROJECT_NAME}_exec ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 add_dependencies(${PROJECT_NAME} as_msgs_generate_messages_cpp)
@@ -59,3 +63,4 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 
 # Mandatory for parallelism (OpenMP)
 target_compile_options(${PROJECT_NAME} PRIVATE ${OpenMP_FLAGS})
+target_compile_options(sgsmooth PRIVATE ${OpenMP_FLAGS})
