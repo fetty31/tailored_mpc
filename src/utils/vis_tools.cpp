@@ -1,6 +1,6 @@
 #include "utils/vis_tools.hh"
 
-VisualizationTools::VisualizationTools(MPC *mpc, Params *params){
+VisualizationTools::VisualizationTools(MPC *mpc, const Params *params){
 
     this->mpc = mpc;
 

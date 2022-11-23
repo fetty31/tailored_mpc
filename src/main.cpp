@@ -16,14 +16,17 @@ void dynamicCallback(tailored_mpc::dynamicConfig &config, uint32_t level, MPC* m
 
 }
 
-void my_handler(int sig){
+void my_SIGhandler(int sig){
 
-    ROS_ERROR("MPC says Goodbye :)");
 	as_msgs::CarCommands msgCommands;
-	msgCommands.motor = 0.0;
+	msgCommands.motor = -1.0;
 	msgCommands.steering = 0.0;
     msgCommands.Mtv = 0.0;
-	pubCommands.publish(msgCommands);
+	for(int i=0; i<5; i++){
+        pubCommands.publish(msgCommands);
+        ros::Duration(0.05).sleep();
+    }
+    ROS_ERROR("MPC says Goodbye :)");
     ros::shutdown();
 }
 
@@ -32,13 +35,10 @@ int main(int argc, char **argv) {
     // Init Node:
     ros::init(argc, argv, "tailored_mpc");
 
-	struct sigaction sigIntHandler;
-    
     // Signal handler for publishing 0s when dying
-    sigIntHandler.sa_handler = my_handler; 
-    sigemptyset(&sigIntHandler.sa_mask);
-    sigIntHandler.sa_flags = 0;
-    sigaction(SIGINT, &sigIntHandler, NULL);
+    signal(SIGINT,  my_SIGhandler); // override default ros sigint signal
+    // signal(SIGTERM, my_SIGhandler);
+    // signal(SIGKILL, my_SIGhandler);
 
     // Handle Connections:
     ros::NodeHandle nh;
