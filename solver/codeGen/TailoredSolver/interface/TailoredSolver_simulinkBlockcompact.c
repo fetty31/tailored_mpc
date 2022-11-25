@@ -75,7 +75,7 @@ static void mdlInitializeSizes(SimStruct *S)
     if (!ssSetNumInputPorts(S, 7)) return;
     	
 	/* Input Port 0 */
-    ssSetInputPortMatrixDimensions(S,  0, 440, 1);
+    ssSetInputPortMatrixDimensions(S,  0, 480, 1);
     ssSetInputPortDataType(S, 0, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, 0, COMPLEX_NO); /* no complex signals suppported */
     ssSetInputPortDirectFeedThrough(S, 0, 1); /* Feedthrough enabled */
@@ -103,7 +103,7 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetInputPortRequiredContiguous(S, 3, 1); /*direct input signal access*/
 	
 	/* Input Port 4 */
-    ssSetInputPortMatrixDimensions(S,  4, 440, 1);
+    ssSetInputPortMatrixDimensions(S,  4, 480, 1);
     ssSetInputPortDataType(S, 4, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, 4, COMPLEX_NO); /* no complex signals suppported */
     ssSetInputPortDirectFeedThrough(S, 4, 1); /* Feedthrough enabled */
@@ -129,7 +129,7 @@ static void mdlInitializeSizes(SimStruct *S)
     if (!ssSetNumOutputPorts(S, 1)) return;    
 		
 	/* Output Port 0 */
-    ssSetOutputPortMatrixDimensions(S,  0, 440, 1);
+    ssSetOutputPortMatrixDimensions(S,  0, 480, 1);
     ssSetOutputPortDataType(S, 0, SS_DOUBLE);
     ssSetOutputPortComplexSignal(S, 0, COMPLEX_NO); /* no complex signals suppported */
 
@@ -246,7 +246,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 	
 
 	/* Copy inputs */
-	for( i=0; i<440; i++)
+	for( i=0; i<480; i++)
 	{ 
 		params.lb[i] = (double) lb[i]; 
 	}
@@ -266,7 +266,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 		params.xinit[i] = (double) xinit[i]; 
 	}
 
-	for( i=0; i<440; i++)
+	for( i=0; i<480; i++)
 	{ 
 		params.x0[i] = (double) x0[i]; 
 	}
@@ -313,12 +313,12 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 	
 
 	/* Copy outputs */
-	for( i=0; i<240; i++)
+	for( i=0; i<280; i++)
 	{ 
 		outputs[i] = (real_T) output.U[i]; 
 	}
 
-	k=240; 
+	k=280; 
 	for( i=0; i<200; i++)
 	{ 
 		outputs[k++] = (real_T) output.X[i]; 

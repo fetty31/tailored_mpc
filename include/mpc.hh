@@ -34,13 +34,13 @@ struct Boundaries{
         // VARIABLES BOUNDARIES:
 
           // Bounds and initial guess for the control
-        vector<double> u_min =  { 0.0, -3*M_PI/180, -5.0, -300}; // delta, Fm max,min bounds will be overwriten by dynamic reconfigure callback
+        vector<double> u_min =  { 0.0, 0.0, -3*M_PI/180, -5.0, -300}; // delta, Fm max,min bounds will be overwriten by dynamic reconfigure callback
         vector<double> u_max  = { 3*M_PI/180, 0.25,  300};
         vector<double> u0 = {  0.0, 0.0  };
 
           // Bounds and initial guess for the state
-        vector<double> x_min  = { -23.0*M_PI/180, -1, -3, -50.0*M_PI/180, 2.0, -2.0, -50.0*M_PI/180 };
-        vector<double> x_max  = { 23.0*M_PI/180, 1, 3, 50.0*M_PI/180, 25.0, 2.0, 50.0*M_PI/180 };
+        vector<double> x_min  = { -23.0*M_PI/180, -1, -2.5, -50.0*M_PI/180, 2.0, -2.0, -50.0*M_PI/180 };
+        vector<double> x_max  = { 23.0*M_PI/180, 1, 2.5, 50.0*M_PI/180, 25.0, 2.0, 50.0*M_PI/180 };
         vector<double> x0 = { 0.0, -1.25, 0.0, 0.0, 15.0, 0.0, 0.0 };
 
 };
@@ -60,6 +60,7 @@ class MPC{
         int n_states = 5;             // number of state vars
         int n_controls = 6;           // number of control vars
         int N = 40;                   // horizon length
+        int Nslacks = 2;              // number of slack vars
         int Npar = 31;                // number of real time parameters
         int sizeU, sizeX;             // size of states and controls FORCES arrays
 
@@ -89,15 +90,15 @@ class MPC{
         double q_mu = 0.1;
         double lambda = 1;
         double q_s = 30;
-        int latency = 4;
+        // int latency = 4;
         double Cm = 4000;
         double dMtv = 1;
         double ax_max = 7;
         double ay_max = 10;
         double q_sN = 10;
 
-        double t_fact = 1;
         double q_slack_vx = 0;
+        double q_slack_track = 0;
 
         // STATIC PARAMETERS: 
           // see "params.hh" for explanation
@@ -133,12 +134,13 @@ class MPC{
         Eigen::MatrixXd output2eigen(double* array, int size);
         double throttle_to_torque(double throttle);
         double ax_to_throttle(double ax);
+        double continuous(double psi, double psi_last); // Garanty that both angles are on the same range
         const string currentDateTime(); // get current date/time, format is YYYY-MM-DD.HH:mm:ss
 
 
     public:
 
-        MPC(const Params& params);
+        MPC(const Params* params);
 
         void reconfigure(tailored_mpc::dynamicConfig& config);
         void msgCommands(as_msgs::CarCommands *msg);
@@ -163,6 +165,8 @@ class MPC{
         int mission = 0;    // 0 for AX, 1 for TD, 2 for SkidPad, 3 for Acceleration
         chrono::duration<double> elapsed_time;
 
+        int latency = 4;
+
         // Planner's trajectory matrix 
         Eigen::MatrixXd planner; // [x, y, s, k, vx, L, R]
 
@@ -171,11 +175,11 @@ class MPC{
 
         // Previous state
         Eigen::MatrixXd lastState;    // [x, y, theta, vx, vy, w]
-        Eigen::MatrixXd lastCommands; // [slack_vx, diff_delta, diff_Fm, Mtv, delta, Fm]
+        Eigen::MatrixXd lastCommands; // [diff_delta, diff_Fm, Mtv, delta, Fm]
 
         // Previous solution
         Eigen::MatrixXd solStates;    // [n, mu, vx, vy, w]
-        Eigen::MatrixXd solCommands;  // [slack_vx, diff_delta, diff_acc, Mtv, delta, Fm]
+        Eigen::MatrixXd solCommands;  // [slack_vx, slack_track, diff_delta, diff_acc, Mtv, delta, Fm]
 
 };
 

@@ -35,19 +35,19 @@ int main(int argc, char **argv) {
     // Init Node:
     ros::init(argc, argv, "tailored_mpc");
 
+    // Handle Connections:
+    ros::NodeHandle nh("~");
+
     // Signal handler for publishing 0s when dying
     signal(SIGINT,  my_SIGhandler); // override default ros sigint signal
     // signal(SIGTERM, my_SIGhandler);
     // signal(SIGKILL, my_SIGhandler);
 
-    // Handle Connections:
-    ros::NodeHandle nh;
-
     // Params object
-    Params params = Params(nh);
+    Params params = Params(&nh);
 
     // MPC object
-    MPC mpc(params);
+    MPC mpc(&params);
 
     // Visualization tools
     VisualizationTools rviz = VisualizationTools(&mpc, &params);
@@ -58,16 +58,20 @@ int main(int argc, char **argv) {
     ros::Subscriber subTro = nh.subscribe(params.mpc.topics.tro, 1, &MPC::troCallback, &mpc);
     pubCommands = nh.advertise<as_msgs::CarCommands>(params.mpc.topics.commands, 1);
 
-    string timeTopic, exitFlagTopic;
-    nh.param<string>("/tailored_mpc/Topics/Debug/Time", timeTopic, "/AS/C/mpc/debug/time");
-    nh.param<string>("/tailored_mpc/Topics/Debug/ExitFlag", exitFlagTopic, "/AS/C/mpc/debug/exitflags");
+        // DEBUG
+    string timeTopic, exitFlagTopic, curvTopic, progressTopic;
+    nh.param<string>("Topics/Debug/Time", timeTopic, "/AS/C/mpc/debug/time");
+    nh.param<string>("Topics/Debug/ExitFlag", exitFlagTopic, "/AS/C/mpc/debug/exitflags");
+    nh.param<string>("Topics/Debug/CurvatureTopic", curvTopic, "/AS/C/mpc/debug/curvature");
+    nh.param<string>("Topics/Debug/ProgressTopic", progressTopic, "/AS/C/mpc/debug/progress");
     ros::Publisher pubTime = nh.advertise<std_msgs::Float32>(timeTopic, 10);
     ros::Publisher pubExitflag = nh.advertise<std_msgs::Int32>(exitFlagTopic, 10);
+    ros::Publisher pubCurv = nh.advertise<std_msgs::Float32>(curvTopic, 10);
+    ros::Publisher pubProgress = nh.advertise<std_msgs::Float32>(progressTopic, 10);
 
     // Dynamic reconfigure
 	dynamic_reconfigure::Server<tailored_mpc::dynamicConfig> server;
 	dynamic_reconfigure::Server<tailored_mpc::dynamicConfig>::CallbackType f;
-   
 	f = boost::bind(&dynamicCallback, _1, _2, &mpc);
 	server.setCallback(f);
 
@@ -78,26 +82,32 @@ int main(int argc, char **argv) {
     ROS_INFO_STREAM("MPC: publish frequency: " << mpc.Hz << "Hz");
     ROS_WARN_STREAM("MPC: internal threads: " << mpc.Nthreads);
 
+    // Msgs declaration
+    as_msgs::CarCommands msg;
+    std_msgs::Float32 float_msg;
+    std_msgs::Int32 exitflag_msg;
+
     ros::Rate r(mpc.Hz);
     // launch-prefix="gdb -ex run --args"
-
     while(ros::ok()){
 
         mpc.solve(); // Solve the NLOP
 
-        as_msgs::CarCommands msg;
         mpc.msgCommands(&msg);
-        pubCommands.publish(msg); // publish car commands
+        if(mpc.forces.exit_flag == 1 || mpc.forces.exit_flag == 0) pubCommands.publish(msg); // publish car commands
 
         // DEBUG
-        std_msgs::Float32 time_msg;
-        time_msg.data = mpc.elapsed_time.count()*1000;
-        pubTime.publish(time_msg);
+        float_msg.data = mpc.elapsed_time.count()*1000;
+        pubTime.publish(float_msg);
 
-        std_msgs::Int32 exitflag_msg;
+        float_msg.data = mpc.planner(mpc.latency,3);
+        pubCurv.publish(float_msg);
+
         exitflag_msg.data = mpc.forces.exit_flag;
         pubExitflag.publish(exitflag_msg);
 
+        float_msg.data = mpc.planner(mpc.latency,2);
+        pubProgress.publish(float_msg);
 
         rviz.rviz_predicted();  // visualize predicted states
         rviz.rviz_actual();     // visualize actual states
