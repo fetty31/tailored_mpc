@@ -55,11 +55,13 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
 %     model.linInIdx = [1, 2]';
     
     %% Define solver options
-    if useFastSolver
-        codeoptions = ForcesGetDefaultOptions('TailoredSolver','SQP_NLP_fast',floattype);
-    else
-        codeoptions = getOptions('TailoredSolver',floattype);
-    end
+%     if useFastSolver
+%         codeoptions = ForcesGetDefaultOptions('TailoredSolver','SQP_NLP_fast',floattype);
+%     else
+%         codeoptions = ForcesGetDefaultOptions('TailoredSolver','SQP_NLP',floattype);
+%     end
+
+    codeoptions = getOptions('TailoredSolver');
 
     % Define integrator
 %     codeoptions.nlp.integrator.type = 'ERK4';
@@ -179,9 +181,8 @@ function xdot = my_continuous_dynamics(x, u, p)
     % Simplified Pacejka magic formula
     Fr = Dr*sin(Cr*atan(Br*alpha_R));
     Ff = Df*sin(Cf*atan(Bf*alpha_F));
-
-    Fm = lookuptable();
-    Fx = Fm - m*u_r*g - 0.5*Cd*rho*Ar*vx^2;
+    Fx = Cm*Fm*(1+cos(delta)) - m*u_r*g - 0.5*Cd*rho*Ar*vx^2;
+    
     
     %Progress rate change
     sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
@@ -191,25 +192,53 @@ function xdot = my_continuous_dynamics(x, u, p)
             vx*sin(mu) + vy*cos(mu);
             w - k*sdot;
             (1/m)*(Fx - Ff*sin(delta) + m*vy*w);
-            (1/m)*(Fr + Fm*sin(delta) + Ff*cos(delta) - m*vx*w);
-            (1/I)*((Ff*cos(delta) + Fm*sin(delta))*Lf - Fr*Lr + Mtv)];
+            (1/m)*(Fr + Cm*Fm*sin(delta) + Ff*cos(delta) - m*vx*w);
+            (1/I)*((Ff*cos(delta) + Cm*Fm*sin(delta))*Lf - Fr*Lr + Mtv)];
+    
 end
 
 function h = nonlin_const(z, p)
 
+    m = p(2);
+    Lf = p(4);
+    Lr = p(5);
+    Dr = p(6);
+    Df = p(7);
+    Cr = p(8);
+    Cf = p(9);
+    Br = p(10);
+    Bf = p(11); 
+    
     s1 = z(1);
-    n = z(5);
-    mu = z(6);
+
+    delta = z(6);
+    Fm = z(7);
+    n = z(8);
+    mu = z(9);
+    vx = z(10);
+    vy = z(11);
+    w = z(12);
     
     % Length and width of the car
     long = 2.72;
     width = 1.2 + 0.4;
 
-    h = [ n - long/2*sin(abs(mu)) + width/2*cos(mu) - s1;  % <= L(s)
-         -n + long/2*sin(abs(mu)) + width/2*cos(mu) - s1]; % <= R(s) 
+    % Maximum longitudinal & lateral acceleration
+    Ax_max = p(24);
+    Ay_max = p(25);
+    
+    alpha_R = atan((vy-Lr*w)/(vx));
+    alpha_F = atan((vy+Lf*w)/(vx)) - delta;
+    
+    Fr = Dr*sin(Cr*atan(Br*alpha_R));
+    Ff = Df*sin(Cf*atan(Bf*alpha_F));
+
+    Fx = Cm*Fm*(1+cos(delta));
+
+    h = [ n - long/2*sin(abs(mu)) + width/2*cos(mu) - s2; % <= L(s)
+         -n + long/2*sin(abs(mu)) + width/2*cos(mu) - s2; % <= R(s)
+         (p_long*Fx/Dr)^2 + (Fr/Dr)^2; % <= lambda
+         (p_long*Fx/Df)^2 + (Ff/Df)^2; % <= lambda
+         vx - s1]; 
      
-end
-
-function Fm = lookuptable()
-
 end
