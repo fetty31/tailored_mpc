@@ -724,10 +724,10 @@ void MPC::reconfigure(tailored_mpc::dynamicConfig& config){
         this->q_slack_vx = config.q_slack_vx;
         this->q_slack_track = config.q_slack_track;
 
-        this->bounds.u_min[1] = -config.diff_delta;
+        this->bounds.u_min[1] = -config.diff_delta*M_PI/180.0;
         this->bounds.u_min[2] = -config.diff_Fm;
 
-        this->bounds.u_max[0] = config.diff_delta;
+        this->bounds.u_max[0] = config.diff_delta*M_PI/180.0;
         this->bounds.u_max[1] = config.diff_Fm;
 
         this->bounds.x_max[4] = config.Vmax;

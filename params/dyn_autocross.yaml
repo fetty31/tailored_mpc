@@ -2,14 +2,14 @@
 dictitems:
   Ax_max: 7.0
   Ay_max: 10.0
-  Bf: 10.8529
-  Br: 10.1507
+  Bf: -11.8529
+  Br: -11.8529
   Cd: 0.8727
-  Cf: -1.1705
+  Cf: 1.4776
   Cm: 2000.0
-  Cr: -1.1705
-  Df: 2785.4
-  Dr: 3152.3
+  Cr: 1.4776
+  Df: 2863.8
+  Dr: 3200.0
   Vmax: 15.0
   Vmin: 2.0
   dMtv: 1.0
@@ -21,14 +21,14 @@ dictitems:
     dictitems:
       Ax_max: 7.0
       Ay_max: 10.0
-      Bf: 10.8529
-      Br: 10.1507
+      Bf: -11.8529
+      Br: -11.1507
       Cd: 0.8727
-      Cf: -1.1705
+      Cf: 1.4776
       Cm: 2000.0
-      Cr: -1.1705
-      Df: 2785.4
-      Dr: 3152.3
+      Cr: 1.4776
+      Df: 2863.8
+      Dr: 3200.0
       Vmax: 15.0
       Vmin: 2.0
       dMtv: 1.0
@@ -39,10 +39,10 @@ dictitems:
       groups: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
       id: 0
-      lambda: 3.0
+      lambda: 5.5
       latency: 5.0
       name: Default
-      p_long: 0.5
+      p_long: 1.5
       parameters: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
       parent: 0
@@ -57,9 +57,9 @@ dictitems:
       type: ''
       u_r: 0.45
     state: []
-  lambda: 3.0
+  lambda: 5.5
   latency: 5.0
-  p_long: 0.5
+  p_long: 1.5
   q_mu: 0.0
   q_n: 5.0
   q_nN: 5.0

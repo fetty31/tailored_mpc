@@ -34,9 +34,21 @@ NLOP:
   N: 40                                               # Prediction horizon
   Nslacks: 2                                          # Number of slacks variables
 
-Hz: 40                                                #[s] MPC frequency
+Hz: 20                                                #[s] MPC frequency
 rk4_t: 0.025                                          #[s] Runge Kutta integration time
 Nthreads: 10                                          # Number of threads
 TroProfile: false                                     # Set to true to follow TRO velocity profile 
 
 nPlanning: 1900                                       # n points saved from the planner
+
+
+# Aproximated values for Cm & p_long compatibility (for D=3000, lambda=5):
+#     p_long | Cm
+#       1.0  |  6708 N      
+#       2.0  |  4743.4 N      
+#       3.0  |  3873 N      
+#       5.0  |  3000 N      
+#       5.5  |  2860.4 N  (default)   
+#       6.0  |  2738.6 N      
+#       11.0 |  2022.6 N      
+#       20.0 |  1500 N  

@@ -205,7 +205,6 @@ end
 
 function h = nonlin_const(z, p)
 
-    m = p(3);
     Lf = p(5);
     Lr = p(6);
     Dr = p(7);
@@ -231,10 +230,6 @@ function h = nonlin_const(z, p)
     % Length and width of the car
     long = 2.72;
     width = 1.2 + 0.4;
-
-    % Maximum longitudinal & lateral acceleration
-    Ax_max = p(24);
-    Ay_max = p(25);
     
     alpha_R = atan((vy-Lr*w)/(vx));
     alpha_F = atan((vy+Lf*w)/(vx)) - delta;
@@ -242,12 +237,10 @@ function h = nonlin_const(z, p)
     Fr = Dr*sin(Cr*atan(Br*alpha_R));
     Ff = Df*sin(Cf*atan(Bf*alpha_F));
 
-    Fx = Cm*Fm*(1+cos(delta));
-
     h = [ n - long/2*sin(abs(mu)) + width/2*cos(mu) - s2; % <= L(s)
          -n + long/2*sin(abs(mu)) + width/2*cos(mu) - s2; % <= R(s)
-         (p_long*Fx/Dr)^2 + (Fr/Dr)^2; % <= lambda
-         (p_long*Fx/Df)^2 + (Ff/Df)^2; % <= lambda
+         p_long*(Cm*Fm/Dr)^2 + (Fr/Dr)^2; % <= lambda
+         p_long*(Cm*Fm/Df)^2 + (Ff/Df)^2; % <= lambda
          vx - s1]; 
      
 end
