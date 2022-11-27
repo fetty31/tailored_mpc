@@ -6,22 +6,22 @@ requires_callback = True
 lib = "lib/libTailoredSolver.so"
 lib_static = "lib/libTailoredSolver.a"
 c_header = "include/TailoredSolver.h"
-nstages = 40
+nstages = 20
 
 # Parameter             | Type    | Scalar type      | Ctypes type    | Numpy type   | Shape     | Len
 params = \
-[("lb"                  , "dense" , ""               , ctypes.c_double, numpy.float64, (480,   1),  480),
- ("ub"                  , "dense" , ""               , ctypes.c_double, numpy.float64, (400,   1),  400),
- ("hu"                  , "dense" , ""               , ctypes.c_double, numpy.float64, (200,   1),  200),
- ("xinit"               , "dense" , ""               , ctypes.c_double, numpy.float64, ( 10,   1),   10),
- ("x0"                  , "dense" , ""               , ctypes.c_double, numpy.float64, (480,   1),  480),
- ("all_parameters"      , "dense" , ""               , ctypes.c_double, numpy.float64, (1240,   1), 1240),
+[("lb"                  , "dense" , ""               , ctypes.c_double, numpy.float64, (160,   1),  160),
+ ("ub"                  , "dense" , ""               , ctypes.c_double, numpy.float64, (140,   1),  140),
+ ("hu"                  , "dense" , ""               , ctypes.c_double, numpy.float64, ( 40,   1),   40),
+ ("xinit"               , "dense" , ""               , ctypes.c_double, numpy.float64, (  7,   1),    7),
+ ("x0"                  , "dense" , ""               , ctypes.c_double, numpy.float64, (160,   1),  160),
+ ("all_parameters"      , "dense" , ""               , ctypes.c_double, numpy.float64, (500,   1),  500),
  ("num_of_threads"      , ""      , "solver_int32_unsigned", ctypes.c_uint  , numpy.uint32 , (  0,   1),    1)]
 
 # Output                | Type    | Scalar type      | Ctypes type    | Numpy type   | Shape     | Len
 outputs = \
-[("U"                   , ""      , ""               , ctypes.c_double, numpy.float64,     (  7,),  280),
- ("X"                   , ""      , ""               , ctypes.c_double, numpy.float64,     (  5,),  200)]
+[("U"                   , ""      , ""               , ctypes.c_double, numpy.float64,     (  4,),   80),
+ ("X"                   , ""      , ""               , ctypes.c_double, numpy.float64,     (  4,),   80)]
 
 # Info Struct Fields
 info = \
@@ -50,44 +50,24 @@ info = \
 # Dynamics dimensions
 #   nvar    |   neq   |   dimh    |   dimp    |   diml    |   dimu    |   dimhl   |   dimhu    
 dynamics_dims = [
-	(12, 10, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5), 
-	(12, 7, 5, 31, 12, 10, 0, 5)
+	(8, 7, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2)
 ]

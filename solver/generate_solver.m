@@ -12,7 +12,7 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
 
     %% Problem dimensions
     N = horizonLength;
-    Npar = 26;
+    Npar = 25;
     model = {};
     model.N = N;                        % horizon length
     model.nvar = n_states+n_controls;   % number of variables
@@ -41,31 +41,33 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
     %% Inequality constraints
     % upper/lower variable bounds lb <= z <= ub
     %          inputs          |             states
-    % z = [slack_track, diff_delta, Mtv, delta, n, mu, vx, vy, w]    
-    model.lbidx = [1, 2, 3, 4, 5, 6, 7, 8, 9]';
-    model.ubidx = [2, 3, 4, 5, 6, 7, 8, 9]';
+    % z = [slack_track, diff_delta, Mtv, delta, n, mu, vy, w]    
+    model.lbidx = [1, 2, 3, 4, 5, 6, 7, 8]';
+    model.ubidx = [2, 3, 4, 5, 6, 7, 8]';
     model.lb = []; 
     model.ub = [];
     
     %% Initial conditions
     % Initial conditions on all states
-    model.xinitidx = 2:9; % use this to specify on which variables initial conditions are imposed
+    model.xinitidx = 2:8; % use this to specify on which variables initial conditions are imposed
 
     %% Linear subsystem
 %     model.linInIdx = [1, 2]';
     
     %% Define solver options
-    if useFastSolver
-        codeoptions = ForcesGetDefaultOptions('TailoredSolver','SQP_NLP_fast',floattype);
-    else
-        codeoptions = getOptions('TailoredSolver',floattype);
-    end
+%     if useFastSolver
+%         codeoptions = ForcesGetDefaultOptions('TailoredSolver','SQP_NLP_fast',floattype);
+%     else
+%         codeoptions = getOptions('TailoredSolver',floattype);
+%     end
 
     % Define integrator
 %     codeoptions.nlp.integrator.type = 'ERK4';
 %     codeoptions.nlp.integrator.Ts = rkTime;
 %     codeoptions.nlp.integrator.nodes = 1;
 %     codeoptions.nlp.integrator.differentiation_method = 'chainrule';
+    
+    codeoptions = getOptions('TailoredSolver');
 
     codeoptions.maxit = 150;    % Maximum number of iterations
     codeoptions.optlevel = 2;   % 0: no optimization, 1: optimize for size, 2: optimize for speed, 3: optimize for size & speed
@@ -112,23 +114,30 @@ function f = objective(z, p)
     Lr = p(5);
     q_slip = p(17);
     q_n = p(18);
-    q_s = p(21);
+    q_s = p(20);
     q_mu = p(19);
-    q_Mtv = p(22);
-    Ts = p(23);
-    k = p(26);
-    q_slack_track = p(24);
+    q_Mtv = p(21);
+    Ts = p(22);
+    k = p(25);
+    q_slack_track = p(23);
+
+    vx = p(24);
+    delta = z(4);
+    n = z(5);
+    mu = z(6);
+    vy = z(7);
+    w = z(8);
     
     % Progress rate
-    sdot = ( z(7)*cos(z(6)) - z(8)*sin(z(6)) )/(1 - z(5)*k) * Ts; % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
+    sdot = Ts * (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
 
     % Slip difference
-    beta_dyn = atan(z(8)/z(7));
-    beta_kin = atan(z(4)*Lr/(Lr+Lf));
+    beta_dyn = atan(vy/vx);
+    beta_kin = atan(delta*Lr/(Lr+Lf));
     diff_beta = beta_dyn - beta_kin;
 
     %Objective function
-    f = -q_s*sdot + dRd*(z(2))^2 + q_Mtv*(z(3))^2 + q_slip*(diff_beta)^2 + q_mu*(z(6))^2 + q_n*(z(5))^2 + q_slack_track*z(1);
+    f = -q_s*sdot + dRd*(z(2))^2 + q_Mtv*(z(3))^2 + q_slip*(diff_beta)^2 + q_mu*(mu)^2 + q_n*(n)^2 + q_slack_track*z(1);
     
 end
 
@@ -136,8 +145,8 @@ end
 function xnext = integrated_dynamics(z, p)
 
     u = z(1:3);
-    x = z(4:9);
-    Ts = p(24);
+    x = z(4:8);
+    Ts = p(22);
 
     xnext = RK4(x, u, @my_continuous_dynamics, Ts, p);
 
@@ -148,9 +157,9 @@ function xdot = my_continuous_dynamics(x, u, p)
     delta = x(1);
     n = x(2);
     mu = x(3);
-    vx = x(4);
-    vy = x(5);
-    w = x(6);
+    vx = p(24);
+    vy = x(4);
+    w = x(5);
     
     diff_delta = u(2);
     Mtv = u(3);
@@ -170,7 +179,7 @@ function xdot = my_continuous_dynamics(x, u, p)
     Cd = p(14);
     rho = p(15);
     Ar = p(16);
-    k = p(26);
+    k = p(25);
     
     % Slip angles
     alpha_R = atan((vy-Lr*w)/(vx));
@@ -179,9 +188,6 @@ function xdot = my_continuous_dynamics(x, u, p)
     % Simplified Pacejka magic formula
     Fr = Dr*sin(Cr*atan(Br*alpha_R));
     Ff = Df*sin(Cf*atan(Bf*alpha_F));
-
-    Fm = lookuptable();
-    Fx = Fm - m*u_r*g - 0.5*Cd*rho*Ar*vx^2;
     
     %Progress rate change
     sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
@@ -190,9 +196,8 @@ function xdot = my_continuous_dynamics(x, u, p)
     xdot = [diff_delta;
             vx*sin(mu) + vy*cos(mu);
             w - k*sdot;
-            (1/m)*(Fx - Ff*sin(delta) + m*vy*w);
-            (1/m)*(Fr + Fm*sin(delta) + Ff*cos(delta) - m*vx*w);
-            (1/I)*((Ff*cos(delta) + Fm*sin(delta))*Lf - Fr*Lr + Mtv)];
+            (1/m)*(Fr + Ff*cos(delta) - m*vx*w);
+            (1/I)*(Ff*cos(delta)*Lf - Fr*Lr + Mtv)];
 end
 
 function h = nonlin_const(z, p)
@@ -208,8 +213,4 @@ function h = nonlin_const(z, p)
     h = [ n - long/2*sin(abs(mu)) + width/2*cos(mu) - s1;  % <= L(s)
          -n + long/2*sin(abs(mu)) + width/2*cos(mu) - s1]; % <= R(s) 
      
-end
-
-function Fm = lookuptable()
-
 end

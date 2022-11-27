@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
 
     mpc.mission = 1; // mision hardcoded
 
-    ros::Duration(2).sleep();
+    ros::Duration(2.0).sleep();
 
     ROS_INFO_STREAM("MPC: publish frequency: " << mpc.Hz << "Hz");
     ROS_WARN_STREAM("MPC: internal threads: " << mpc.Nthreads);

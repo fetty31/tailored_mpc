@@ -17,7 +17,7 @@ addpath(solverDir);
 
 %% Problem info
 N = 20; % Horizon Length
-n_states = 6;
+n_states = 5;
 n_controls = 3;
 
 % Call function that generates the solver
