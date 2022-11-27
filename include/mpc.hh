@@ -149,6 +149,7 @@ class MPC{
         double throttle_to_torque(double throttle);
         double interpolate(double u0, double u1, double t0, double t1, double t, double ub, double lb);
         double ax_to_throttle(double ax);
+        double continuous(double psi, double psi_last);
 
         const string currentDateTime(); // get current date/time, format is YYYY-MM-DD.HH:mm:ss
 

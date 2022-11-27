@@ -99,6 +99,8 @@ int main(int argc, char **argv) {
 
     while(ros::ok()){
 
+        ros::spinOnce();
+
         curv_msg.data.clear();
         curv_msg.data.push_back(mpc.planner(0, 3)); // save raw curvature (just after callbacks have been called)
 
@@ -116,7 +118,6 @@ int main(int argc, char **argv) {
         exitflag_msg = std_msgs::Int32();
         exitflag_msg.data = mpc.forces.exit_flag;
         pubExitflag.publish(exitflag_msg);
-
         
         curv_msg.data.push_back(mpc.planner(0, 3)); // save smooth curvature
         pubCurvature.publish(curv_msg);
@@ -124,7 +125,6 @@ int main(int argc, char **argv) {
         rviz.rviz_predicted();  // visualize predicted states
         rviz.rviz_actual();     // visualize actual states
 
-        ros::spinOnce();
         r.sleep();
     }
 

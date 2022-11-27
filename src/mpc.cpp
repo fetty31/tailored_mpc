@@ -251,7 +251,7 @@ void MPC::initial_conditions(){
 
     double n0 = -s0_to_car.norm()*cos(angle)*sign; // normal distance from car to track
     double t_angle = atan2(tangent(1), tangent(0)); // heading of the trajectory
-    double mu0 = -(t_angle - carState(2));
+    double mu0 = -(t_angle - continuous(carState(2),t_angle));
 
     ROS_WARN_STREAM("mu0: " << mu0);
     ROS_WARN_STREAM("n0: " << n0);
@@ -649,6 +649,23 @@ void MPC::smoothing(){
 
     softCurvature = sg_smooth(rawCurvature, SG_window, SG_order); // Savitzky-golay filter (smoother curvature)
     for(unsigned int j=0; j < planner.rows(); j++) planner(j, 3) = softCurvature[j];
+}
+
+double MPC::continuous(double psi, double psi_last){
+    
+    double diff = psi - psi_last;
+    
+    int k = 0;
+    while(abs(diff) > (2 * M_PI - 1)){
+
+        if (k > 3) {k = 0; break;}
+
+        if(k>0) k = -k;
+        else if(k <= 0) k = -k + 1;
+        diff = psi - psi_last + 2 * M_PI * k;
+    }
+
+    return psi + 2 * M_PI * k;
 }
 
 void MPC::saveEigen(string filePath, string name, Eigen::MatrixXd data, bool erase){

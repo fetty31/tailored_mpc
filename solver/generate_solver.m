@@ -241,12 +241,10 @@ function h = nonlin_const(z, p)
     Fr = Dr*sin(Cr*atan(Br*alpha_R));
     Ff = Df*sin(Cf*atan(Bf*alpha_F));
 
-    Fx = p_long*Cm*Fm*(1+cos(delta));
-
     h = [ n - long/2*sin(abs(mu)) + width/2*cos(mu) - s2; % <= L(s)
          -n + long/2*sin(abs(mu)) + width/2*cos(mu) - s2; % <= R(s)
-         (Fx/Dr)^2 + (Fr/Dr)^2; % <= lambda
-         (Fx/Df)^2 + (Ff/Df)^2; % <= lambda
+         p_long*(Cm*Fm/Dr)^2 + (Fr/Dr)^2; % <= lambda
+         p_long*(Cm*Fm/Df)^2 + (Ff/Df)^2; % <= lambda
          vx - s1]; % <= Vmax
      
 end
