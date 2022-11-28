@@ -70,7 +70,6 @@ void MPC::stateCallback(const as_msgs::CarState::ConstPtr& msg){
     // carState << msg->odom.position.x, msg->odom.position.y, msg->odom.heading, msg->odom.velocity.x, msg->odom.velocity.y + msg->odom.velocity.w*d_IMU, msg->odom.velocity.w, 0.0, msg->odom.acceleration.x;
 
     stateFlag = true;
-
 }
 
 
@@ -97,6 +96,7 @@ void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
         smax = 2000;
         plannerFlag = true;
     }
+
 }
 
 void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
@@ -119,7 +119,7 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
     }
 
     smax = msg->smax;
-    cout << "SMAX: " << smax << endl;
+    // cout << "SMAX: " << smax << endl;
     plannerFlag = troActive = true;
     ROS_WARN_ONCE("MPC: FOLLOWING TRO! :)");
 
@@ -149,9 +149,9 @@ void MPC::solve(){
         // Solve
         forces.exit_flag = TailoredSolver_solve(&forces.params, &forces.solution, &forces.info, forces.mem_handle, NULL, forces.ext_func);
 
-        ROS_ERROR_STREAM("MPC exit flag: " << forces.exit_flag);
-        ROS_ERROR_STREAM("MPC solve time: " << forces.info.solvetime*1000 << " ms");
-        ROS_ERROR_STREAM("MPC iterations: " << forces.info.it);
+        // ROS_ERROR_STREAM("MPC exit flag: " << forces.exit_flag);
+        // ROS_ERROR_STREAM("MPC solve time: " << forces.info.solvetime*1000 << " ms");
+        // ROS_ERROR_STREAM("MPC iterations: " << forces.info.it);
 
         if(forces.exit_flag == 1) this->firstIter = false;
         else this->firstIter = true;
@@ -163,7 +163,7 @@ void MPC::solve(){
 
         elapsed_time = finish_time - start_time;
 
-        ROS_WARN("TAILORED MPC elapsed time: %f ms", elapsed_time.count()*1000);
+        // ROS_WARN("TAILORED MPC elapsed time: %f ms", elapsed_time.count()*1000);
 
         // Save data
         // save<float>("/home/fetty/Desktop/control_ws2022/src/control/tailored_mpc/debug/", "solve_time.txt", elapsed_time.count()*1000, true);
@@ -208,8 +208,8 @@ void MPC::initial_conditions(){
     double t_angle = atan2(tangent(1), tangent(0)); // heading of the trajectory
     double mu0 = -(t_angle - continuous(carState(2), t_angle));
 
-    ROS_WARN_STREAM("mu0: " << mu0);
-    ROS_WARN_STREAM("n0: " << n0);
+    // ROS_WARN_STREAM("mu0: " << mu0);
+    // ROS_WARN_STREAM("n0: " << n0);
 
     // xinit = [diff_delta, Mtv, delta, n, mu, Vy, w]
     forces.params.xinit[0] = 0.0;
@@ -220,12 +220,12 @@ void MPC::initial_conditions(){
     forces.params.xinit[5] = carState(4);
     forces.params.xinit[6] = carState(5);
 
-    cout << "Xinit:\n";
-    for(int i=0;i<7;i++){
-        cout << forces.params.xinit[i] << endl;
-    }
+    // cout << "Xinit:\n";
+    // for(int i=0;i<7;i++){
+    //     cout << forces.params.xinit[i] << endl;
+    // }
 
-    cout << "Steering feedback: " << carState(6) << endl;
+    // cout << "Steering feedback: " << carState(6) << endl;
 
 }
 
@@ -239,8 +239,8 @@ void MPC::set_params_bounds(){
     int nh = int(size/this->N);
     int Nvar = this->n_states + this->n_controls;
 
-    cout << "nh: " << nh << endl;
-    cout << "Nvar: " << Nvar << endl;
+    // cout << "nh: " << nh << endl;
+    // cout << "Nvar: " << Nvar << endl;
     
     if(!firstIter){
 
@@ -329,7 +329,7 @@ void MPC::set_params_bounds(){
         progress(k) = planner(plannerIdx, 2);
 
         this->forces.params.all_parameters[24 + k*this->Npar] = planner(plannerIdx, 3); // curvature 
-        cout << "Curvature: " << forces.params.all_parameters[30+k*Npar] << endl;
+        // cout << "Curvature: " << forces.params.all_parameters[24+k*Npar] << endl;
 
         // Inequality constraints bounds:
         this->forces.params.hu[k*nh]     = fabs(planner(plannerIdx, 5)); // L(s) ortogonal left dist from the path to the track limits
@@ -429,7 +429,7 @@ void MPC::set_params_bounds(){
 void MPC::s_prediction(){
 
     predicted_s.setZero();
-    cout << "S_PRED inicial: " << progress(0) << endl;
+    // cout << "S_PRED inicial: " << progress(0) << endl;
     predicted_s(0) = fmod(progress(0), smax);
 
     lastState(0,0) = carState(0);
@@ -480,7 +480,7 @@ void MPC::s_prediction(){
     // If predicted s is too small set initial s again
     double totalLength = predicted_s(this->N-1) - predicted_s(0);
     if(totalLength < 1){ 
-        ROS_ERROR("Predicted s smaller than threshold!");
+        // ROS_ERROR("Predicted s smaller than threshold!");
         firstIter = true;    
     }
 
@@ -506,8 +506,8 @@ void MPC::get_solution(){
     // cout << "solStates: " << endl;
     // cout << solStates << endl;
 
-    cout << "solCommands:\n";
-    cout << solCommands << endl;
+    // cout << "solCommands:\n";
+    // cout << solCommands << endl;
 
 }
 
@@ -518,8 +518,8 @@ void MPC::msgCommands(as_msgs::CarCommands *msg){
     msg->steering = solCommands(this->latency, 3);
     msg->Mtv = solCommands(this->latency, 2);
 
-    cout << "steering: " << solCommands(this->latency, 3) << endl;
-    cout << "Mtv: " << solCommands(this->latency, 2) << endl;
+    // cout << "steering: " << solCommands(this->latency, 3) << endl;
+    // cout << "Mtv: " << solCommands(this->latency, 2) << endl;
 
     return;
 }

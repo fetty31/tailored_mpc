@@ -172,7 +172,6 @@ class MPC{
         // Previous solution
         Eigen::MatrixXd solStates;    // [n, mu, vy, w]
         Eigen::MatrixXd solCommands;  // [slack_track, diff_delta, Mtv, delta]
-
 };
 
 
