@@ -34,6 +34,7 @@ struct Params{
             string state;               // Car State topic
             string planner;             // Planner topic
             string tro;                 // Offline planner topic
+            string velocities;
             string predictedSteering;   // Visualization topics
             string predictedPath;
             string predictedHeading;

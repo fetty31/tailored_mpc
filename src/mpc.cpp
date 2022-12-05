@@ -125,13 +125,23 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
 
 }
 
+void MPC::velsCallback(const as_msgs::CarVelocityArray::ConstPtr& msg){
+
+    pred_velocities.resize(msg->velocities.size());
+    for(int i=0; i<msg->velocities.size(); i++){
+        pred_velocities(i) = msg->velocities[i].x;
+    }
+    this->velsFlag = true;
+
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //------------------------Principal functions--------------------------------------------------
 
 void MPC::solve(){
 
-    if(paramFlag && dynParamFlag && plannerFlag && stateFlag){
+    if(paramFlag && dynParamFlag && plannerFlag && stateFlag && velsFlag){
         
         auto start_time = chrono::system_clock::now();
 
@@ -287,7 +297,6 @@ void MPC::set_params_bounds(){
 
         this->forces.params.all_parameters[21 + k*this->Npar] = this->rk4_t;
         this->forces.params.all_parameters[22 + k*this->Npar] = this->q_slack_track;
-        this->forces.params.all_parameters[23 + k*this->Npar] = carState(3); // CHANGE!! --> vx prediction
 
         int plannerIdx = 0;
         if(firstIter){
@@ -328,8 +337,10 @@ void MPC::set_params_bounds(){
 
         progress(k) = planner(plannerIdx, 2);
 
+        this->forces.params.all_parameters[23 + k*this->Npar] = pred_velocities(plannerIdx);
         this->forces.params.all_parameters[24 + k*this->Npar] = planner(plannerIdx, 3); // curvature 
         // cout << "Curvature: " << forces.params.all_parameters[24+k*Npar] << endl;
+        cout << "pred velocity: " << pred_velocities(plannerIdx) << endl;
 
         // Inequality constraints bounds:
         this->forces.params.hu[k*nh]     = fabs(planner(plannerIdx, 5)); // L(s) ortogonal left dist from the path to the track limits
@@ -514,7 +525,7 @@ void MPC::get_solution(){
 void MPC::msgCommands(as_msgs::CarCommands *msg){
     
     msg->header.stamp = ros::Time::now();
-    msg->motor = 0.2;
+    msg->motor = 0.0;
     msg->steering = solCommands(this->latency, 3);
     msg->Mtv = solCommands(this->latency, 2);
 

@@ -20,6 +20,7 @@
 #include "as_msgs/ObjectiveArrayCurv.h"
 #include "as_msgs/CarState.h"
 #include "as_msgs/CarCommands.h"
+#include "as_msgs/CarVelocityArray.h"
 
 // Utilities for parameters
 #include "utils/params.hh"
@@ -51,7 +52,9 @@ class MPC{
 
         // Internal variables/methods of MPC
 
-        bool plannerFlag = false, stateFlag = false;
+        Eigen::VectorXd pred_velocities; // predicted velocities (vel profile from long_pid pkg)
+
+        bool plannerFlag = false, stateFlag = false, velsFlag = false;
         bool paramFlag = false;                       // flag for parameters set up
         bool dynParamFlag = false;                    // flag for dynamic parameters set up
         bool troActive = false, troProfile = false;   // whether TRO/GRO are publishing
@@ -143,6 +146,7 @@ class MPC{
         void stateCallback(const as_msgs::CarState::ConstPtr& msg);
         void plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg);
         void troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg);
+        void velsCallback(const as_msgs::CarVelocityArray::ConstPtr& msg);
 
         // Solve method
         void solve();

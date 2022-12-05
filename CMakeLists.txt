@@ -28,7 +28,6 @@ find_library(FORCESPRO_LIBRARY libTailoredSolver.a PATHS ${PROJECT_SOURCE_DIR}/s
 
 generate_dynamic_reconfigure_options(
   cfg/dynamic.cfg
-  cfg/long.cfg
 )
 
 catkin_package(
@@ -42,8 +41,6 @@ include_directories(
 )
 
 add_executable(${PROJECT_NAME}_exec src/main.cpp)
-add_executable(pid_exec src/pid.cpp
-                        src/longitudinal.cpp)
 
 add_library(${PROJECT_NAME}
   src/utils/params.cpp
@@ -56,11 +53,9 @@ add_library(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${FORCESPRO_LIBRARY})
 target_link_libraries(${PROJECT_NAME}_exec ${catkin_LIBRARIES} ${PROJECT_NAME})
-target_link_libraries(pid_exec ${catkin_LIBRARIES})
 
 add_dependencies(${PROJECT_NAME} as_msgs_generate_messages_cpp)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
-add_dependencies(pid_exec ${PROJECT_NAME}_gencfg)
 
 # Mandatory for parallelism (OpenMP)
 target_compile_options(${PROJECT_NAME} PRIVATE ${OpenMP_FLAGS})

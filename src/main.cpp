@@ -56,6 +56,7 @@ int main(int argc, char **argv) {
     ros::Subscriber subState = nh.subscribe(params.mpc.topics.state, 1, &MPC::stateCallback, &mpc);
     ros::Subscriber subPlanner = nh.subscribe(params.mpc.topics.planner, 1, &MPC::plannerCallback, &mpc);
     ros::Subscriber subTro = nh.subscribe(params.mpc.topics.tro, 1, &MPC::troCallback, &mpc);
+    ros::Subscriber subVel = nh.subscribe(params.mpc.topics.velocities, 1, &MPC::velsCallback, &mpc);
     pubCommands = nh.advertise<as_msgs::CarCommands>(params.mpc.topics.commands, 1);
 
         // DEBUG

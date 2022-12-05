@@ -18,6 +18,7 @@ Topics:
   Commands: /AS/C/commands
   Planner: /AS/C/trajectory/partial
   Tro: /AS/C/trajectory/full
+  Velocities: /AS/C/pid/velocity
   Debug:
     Time: /AS/C/mpc/debug/time
     ExitFlag: /AS/C/mpc/debug/exitflags
@@ -32,16 +33,12 @@ Topics:
 
 NLOP:
   N: 20                                               # Prediction horizon
-  Nslacks: 1                                          # Number of slacks variables
+  Nslacks: 1                                          # Number of slacks variables            
 
-PID:
-  Hz: 40                                              # Longitudinal PI frequency
-  Topics:
-    Commands: /AS/C/motor                         
+MPC:
+  Hz: 20                                                #[s] MPC frequency
+  rk4_t: 0.020                                          #[s] Runge Kutta integration time
+  Nthreads: 10                                          # Number of threads
+  TroProfile: false                                     # Set to true to follow TRO velocity profile 
 
-Hz: 20                                                #[s] MPC frequency
-rk4_t: 0.020                                          #[s] Runge Kutta integration time
-Nthreads: 10                                          # Number of threads
-TroProfile: false                                     # Set to true to follow TRO velocity profile 
-
-nPlanning: 1900                                       # n points saved from the planner
+  nPlanning: 1900                                       # n points saved from the planner
