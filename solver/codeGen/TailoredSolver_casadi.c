@@ -1674,7 +1674,7 @@ const casadi_int* TailoredSolver_inequalities_1_sparsity_out(casadi_int i) {
     }
 }
 
-/* TailoredSolver_objective_20:(i0[8],i1[25],i2[],i3[])->(o0,o1[1x8,7nz]) */
+/* TailoredSolver_objective_40:(i0[8],i1[25],i2[],i3[])->(o0,o1[1x8,7nz]) */
 static int casadi_f3(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a0, a1, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a2, a20, a21, a22, a23, a24, a25, a3, a4, a5, a6, a7, a8, a9;
     a0=arg[1]? arg[1][0] : 0;
@@ -1778,11 +1778,11 @@ static int casadi_f3(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     return 0;
 }
 
-int TailoredSolver_objective_20(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
+int TailoredSolver_objective_40(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
     return casadi_f3(arg, res, iw, w, mem);
 }
 
-const casadi_int* TailoredSolver_objective_20_sparsity_out(casadi_int i) {
+const casadi_int* TailoredSolver_objective_40_sparsity_out(casadi_int i) {
     switch (i) {
         case 0: return casadi_s3;
         case 1: return casadi_s4;
@@ -1790,7 +1790,7 @@ const casadi_int* TailoredSolver_objective_20_sparsity_out(casadi_int i) {
     }
 }
 
-/* TailoredSolver_inequalities_20:(i0[8],i1[25],i2[],i3[])->(o0[2],o1[2x8,6nz]) */
+/* TailoredSolver_inequalities_40:(i0[8],i1[25],i2[],i3[])->(o0[2],o1[2x8,6nz]) */
 static int casadi_f4(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a0, a1, a2, a3, a4, a5, a6, a7;
     a0=arg[0]? arg[0][4] : 0;
@@ -1842,11 +1842,11 @@ static int casadi_f4(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     return 0;
 }
 
-int TailoredSolver_inequalities_20(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
+int TailoredSolver_inequalities_40(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
     return casadi_f4(arg, res, iw, w, mem);
 }
 
-const casadi_int* TailoredSolver_inequalities_20_sparsity_out(casadi_int i) {
+const casadi_int* TailoredSolver_inequalities_40_sparsity_out(casadi_int i) {
     switch (i) {
         case 0: return casadi_s7;
         case 1: return casadi_s8;

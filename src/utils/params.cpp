@@ -36,6 +36,5 @@ Params::Params(const ros::NodeHandle* nh) {
     nh->param<int>(("MPC/nPlanning"), mpc.nPlanning, 1900);
     nh->param<int>(("MPC/Hz"), mpc.Hz, 20);
     nh->param<int>(("MPC/Nthreads"), mpc.Nthreads, 2);
-    nh->param<bool>(("MPC/TroProfile"), mpc.TroProfile, false);
 
 }

@@ -32,13 +32,12 @@ Topics:
   # TO DO: fill with other topics
 
 NLOP:
-  N: 20                                               # Prediction horizon
+  N: 40                                               # Prediction horizon
   Nslacks: 1                                          # Number of slacks variables            
 
 MPC:
   Hz: 20                                                #[s] MPC frequency
   rk4_t: 0.020                                          #[s] Runge Kutta integration time
   Nthreads: 10                                          # Number of threads
-  TroProfile: false                                     # Set to true to follow TRO velocity profile 
 
   nPlanning: 1900                                       # n points saved from the planner

@@ -6,22 +6,22 @@ requires_callback = True
 lib = "lib/libTailoredSolver.so"
 lib_static = "lib/libTailoredSolver.a"
 c_header = "include/TailoredSolver.h"
-nstages = 20
+nstages = 40
 
 # Parameter             | Type    | Scalar type      | Ctypes type    | Numpy type   | Shape     | Len
 params = \
-[("lb"                  , "dense" , ""               , ctypes.c_double, numpy.float64, (160,   1),  160),
- ("ub"                  , "dense" , ""               , ctypes.c_double, numpy.float64, (140,   1),  140),
- ("hu"                  , "dense" , ""               , ctypes.c_double, numpy.float64, ( 40,   1),   40),
+[("lb"                  , "dense" , ""               , ctypes.c_double, numpy.float64, (320,   1),  320),
+ ("ub"                  , "dense" , ""               , ctypes.c_double, numpy.float64, (280,   1),  280),
+ ("hu"                  , "dense" , ""               , ctypes.c_double, numpy.float64, ( 80,   1),   80),
  ("xinit"               , "dense" , ""               , ctypes.c_double, numpy.float64, (  7,   1),    7),
- ("x0"                  , "dense" , ""               , ctypes.c_double, numpy.float64, (160,   1),  160),
- ("all_parameters"      , "dense" , ""               , ctypes.c_double, numpy.float64, (500,   1),  500),
+ ("x0"                  , "dense" , ""               , ctypes.c_double, numpy.float64, (320,   1),  320),
+ ("all_parameters"      , "dense" , ""               , ctypes.c_double, numpy.float64, (1000,   1), 1000),
  ("num_of_threads"      , ""      , "solver_int32_unsigned", ctypes.c_uint  , numpy.uint32 , (  0,   1),    1)]
 
 # Output                | Type    | Scalar type      | Ctypes type    | Numpy type   | Shape     | Len
 outputs = \
-[("U"                   , ""      , ""               , ctypes.c_double, numpy.float64,     (  4,),   80),
- ("X"                   , ""      , ""               , ctypes.c_double, numpy.float64,     (  4,),   80)]
+[("U"                   , ""      , ""               , ctypes.c_double, numpy.float64,     (  4,),  160),
+ ("X"                   , ""      , ""               , ctypes.c_double, numpy.float64,     (  4,),  160)]
 
 # Info Struct Fields
 info = \
@@ -51,6 +51,26 @@ info = \
 #   nvar    |   neq   |   dimh    |   dimp    |   diml    |   dimu    |   dimhl   |   dimhu    
 dynamics_dims = [
 	(8, 7, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
+	(8, 5, 2, 25, 8, 7, 0, 2), 
 	(8, 5, 2, 25, 8, 7, 0, 2), 
 	(8, 5, 2, 25, 8, 7, 0, 2), 
 	(8, 5, 2, 25, 8, 7, 0, 2), 

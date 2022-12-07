@@ -14,11 +14,9 @@ MPC::MPC(const Params* params){
     this->rk4_t         = params->mpc.rk4_t;
     this->nPlanning     = params->mpc.nPlanning;
     this->Nthreads      = params->mpc.Nthreads;
-    this->troProfile    = params->mpc.TroProfile;
 
     cout << "Hz: " << Hz << endl;
     cout << "rk4_t: " << rk4_t << endl;
-    cout << "troProfile: " << troProfile << endl;
 
     // Vehicle params
     this->m         = params->vehicle.m;
@@ -340,7 +338,7 @@ void MPC::set_params_bounds(){
         this->forces.params.all_parameters[23 + k*this->Npar] = pred_velocities(plannerIdx);
         this->forces.params.all_parameters[24 + k*this->Npar] = planner(plannerIdx, 3); // curvature 
         // cout << "Curvature: " << forces.params.all_parameters[24+k*Npar] << endl;
-        cout << "pred velocity: " << pred_velocities(plannerIdx) << endl;
+        // cout << "pred velocity: " << pred_velocities(plannerIdx) << endl;
 
         // Inequality constraints bounds:
         this->forces.params.hu[k*nh]     = fabs(planner(plannerIdx, 5)); // L(s) ortogonal left dist from the path to the track limits

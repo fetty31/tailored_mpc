@@ -60,13 +60,13 @@ Model {
       }
     }
   }
-  Created		  "11/27/2022 12:38:04 PM"
+  Created		  "12/5/2022 8:27:17 PM"
   Creator		  "embotech AG"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "embotech AG"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "11/27/2022 12:38:04 PM"
+  LastModifiedDate	  "12/5/2022 8:27:17 PM"
   RTWModifiedTimeStamp	  315310195
   ModelVersionFormat	  "1.%<AutoIncrement:2>"
   ConfigurationManager	  "None"
@@ -801,17 +801,17 @@ Model {
 	Help			"TailoredSolver_simulinkBlock provides an easy Simulink interface for simulating your customized solver.  \n"
 	"\nOUTPUTS = TailoredSolver(INPUTS) solves an optimization problem where:\n\n"
 	"INPUTS:\n"
-	" - lb - column vector of length 160\n "
-" - ub - column vector of length 140\n "
-" - hu - column vector of length 40\n "
+	" - lb - column vector of length 320\n "
+" - ub - column vector of length 280\n "
+" - hu - column vector of length 80\n "
 " - xinit - column vector of length 7\n "
-" - x0 - column vector of length 160\n "
-" - all_parameters - column vector of length 500\n "
+" - x0 - column vector of length 320\n "
+" - all_parameters - column vector of length 1000\n "
 " - num_of_threads - column vector of length 1\n "
 
 	"\nOUTPUTS:\n"
-	" - U - column vector of length 80\n "
-" - X - column vector of length 80\n "
+	" - U - column vector of length 160\n "
+" - X - column vector of length 160\n "
 
 	"\n For more information, see https://forces.embotech.com/Documentation/graphical_interface/index.html \n "
 
