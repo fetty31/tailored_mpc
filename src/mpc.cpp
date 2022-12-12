@@ -333,7 +333,7 @@ void MPC::set_params_bounds(){
             }
         }
 
-        progress(k) = planner(plannerIdx, 2);
+        progress(k) = planner(plannerIdx, 2); // save current progress from planner
 
         this->forces.params.all_parameters[23 + k*this->Npar] = pred_velocities(plannerIdx);
         this->forces.params.all_parameters[24 + k*this->Npar] = planner(plannerIdx, 3); // curvature 
