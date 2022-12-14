@@ -22,7 +22,7 @@
 #include "as_msgs/CarCommands.h"
 #include "as_msgs/CarVelocityArray.h"
 
-// Utilities for parameters
+// Utilities
 #include "utils/params.hh"
 
 // Include headers of both solvers
@@ -128,10 +128,9 @@ class MPC{
         vector<double> vconcat(const vector<double>& x, const vector<double>& y);
         void printVec(vector<double> &input, int firstElements=0);
         Eigen::MatrixXd vector2eigen(vector<double> vect);
-        Eigen::MatrixXd output2eigen(double* array, int size);
+        Eigen::MatrixXd output2eigen(double array[], int size);
         double continuous(double psi, double psi_last); // Garanty that both angles are on the same range
         const string currentDateTime(); // get current date/time, format is YYYY-MM-DD.HH:mm:ss
-
 
     public:
 

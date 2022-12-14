@@ -63,9 +63,7 @@ MPC::MPC(const Params* params){
 
 void MPC::stateCallback(const as_msgs::CarState::ConstPtr& msg){
 
-    // carState << msg->odom.position.x, msg->odom.position.y, msg->odom.heading, msg->odom.velocity.x, msg->odom.velocity.y + msg->odom.velocity.w*d_IMU, msg->odom.velocity.w, msg->steering, msg->odom.acceleration.x, msg->Mtv;
-    carState << msg->odom.position.x, msg->odom.position.y, msg->odom.heading, msg->odom.velocity.x, msg->odom.velocity.y, msg->odom.velocity.w, msg->steering, msg->odom.acceleration.x, 0.0;
-    // carState << msg->odom.position.x, msg->odom.position.y, msg->odom.heading, msg->odom.velocity.x, msg->odom.velocity.y + msg->odom.velocity.w*d_IMU, msg->odom.velocity.w, 0.0, msg->odom.acceleration.x;
+    carState << msg->odom.position.x, msg->odom.position.y, msg->odom.heading, msg->odom.velocity.x, msg->odom.velocity.y, msg->odom.velocity.w, msg->steering, msg->odom.acceleration.x, msg->Mtv;
 
     stateFlag = true;
 }
@@ -85,7 +83,7 @@ void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
             planner(i, 0) = msg->objectives[i].x;
             planner(i, 1) = msg->objectives[i].y;
             planner(i, 2) = msg->objectives[i].s; 
-            planner(i, 3) = msg->objectives[i].k; 
+            planner(i, 3) = (msg->objectives[i].k == 0.0) ? 1e-7 : msg->objectives[i].k; 
             planner(i, 4) = msg->objectives[i].vx;
             planner(i, 5) = msg->objectives[i].L;
             planner(i, 6) = msg->objectives[i].R;
@@ -110,7 +108,7 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
         planner(i, 0) = msg->objectives[i].x;
         planner(i, 1) = msg->objectives[i].y;
         planner(i, 2) = msg->objectives[i].s; 
-        planner(i, 3) = msg->objectives[i].k; 
+        planner(i, 3) = (msg->objectives[i].k == 0.0) ? 1e-7 : msg->objectives[i].k; 
         planner(i, 4) = msg->objectives[i].vx;
         planner(i, 5) = msg->objectives[i].L;
         planner(i, 6) = msg->objectives[i].R;
@@ -247,10 +245,12 @@ void MPC::set_params_bounds(){
     int nh = int(size/this->N);
     int Nvar = this->n_states + this->n_controls;
 
-    // cout << "nh: " << nh << endl;
-    // cout << "Nvar: " << Nvar << endl;
+    cout << "nh: " << nh << endl;
+    cout << "Nvar: " << Nvar << endl;
     
     if(!firstIter){
+
+        cout << "First iter" << endl;
 
         // Loop to find minimum distance between s0 and predicted s
         double min_dist = 10;
@@ -269,6 +269,7 @@ void MPC::set_params_bounds(){
         }
     }
 
+    cout << "setting all parameters" << endl;
     for(int k = 0; k < this->N; k++){
 
         this->forces.params.all_parameters[ 0 + k*this->Npar] = this->dRd; 
@@ -298,15 +299,22 @@ void MPC::set_params_bounds(){
 
         int plannerIdx = 0;
         if(firstIter){
+            ROS_ERROR("First iter");
             plannerIdx = this->samplingS*k;
         }else{
             if(id_sinit < this->N){
                 
                 progress(k) = predicted_s(id_sinit);
 
+                ROS_WARN_STREAM("predicted_s: " << progress(k));
+                ROS_WARN_STREAM("planner(0, 2): " << planner(0, 2));
+
                 // Set k(s), L(s), R(s) with the prediction from last MPC iteration 
                 double diff_s = progress(k) - this->planner(0, 2);
                 id_k = int(round(diff_s/this->delta_s));
+
+                ROS_WARN_STREAM("diff_s: " << diff_s);
+                ROS_WARN_STREAM("id_k: " << id_k);
 
                 if(diff_s < 0) id_k = 0;
 
@@ -315,10 +323,16 @@ void MPC::set_params_bounds(){
 
                 // Average of last 5 delta_s 
                 if(k != 0 && id_sinit > this->N - 5){
+                    
+                    cout << "progress(k-1): " << progress(k-1) << endl;
+                    cout << "progress(k-2): " << progress(k-2) << endl;
+                    diff_s = progress(k-1) - progress(k-2);
+                    cout << "diff_s inside mean: " << diff_s << endl;
+ 
+                    // if(diff_s < 0) diff_s += this->smax; // If we are passing the start line, reset diff
+                    if(diff_s < 0) diff_s = 0;
 
-                    diff_s = progress(k) - progress(k-1);
-
-                    if(diff_s < 0) diff_s += this->smax; // If we are passing the start line, reset diff
+                    cout << "diff_s inside mean final: " << diff_s << endl;
                     mean_s += diff_s;
                 }
 
@@ -330,15 +344,21 @@ void MPC::set_params_bounds(){
                 // Set k(s), L(s), R(s) with planner actual discretization
                 id_k += int(mean_s);
                 plannerIdx = id_k;
+
+                ROS_ERROR("inside else");
+                ROS_ERROR_STREAM("id_k: " << id_k);
             }
         }
+
+        cout << "mean_s: " << mean_s << endl;
+        cout << "plannerIdx set " << plannerIdx << endl;
 
         progress(k) = planner(plannerIdx, 2); // save current progress from planner
 
         this->forces.params.all_parameters[23 + k*this->Npar] = pred_velocities(plannerIdx);
         this->forces.params.all_parameters[24 + k*this->Npar] = planner(plannerIdx, 3); // curvature 
-        // cout << "Curvature: " << forces.params.all_parameters[24+k*Npar] << endl;
-        // cout << "pred velocity: " << pred_velocities(plannerIdx) << endl;
+        cout << "Curvature: " << forces.params.all_parameters[24+k*Npar] << endl;
+        cout << "pred velocity: " << pred_velocities(plannerIdx) << endl;
 
         // Inequality constraints bounds:
         this->forces.params.hu[k*nh]     = fabs(planner(plannerIdx, 5)); // L(s) ortogonal left dist from the path to the track limits
@@ -363,6 +383,7 @@ void MPC::set_params_bounds(){
         this->forces.params.ub[k*(Nvar-Nslacks) + 5] = this->bounds.x_max[3];
         this->forces.params.ub[k*(Nvar-Nslacks) + 6] = this->bounds.x_max[4];
 
+        cout << "Setting initial guess" << endl;
 
         if(!firstIter){
             if((latency + k) < this->N - 1){
@@ -444,19 +465,19 @@ void MPC::s_prediction(){
     lastState(0,0) = carState(0);
     lastState(0,1) = carState(1);
     lastState(0,2) = carState(2);
-    lastState(0,3) = carState(3); // CHANGE!! --> vx prediction
-    lastState(0,4) = solStates(0,3);
-    lastState(0,5) = solStates(0,4);
+    lastState(0,3) = carState(3);
+    lastState(0,4) = solStates(0,2);
+    lastState(0,5) = solStates(0,3);
 
     for(int i=1; i < N; i++){
 
         double theta = lastState(i-1, 2);
         double n = solStates(i-1, 0);
         double mu = solStates(i-1, 1);
-        double vx = carState(3); // CHANGE!! --> vx prediction
+        double vx = forces.params.all_parameters[23 + (i-1)*this->Npar]; // predicted vel. from longitudinal pid
         double vy = solStates(i-1, 2);
         double w = solStates(i-1, 3);
-        double k = forces.params.all_parameters[24 + (i-1)*this->Npar];
+        double k = forces.params.all_parameters[24 + (i-1)*this->Npar]; // curvature from planner
 
         double sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
 
@@ -473,16 +494,16 @@ void MPC::s_prediction(){
         }
 
         // Predict states evolution with Euler
-        lastState(i,0) = lastState(i-1,0) + (vx*cos(theta) - vy*sin(theta))*this->rk4_t;
-        lastState(i,1) = lastState(i-1,1) + (vx*sin(theta) + vy*cos(theta))*this->rk4_t;
-        lastState(i,2) = lastState(i-1,2) + w*this->rk4_t;
-        lastState(i,3) = vx;
-        lastState(i,4) = vy;
-        lastState(i,5) = w;
+        lastState(i, 0) = lastState(i-1,0) + (vx*cos(theta) - vy*sin(theta))*this->rk4_t;
+        lastState(i, 1) = lastState(i-1,1) + (vx*sin(theta) + vy*cos(theta))*this->rk4_t;
+        lastState(i, 2) = lastState(i-1,2) + w*this->rk4_t;
+        lastState(i, 3) = vx;
+        lastState(i, 4) = vy;
+        lastState(i, 5) = w;
 
-        lastCommands(i-1,0) = solCommands(i-1,1); // diff_delta
-        lastCommands(i-1,1) = solCommands(i-1,2); // Mtv
-        lastCommands(i-1,2) = solCommands(i-1,3); // Delta
+        lastCommands(i-1, 0) = solCommands(i-1, 1); // diff_delta
+        lastCommands(i-1, 1) = solCommands(i-1, 2); // Mtv
+        lastCommands(i-1, 2) = solCommands(i-1, 3); // Delta
 
     }
 

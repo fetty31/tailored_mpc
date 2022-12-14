@@ -19,7 +19,7 @@ void dynamicCallback(tailored_mpc::dynamicConfig &config, uint32_t level, MPC* m
 void my_SIGhandler(int sig){
 
 	as_msgs::CarCommands msgCommands;
-	msgCommands.motor = -1.0;
+	msgCommands.motor = -1.0; // no one will read this value, but what if..
 	msgCommands.steering = 0.0;
     msgCommands.Mtv = 0.0;
 	for(int i=0; i<5; i++){
@@ -65,6 +65,9 @@ int main(int argc, char **argv) {
     nh.param<string>("Topics/Debug/ExitFlag", exitFlagTopic, "/AS/C/mpc/debug/exitflags");
     nh.param<string>("Topics/Debug/CurvatureTopic", curvTopic, "/AS/C/mpc/debug/curvature");
     nh.param<string>("Topics/Debug/ProgressTopic", progressTopic, "/AS/C/mpc/debug/progress");
+
+    nh.param<int>("mission", mpc.mission, 0); // current mission
+
     ros::Publisher pubTime = nh.advertise<std_msgs::Float32>(timeTopic, 10);
     ros::Publisher pubExitflag = nh.advertise<std_msgs::Int32>(exitFlagTopic, 10);
     ros::Publisher pubCurv = nh.advertise<std_msgs::Float32>(curvTopic, 10);
@@ -75,8 +78,6 @@ int main(int argc, char **argv) {
 	dynamic_reconfigure::Server<tailored_mpc::dynamicConfig>::CallbackType f;
 	f = boost::bind(&dynamicCallback, _1, _2, &mpc);
 	server.setCallback(f);
-
-    mpc.mission = 1; // mision hardcoded
 
     ros::Duration(2.0).sleep();
 
