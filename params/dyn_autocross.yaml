@@ -35,10 +35,10 @@ dictitems:
         state: []
       parent: 0
       q_mu: 0.0
-      q_n: 10.0
-      q_nN: 10.0
-      q_s: 40.0
-      q_sN: 40.0
+      q_n: 5.0
+      q_nN: 3.0
+      q_s: 100.0
+      q_sN: 100.0
       q_slack_track: 100.0
       q_slip: 2.0
       state: true
@@ -47,10 +47,10 @@ dictitems:
     state: []
   latency: 5
   q_mu: 0.0
-  q_n: 10.0
-  q_nN: 10.0
-  q_s: 40.0
-  q_sN: 40.0
+  q_n: 5.0
+  q_nN: 3.0
+  q_s: 100.0
+  q_sN: 100.0
   q_slack_track: 100.0
   q_slip: 2.0
   u_r: 0.45

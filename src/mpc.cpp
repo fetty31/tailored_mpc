@@ -87,9 +87,10 @@ void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
             planner(i, 4) = msg->objectives[i].vx;
             planner(i, 5) = msg->objectives[i].L;
             planner(i, 6) = msg->objectives[i].R;
+
+            if(msg->objectives[i].s > smax) smax = msg->objectives[i].s;
         }
 
-        smax = 2000;
         plannerFlag = true;
     }
 
@@ -155,9 +156,9 @@ void MPC::solve(){
         // Solve
         forces.exit_flag = TailoredSolver_solve(&forces.params, &forces.solution, &forces.info, forces.mem_handle, NULL, forces.ext_func);
 
-        // ROS_ERROR_STREAM("MPC exit flag: " << forces.exit_flag);
-        // ROS_ERROR_STREAM("MPC solve time: " << forces.info.solvetime*1000 << " ms");
-        // ROS_ERROR_STREAM("MPC iterations: " << forces.info.it);
+        ROS_ERROR_STREAM("MPC exit flag: " << forces.exit_flag);
+        ROS_ERROR_STREAM("MPC solve time: " << forces.info.solvetime*1000 << " ms");
+        ROS_ERROR_STREAM("MPC iterations: " << forces.info.it);
 
         if(forces.exit_flag == 1) this->firstIter = false;
         else this->firstIter = true;
@@ -310,7 +311,7 @@ void MPC::set_params_bounds(){
                 ROS_WARN_STREAM("planner(0, 2): " << planner(0, 2));
 
                 // Set k(s), L(s), R(s) with the prediction from last MPC iteration 
-                double diff_s = progress(k) - this->planner(0, 2);
+                double diff_s = fmod(progress(k) - this->planner(0, 2), this->smax);
                 id_k = int(round(diff_s/this->delta_s));
 
                 ROS_WARN_STREAM("diff_s: " << diff_s);
@@ -324,9 +325,9 @@ void MPC::set_params_bounds(){
                 // Average of last 5 delta_s 
                 if(k != 0 && id_sinit > this->N - 5){
                     
-                    cout << "progress(k-1): " << progress(k-1) << endl;
-                    cout << "progress(k-2): " << progress(k-2) << endl;
-                    diff_s = progress(k-1) - progress(k-2);
+                    cout << "progress(k-1): " << progress(k) << endl;
+                    cout << "progress(k-2): " << progress(k-1) << endl;
+                    diff_s = fmod(progress(k) - progress(k-1), this->smax);
                     cout << "diff_s inside mean: " << diff_s << endl;
  
                     // if(diff_s < 0) diff_s += this->smax; // If we are passing the start line, reset diff
@@ -514,8 +515,8 @@ void MPC::s_prediction(){
         firstIter = true;    
     }
 
-    // cout << "PREDICTED S:\n";
-    // cout << predicted_s << endl;
+    cout << "PREDICTED S:\n";
+    cout << predicted_s << endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
