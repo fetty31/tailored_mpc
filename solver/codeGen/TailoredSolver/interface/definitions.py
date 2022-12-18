@@ -16,12 +16,12 @@ params = \
  ("xinit"               , "dense" , ""               , ctypes.c_double, numpy.float64, (  7,   1),    7),
  ("x0"                  , "dense" , ""               , ctypes.c_double, numpy.float64, (320,   1),  320),
  ("all_parameters"      , "dense" , ""               , ctypes.c_double, numpy.float64, (1000,   1), 1000),
- ("num_of_threads"      , ""      , "solver_int32_unsigned", ctypes.c_uint  , numpy.uint32 , (  0,   1),    1)]
+ ("num_of_threads"      , "dense" , "solver_int32_unsigned", ctypes.c_uint  , numpy.uint32 , (  1,   1),    1)]
 
-# Output                | Type    | Scalar type      | Ctypes type    | Numpy type   | Shape     | Len
+# Output                | Type    | Ctypes type    | Numpy type   | Shape     | Len
 outputs = \
-[("U"                   , ""      , ""               , ctypes.c_double, numpy.float64,     (  4,),  160),
- ("X"                   , ""      , ""               , ctypes.c_double, numpy.float64,     (  4,),  160)]
+[("U"                   , ""               , ctypes.c_double, numpy.float64,     (160,),  160),
+ ("X"                   , ""               , ctypes.c_double, numpy.float64,     (160,),  160)]
 
 # Info Struct Fields
 info = \

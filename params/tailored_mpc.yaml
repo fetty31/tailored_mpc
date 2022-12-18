@@ -40,4 +40,4 @@ MPC:
   rk4_t: 0.025                                          #[s] Runge Kutta integration time
   Nthreads: 10                                          # Number of threads
 
-  nPlanning: 1900                                       # n points saved from the planner
+  nPlanning: 1000                                        # n points saved from the planner

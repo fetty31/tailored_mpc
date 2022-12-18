@@ -63,7 +63,7 @@ extern solver_int32_default TailoredSolver_adtool2forces(TailoredSolver_float *x
 	TailoredSolver_callback_float w[109];
 	
     /* temporary storage for AD tool sparse output */
-    TailoredSolver_callback_float this_f;
+    TailoredSolver_callback_float this_f = (TailoredSolver_callback_float) 0.0;
     TailoredSolver_callback_float nabla_f_sparse[7];
     TailoredSolver_callback_float h_sparse[2];
     TailoredSolver_callback_float nabla_h_sparse[6];

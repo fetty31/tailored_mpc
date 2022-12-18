@@ -164,7 +164,7 @@ void MPC::solve(){
         else this->firstIter = true;
 
         get_solution();
-        s_prediction();
+        if(forces.exit_flag == 1 || forces.exit_flag == 0) s_prediction();
 
         auto finish_time = chrono::system_clock::now();
 
@@ -325,8 +325,8 @@ void MPC::set_params_bounds(){
                 // Average of last 5 delta_s 
                 if(k != 0 && id_sinit > this->N - 5){
                     
-                    cout << "progress(k-1): " << progress(k) << endl;
-                    cout << "progress(k-2): " << progress(k-1) << endl;
+                    cout << "progress(k): " << progress(k) << endl;
+                    cout << "progress(k-1): " << progress(k-1) << endl;
                     diff_s = fmod(progress(k) - progress(k-1), this->smax);
                     cout << "diff_s inside mean: " << diff_s << endl;
  

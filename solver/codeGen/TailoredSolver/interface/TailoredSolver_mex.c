@@ -105,6 +105,31 @@ void copyMValueToC_solver_int32_default(double * src, solver_int32_default * des
 	*dest = (solver_int32_default) *src;
 }
 
+/* copy functions */
+
+void copyCArrayToM_TailoredSolver_float(TailoredSolver_float *src, double *dest, solver_int32_default dim) 
+{
+    solver_int32_default i;
+    for( i = 0; i < dim; i++ ) 
+    {
+        *dest++ = (double)*src++;
+    }
+}
+
+void copyMArrayToC_TailoredSolver_float(double *src, TailoredSolver_float *dest, solver_int32_default dim) 
+{
+    solver_int32_default i;
+    for( i = 0; i < dim; i++ ) 
+    {
+        *dest++ = (TailoredSolver_float) (*src++) ;
+    }
+}
+
+void copyMValueToC_TailoredSolver_float(double * src, TailoredSolver_float * dest)
+{
+	*dest = (TailoredSolver_float) *src;
+}
+
 
 
 extern solver_int32_default TailoredSolver_adtool2forces(TailoredSolver_float *x, TailoredSolver_float *y, TailoredSolver_float *l, TailoredSolver_float *p, TailoredSolver_float *f, TailoredSolver_float *nabla_f, TailoredSolver_float *c, TailoredSolver_float *nabla_c, TailoredSolver_float *h, TailoredSolver_float *nabla_h, TailoredSolver_float *hess, solver_int32_default stage, solver_int32_default iteration, solver_int32_default threadID);
@@ -131,8 +156,8 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
 	solver_int32_default i;
 	solver_int32_default exitflag;
 	const solver_int8_default *fname;
-	const solver_int8_default *outputnames[2] = {"U","X"};
-	const solver_int8_default *infofields[11] = { "it", "it2opt", "res_eq", "res_ineq", "rsnorm", "rcompnorm", "pobj", "mu", "solvetime", "fevalstime", "solver_id"};
+	const solver_int8_default *outputnames[2] = {"U", "X"};
+	const solver_int8_default *infofields[20] = { "it", "it2opt", "res_eq", "res_ineq", "rsnorm", "rcompnorm", "pobj", "dobj", "dgap", "rdgap", "mu", "mu_aff", "sigma", "lsit_aff", "lsit_cc", "step_aff", "step_cc", "solvetime", "fevalstime", "solver_id"};
 	
 	/* Check for proper number of arguments */
     if (nrhs != 1)
@@ -314,14 +339,16 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
 
 	/* copy output to matlab arrays */
 	plhs[0] = mxCreateStructMatrix(1, 1, 2, outputnames);
-		outvar = mxCreateDoubleMatrix(160, 1, mxREAL);
-	copyCArrayToM_double( output.U, mxGetPr(outvar), 160);
+		/* column vector of length 160 */
+	outvar = mxCreateDoubleMatrix(160, 1, mxREAL);
+	copyCArrayToM_double((&(output.U[0])), mxGetPr(outvar), 160);
 	mxSetField(plhs[0], 0, "U", outvar);
 
-	outvar = mxCreateDoubleMatrix(160, 1, mxREAL);
-	copyCArrayToM_double( output.X, mxGetPr(outvar), 160);
-	mxSetField(plhs[0], 0, "X", outvar);
 
+	/* column vector of length 160 */
+	outvar = mxCreateDoubleMatrix(160, 1, mxREAL);
+	copyCArrayToM_double((&(output.X[0])), mxGetPr(outvar), 160);
+	mxSetField(plhs[0], 0, "X", outvar);
 
 
 	/* copy exitflag */
@@ -334,63 +361,125 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
 	/* copy info struct */
 	if( nlhs > 2 )
 	{
-	        plhs[2] = mxCreateStructMatrix(1, 1, 11, infofields);
-         
-		
-		/* iterations */
+	plhs[2] = mxCreateStructMatrix(1, 1, 20, infofields);
+				/* scalar: iteration number */
 		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
-		*mxGetPr(outvar) = (double)info.it;
+		copyCArrayToM_solver_int32_default((&(info.it)), mxGetPr(outvar), 1);
 		mxSetField(plhs[2], 0, "it", outvar);
 
-		/* iterations to optimality (branch and bound) */
+
+		/* scalar: number of iterations needed to optimality (branch-and-bound) */
 		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
-		*mxGetPr(outvar) = (double)info.it2opt;
+		copyCArrayToM_solver_int32_default((&(info.it2opt)), mxGetPr(outvar), 1);
 		mxSetField(plhs[2], 0, "it2opt", outvar);
-		
-		/* res_eq */
+
+
+		/* scalar: inf-norm of equality constraint residuals */
 		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
-		*mxGetPr(outvar) = info.res_eq;
+		copyCArrayToM_TailoredSolver_float((&(info.res_eq)), mxGetPr(outvar), 1);
 		mxSetField(plhs[2], 0, "res_eq", outvar);
 
-		/* res_ineq */
+
+		/* scalar: inf-norm of inequality constraint residuals */
 		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
-		*mxGetPr(outvar) = info.res_ineq;
+		copyCArrayToM_TailoredSolver_float((&(info.res_ineq)), mxGetPr(outvar), 1);
 		mxSetField(plhs[2], 0, "res_ineq", outvar);
 
-		/* rsnorm */
+
+		/* scalar: norm of stationarity condition */
 		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
-		*mxGetPr(outvar) = info.rsnorm;
+		copyCArrayToM_TailoredSolver_float((&(info.rsnorm)), mxGetPr(outvar), 1);
 		mxSetField(plhs[2], 0, "rsnorm", outvar);
 
-		/* rcompnorm */
+
+		/* scalar: max of all complementarity violations */
 		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
-		*mxGetPr(outvar) = info.rcompnorm;
+		copyCArrayToM_TailoredSolver_float((&(info.rcompnorm)), mxGetPr(outvar), 1);
 		mxSetField(plhs[2], 0, "rcompnorm", outvar);
-		
-		/* pobj */
+
+
+		/* scalar: primal objective */
 		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
-		*mxGetPr(outvar) = info.pobj;
+		copyCArrayToM_TailoredSolver_float((&(info.pobj)), mxGetPr(outvar), 1);
 		mxSetField(plhs[2], 0, "pobj", outvar);
 
-		/* mu */
+
+		/* scalar: dual objective */
 		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
-		*mxGetPr(outvar) = info.mu;
+		copyCArrayToM_TailoredSolver_float((&(info.dobj)), mxGetPr(outvar), 1);
+		mxSetField(plhs[2], 0, "dobj", outvar);
+
+
+		/* scalar: duality gap := pobj - dobj */
+		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
+		copyCArrayToM_TailoredSolver_float((&(info.dgap)), mxGetPr(outvar), 1);
+		mxSetField(plhs[2], 0, "dgap", outvar);
+
+
+		/* scalar: relative duality gap := |dgap / pobj | */
+		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
+		copyCArrayToM_TailoredSolver_float((&(info.rdgap)), mxGetPr(outvar), 1);
+		mxSetField(plhs[2], 0, "rdgap", outvar);
+
+
+		/* scalar: duality measure */
+		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
+		copyCArrayToM_TailoredSolver_float((&(info.mu)), mxGetPr(outvar), 1);
 		mxSetField(plhs[2], 0, "mu", outvar);
 
-		/* solver time */
+
+		/* scalar: duality measure (after affine step) */
 		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
-		*mxGetPr(outvar) = info.solvetime;
+		copyCArrayToM_TailoredSolver_float((&(info.mu_aff)), mxGetPr(outvar), 1);
+		mxSetField(plhs[2], 0, "mu_aff", outvar);
+
+
+		/* scalar: centering parameter */
+		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
+		copyCArrayToM_TailoredSolver_float((&(info.sigma)), mxGetPr(outvar), 1);
+		mxSetField(plhs[2], 0, "sigma", outvar);
+
+
+		/* scalar: number of backtracking line search steps (affine direction) */
+		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
+		copyCArrayToM_solver_int32_default((&(info.lsit_aff)), mxGetPr(outvar), 1);
+		mxSetField(plhs[2], 0, "lsit_aff", outvar);
+
+
+		/* scalar: number of backtracking line search steps (combined direction) */
+		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
+		copyCArrayToM_solver_int32_default((&(info.lsit_cc)), mxGetPr(outvar), 1);
+		mxSetField(plhs[2], 0, "lsit_cc", outvar);
+
+
+		/* scalar: step size (affine direction) */
+		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
+		copyCArrayToM_TailoredSolver_float((&(info.step_aff)), mxGetPr(outvar), 1);
+		mxSetField(plhs[2], 0, "step_aff", outvar);
+
+
+		/* scalar: step size (combined direction) */
+		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
+		copyCArrayToM_TailoredSolver_float((&(info.step_cc)), mxGetPr(outvar), 1);
+		mxSetField(plhs[2], 0, "step_cc", outvar);
+
+
+		/* scalar: total solve time */
+		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
+		copyCArrayToM_TailoredSolver_float((&(info.solvetime)), mxGetPr(outvar), 1);
 		mxSetField(plhs[2], 0, "solvetime", outvar);
 
-		/* solver time */
+
+		/* scalar: time spent in function evaluations */
 		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
-		*mxGetPr(outvar) = info.fevalstime;
+		copyCArrayToM_TailoredSolver_float((&(info.fevalstime)), mxGetPr(outvar), 1);
 		mxSetField(plhs[2], 0, "fevalstime", outvar);
 
-		/* solver ID */
+
+		/* column vector of length 8: solver ID of FORCESPRO solver */
 		outvar = mxCreateDoubleMatrix(8, 1, mxREAL);
-		copyCArrayToM_solver_int32_default(info.solver_id, mxGetPr(outvar), 8);
-		mxSetField(plhs[2], 0, "solver_id", outvar);	
+		copyCArrayToM_solver_int32_default((&(info.solver_id[0])), mxGetPr(outvar), 8);
+		mxSetField(plhs[2], 0, "solver_id", outvar);
 
 	}
 }
