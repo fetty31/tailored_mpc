@@ -15,7 +15,7 @@ Vehicle:
 
 Topics:
   State: /AS/C/state
-  Commands: /AS/C/commands
+  Commands: /AS/C/steering
   Planner: /AS/C/trajectory/partial
   Tro: /AS/C/trajectory/full
   Velocities: /AS/C/pid/velocity
@@ -36,7 +36,7 @@ NLOP:
   Nslacks: 1                                          # Number of slacks variables            
 
 MPC:
-  Hz: 40                                                #[s] MPC frequency
+  Hz: 20                                                #[s] MPC frequency
   rk4_t: 0.025                                          #[s] Runge Kutta integration time
   Nthreads: 10                                          # Number of threads
 

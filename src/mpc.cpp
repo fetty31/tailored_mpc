@@ -356,7 +356,7 @@ void MPC::set_params_bounds(){
 
         progress(k) = planner(plannerIdx, 2); // save current progress from planner
 
-        this->forces.params.all_parameters[23 + k*this->Npar] = pred_velocities(plannerIdx);
+        this->forces.params.all_parameters[23 + k*this->Npar] = max(pred_velocities(plannerIdx),1.0);
         this->forces.params.all_parameters[24 + k*this->Npar] = planner(plannerIdx, 3); // curvature 
         cout << "Curvature: " << forces.params.all_parameters[24+k*Npar] << endl;
         cout << "pred velocity: " << pred_velocities(plannerIdx) << endl;
