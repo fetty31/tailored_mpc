@@ -25,7 +25,7 @@
 // Utilities
 #include "utils/params.hh"
 
-// Include headers of both solvers
+// Include headers of solver
 #include "forces.hh"
 
 using namespace std;

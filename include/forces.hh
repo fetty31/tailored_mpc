@@ -37,7 +37,11 @@ struct ForcesproSolver{
     TailoredSolver_mem * mem_handle;                                    /* Handle to the solver memory */
 
     int exit_flag;                                                      /* Exit flag */
-
+                                                                        /* == 1     OPTIMAL SOLUTION FOUND */
+                                                                        /* == 0     MAXIMUM NUMBER OF ITERATIONS REACHED */
+                                                                        /* == -7    SOLVER COULD NOT PROCEED (probably the problem is infeasible) */
+                                                                        /* == -100  LICENSE ERROR */
+                                                                        /* for more info see: https://forces.embotech.com/Documentation/exitflags/index.html#tab-exitflag-values */
 };
 
 #endif
