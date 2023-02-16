@@ -41,7 +41,7 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
     %% Inequality constraints
     % upper/lower variable bounds lb <= z <= ub
     %          inputs          |             states
-    % z = [slack_track, diff_delta, Mtv, delta, n, mu, vy, w]    
+    % z = [slack_track, diff_delta, Mtv, delta, n, mu, vy, r]    
     model.lbidx = [1, 2, 3, 4, 5, 6, 7, 8]';
     model.ubidx = [2, 3, 4, 5, 6, 7, 8]';
     model.lb = []; 
@@ -55,11 +55,6 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
 %     model.linInIdx = [1, 2]';
     
     %% Define solver options
-%     if useFastSolver
-%         codeoptions = ForcesGetDefaultOptions('TailoredSolver','SQP_NLP_fast',floattype);
-%     else
-%         codeoptions = getOptions('TailoredSolver',floattype);
-%     end
 
     % Define integrator
 %     codeoptions.nlp.integrator.type = 'ERK4';
@@ -126,7 +121,6 @@ function f = objective(z, p)
     n = z(5);
     mu = z(6);
     vy = z(7);
-    w = z(8);
     
     % Progress rate
     sdot = Ts * (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
@@ -159,7 +153,7 @@ function xdot = my_continuous_dynamics(x, u, p)
     mu = x(3);
     vx = p(24);
     vy = x(4);
-    w = x(5);
+    r = x(5);
     
     diff_delta = u(2);
     Mtv = u(3);
@@ -182,8 +176,8 @@ function xdot = my_continuous_dynamics(x, u, p)
     k = p(25);
     
     % Slip angles
-    alpha_R = atan((vy-Lr*w)/(vx));
-    alpha_F = atan((vy+Lf*w)/(vx)) - delta;
+    alpha_R = atan((vy-Lr*r)/(vx));
+    alpha_F = atan((vy+Lf*r)/(vx)) - delta;
     
     % Simplified Pacejka magic formula
     Fr = Dr*sin(Cr*atan(Br*alpha_R));
@@ -195,8 +189,8 @@ function xdot = my_continuous_dynamics(x, u, p)
     % Differential equations (time dependent)
     xdot = [diff_delta;
             vx*sin(mu) + vy*cos(mu);
-            w - k*sdot;
-            (1/m)*(Fr + Ff*cos(delta) - m*vx*w);
+            r - k*sdot;
+            (1/m)*(Fr + Ff*cos(delta) - m*vx*r);
             (1/I)*(Ff*cos(delta)*Lf - Fr*Lr + Mtv)];
 end
 

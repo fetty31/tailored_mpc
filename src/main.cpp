@@ -18,15 +18,17 @@ void dynamicCallback(tailored_mpc::dynamicConfig &config, uint32_t level, MPC* m
 
 void my_SIGhandler(int sig){
 
-	as_msgs::CarCommands msgCommands;
-	msgCommands.motor = -1.0; // no one will read this value, but what if..
-	msgCommands.steering = 0.0;
-    msgCommands.Mtv = 0.0;
-	for(int i=0; i<5; i++){
-        pubCommands.publish(msgCommands);
-        ros::Duration(0.05).sleep();
+    if(ros::master::check()){
+        as_msgs::CarCommands msgCommands;
+        msgCommands.motor = -1.0; // no one will read this value, but what if..
+        msgCommands.steering = 0.0;
+        msgCommands.Mtv = 0.0;
+        for(int i=0; i<5; i++){
+            pubCommands.publish(msgCommands);
+            ros::Duration(0.05).sleep();
+        }
+        ROS_ERROR("MPC says Goodbye :)");
     }
-    ROS_ERROR("MPC says Goodbye :)");
     ros::shutdown();
 }
 

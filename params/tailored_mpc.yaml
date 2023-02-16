@@ -2,7 +2,7 @@
 
 Vehicle:
   m: 240                                              # Car's mass
-  inertia: 180                                        # Interial moment
+  inertia: 180                                        # Inertial moment
   gravity: 9.81                                       # Gravity's acceleration
   Ar: 1                                               # Area of air contact
   rho: 1.255                                          # Air's density
