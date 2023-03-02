@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
         mpc.solve(); // Solve the NLOP
 
         mpc.msgCommands(&msg);
-        if(mpc.forces.exit_flag == 1 /*|| mpc.forces.exit_flag == 0*/) pubCommands.publish(msg); // publish car commands
+        if(mpc.forces.exit_flag == 1 || mpc.forces.exit_flag == 0) pubCommands.publish(msg); // publish car commands
 
         // DEBUG
         float_msg.data = mpc.elapsed_time.count()*1000;

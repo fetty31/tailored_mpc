@@ -326,10 +326,8 @@ void MPC::set_params_bounds(){
                 ROS_WARN_STREAM("diff_s: " << diff_s);
                 ROS_WARN_STREAM("id_k: " << id_k);
 
-                if(diff_s < 0) id_k = 0;
-
                 id_sinit++;
-                plannerIdx = id_k;
+                if(diff_s > 0) plannerIdx = id_k;
 
                 // Average of last 5 delta_s 
                 if(k != 0 && id_sinit > this->N - 5){
