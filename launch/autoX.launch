@@ -1,9 +1,12 @@
 <launch>
 
     <!-- TAILORED MPC -->
-    <node pkg="tailored_mpc" type="tailored_mpc_exec" name="tailored_mpc" output="screen">
+    <node pkg="tailored_mpc" type="tailored_mpc_exec" name="tailored_mpc" output="screen" launch-prefix="gdb -ex run --args">
         <rosparam file="$(find tailored_mpc)/params/tailored_mpc.yaml"/>
     </node>
+
+    <rosparam param="TroProfile" ns="tailored_mpc">false</rosparam> <!--set to true to follow TRO velocity profile-->
+    <rosparam param="mission" ns="tailored_mpc">0</rosparam>
 
     <node name="dyn_recfg_load_tailored_mpc" pkg="dynamic_reconfigure" type="dynparam" 
           args="load /tailored_mpc $(find tailored_mpc)/params/dyn_autocross.yaml" />

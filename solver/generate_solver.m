@@ -124,7 +124,7 @@ function f = objective(z, p)
     q_slack_track = p(30);
     
     % Progress rate
-    sdot = ( z(10)*cos(z(9)) - z(11)*sin(z(9)) )/(1 - z(8)*k) * Ts; % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
+    sdot = ( z(10)*cos(z(9)) - z(11)*sin(z(9)) )/(1 - z(8)*k); % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
 
     % Slip difference
     beta_dyn = atan(z(11)/z(10));
@@ -215,6 +215,9 @@ function h = nonlin_const(z, p)
     Bf = p(12); 
     Cm = p(26);
     p_long = p(19);
+    ax_max = p(24);
+    ay_max = p(25);
+    m = p(3);
     
     s1 = z(1);
     s2 = z(2);
@@ -239,8 +242,10 @@ function h = nonlin_const(z, p)
 
     h = [ n - long/2*sin(abs(mu)) + width/2*cos(mu) - s2; % <= L(s)
          -n + long/2*sin(abs(mu)) + width/2*cos(mu) - s2; % <= R(s)
-         p_long*(Cm*Fm/Dr)^2 + (Fr/Dr)^2; % <= lambda
-         p_long*(Cm*Fm/Df)^2 + (Ff/Df)^2; % <= lambda
+%          p_long*(Cm*Fm/Dr)^2 + (Fr/Dr)^2; % <= lambda
+%          p_long*(Cm*Fm/Df)^2 + (Ff/Df)^2; % <= lambda
+         p_long*(Fm)^2 + (Fr/Dr)^2; % <= lambda
+         p_long*(Fm)^2 + (Ff/Df)^2; % <= lambda
          vx - s1]; 
      
 end

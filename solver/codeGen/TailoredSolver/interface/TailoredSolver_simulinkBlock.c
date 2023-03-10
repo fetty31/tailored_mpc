@@ -31,9 +31,6 @@ jurisdiction in case of any dispute.
 #include "../include/TailoredSolver.h" 
 #include "../include/TailoredSolver_memory.h" 
 
-/* SYSTEM INCLUDES FOR TIMING ------------------------------------------ */
-
-
 #if defined(MATLAB_MEX_FILE)
 #include "tmwtypes.h"
 #include "simstruc_types.h"
@@ -41,12 +38,8 @@ jurisdiction in case of any dispute.
 #include "rtwtypes.h"
 #endif
 
-typedef TailoredSolverinterface_float TailoredSolvernmpc_float;
-
 extern solver_int32_default TailoredSolver_adtool2forces(double *x, double *y, double *l, double *p, double *f, double *nabla_f, double *c, double *nabla_c, double *h, double *nabla_h, double *hess, solver_int32_default stage, solver_int32_default iteration, solver_int32_default threadID);
 TailoredSolver_extfunc pt2function_TailoredSolver = &TailoredSolver_adtool2forces;
-
-
 
 
 /*====================*
@@ -155,8 +148,6 @@ static void mdlInitializeSizes(SimStruct *S)
     /* ssSetOptions(S, (SS_OPTION_EXCEPTION_FREE_CODE |
 		             SS_OPTION_WORKS_WITH_CODE_REUSE)); */
 	ssSetOptions(S, SS_OPTION_EXCEPTION_FREE_CODE );
-
-	
 }
 
 #if defined(MATLAB_MEX_FILE)
@@ -213,10 +204,6 @@ static void mdlSetDefaultPortDataTypes(SimStruct *S)
     ssSetOutputPortDataType(S, 0, SS_DOUBLE);
 }
 
-
-
-
-
 /* Function: mdlOutputs =======================================================
  *
 */
@@ -239,52 +226,46 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     real_T *U = (real_T*) ssGetOutputPortSignal(S,0);
 	real_T *X = (real_T*) ssGetOutputPortSignal(S,1);
 	
-	
 
 	/* Solver data */
 	static TailoredSolver_params params;
 	static TailoredSolver_output output;
 	static TailoredSolver_info info;
     static TailoredSolver_mem * mem;
-	solver_int32_default exitflag;
-
-	/* Extra NMPC data */
-	
+	solver_int32_default solver_exitflag;
 
 	/* Copy inputs */
-	for( i=0; i<480; i++)
-	{ 
-		params.lb[i] = (double) lb[i]; 
+	for(i = 0; i < 480; i++)
+	{
+		params.lb[i] = (double) lb[i];
 	}
 
-	for( i=0; i<400; i++)
-	{ 
-		params.ub[i] = (double) ub[i]; 
+	for(i = 0; i < 400; i++)
+	{
+		params.ub[i] = (double) ub[i];
 	}
 
-	for( i=0; i<200; i++)
-	{ 
-		params.hu[i] = (double) hu[i]; 
+	for(i = 0; i < 200; i++)
+	{
+		params.hu[i] = (double) hu[i];
 	}
 
-	for( i=0; i<10; i++)
-	{ 
-		params.xinit[i] = (double) xinit[i]; 
+	for(i = 0; i < 10; i++)
+	{
+		params.xinit[i] = (double) xinit[i];
 	}
 
-	for( i=0; i<480; i++)
-	{ 
-		params.x0[i] = (double) x0[i]; 
+	for(i = 0; i < 480; i++)
+	{
+		params.x0[i] = (double) x0[i];
 	}
 
-	for( i=0; i<1240; i++)
-	{ 
-		params.all_parameters[i] = (double) all_parameters[i]; 
+	for(i = 0; i < 1240; i++)
+	{
+		params.all_parameters[i] = (double) all_parameters[i];
 	}
 
 	params.num_of_threads = (solver_int32_unsigned) *num_of_threads;
-
-	
 
 	
 
@@ -304,7 +285,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     }
 
 	/* Call solver */
-	exitflag = TailoredSolver_solve(&params, &output, &info, mem, fp , pt2function_TailoredSolver);
+	solver_exitflag = TailoredSolver_solve(&params, &output, &info, mem, fp , pt2function_TailoredSolver);
 
 	#if SET_PRINTLEVEL_TailoredSolver > 0
 		/* Read contents of printfs printed to file */
@@ -316,24 +297,19 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 		fclose(fp);
 	#endif
 
-	
-
 	/* Copy outputs */
-	for( i=0; i<280; i++)
-	{ 
-		U[i] = (real_T) output.U[i]; 
+	for(i = 0; i < 280; i++)
+	{
+		U[i] = (real_T) output.U[i];
 	}
 
-	for( i=0; i<200; i++)
-	{ 
-		X[i] = (real_T) output.X[i]; 
+	for(i = 0; i < 200; i++)
+	{
+		X[i] = (real_T) output.X[i];
 	}
 
 	
 }
-
-
-
 
 
 /* Function: mdlTerminate =====================================================

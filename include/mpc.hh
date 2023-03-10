@@ -23,6 +23,7 @@
 
 // Utilities for parameters
 #include "utils/params.hh"
+#include "utils/lapcount.hh"
 
 // Include headers of both solvers
 #include "forces.hh"
@@ -39,8 +40,8 @@ struct Boundaries{
         vector<double> u0 = {  0.0, 0.0  };
 
           // Bounds and initial guess for the state
-        vector<double> x_min  = { -23.0*M_PI/180, -1, -2.5, -50.0*M_PI/180, 2.0, -2.0, -50.0*M_PI/180 };
-        vector<double> x_max  = { 23.0*M_PI/180, 1, 2.5, 50.0*M_PI/180, 25.0, 2.0, 50.0*M_PI/180 };
+        vector<double> x_min  = { -23.0*M_PI/180, -1, -3.5, -180.0*M_PI/180, 2.0, -5.0, -80.0*M_PI/180 };
+        vector<double> x_max  = { 23.0*M_PI/180, 1, 3.5, 180.0*M_PI/180, 25.0, 5.0, 80.0*M_PI/180 };
         vector<double> x0 = { 0.0, -1.25, 0.0, 0.0, 15.0, 0.0, 0.0 };
 
 };
@@ -49,12 +50,12 @@ class MPC{
 
     private:
 
-        // Internal variables/methods of MPC
-
+        // Internal flags
         bool plannerFlag = false, stateFlag = false;
         bool paramFlag = false;                       // flag for parameters set up
         bool dynParamFlag = false;                    // flag for dynamic parameters set up
         bool troActive = false, troProfile = false;   // whether TRO/GRO are publishing
+        bool finished = false;
 
         // NLOP params
         int n_states = 5;             // number of state vars
@@ -137,6 +138,9 @@ class MPC{
         double continuous(double psi, double psi_last); // Garanty that both angles are on the same range
         const string currentDateTime(); // get current date/time, format is YYYY-MM-DD.HH:mm:ss
 
+        // Lapcount object
+        Lapcount lapcount;
+
 
     public:
 
@@ -146,6 +150,7 @@ class MPC{
         void msgCommands(as_msgs::CarCommands *msg);
         void saveEigen(string filePath, string name, Eigen::MatrixXd data, bool erase); // save matrix data into file
         template<typename mytype> void save(string filePath, string name, mytype data, bool time);
+        bool isFinish();
 
         // Callbacks
         void stateCallback(const as_msgs::CarState::ConstPtr& msg);
@@ -166,6 +171,7 @@ class MPC{
         chrono::duration<double> elapsed_time;
 
         int latency = 4;
+        double minVelFinish;
 
         // Planner's trajectory matrix 
         Eigen::MatrixXd planner; // [x, y, s, k, vx, L, R]

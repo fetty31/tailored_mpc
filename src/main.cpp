@@ -6,6 +6,7 @@
 
 #include "std_msgs/Float32.h"
 #include "std_msgs/Int32.h"
+#include "std_msgs/Bool.h"
 
 ros::Publisher pubCommands; // Commands publisher
 
@@ -18,15 +19,17 @@ void dynamicCallback(tailored_mpc::dynamicConfig &config, uint32_t level, MPC* m
 
 void my_SIGhandler(int sig){
 
-	as_msgs::CarCommands msgCommands;
-	msgCommands.motor = -1.0;
-	msgCommands.steering = 0.0;
-    msgCommands.Mtv = 0.0;
-	for(int i=0; i<5; i++){
-        pubCommands.publish(msgCommands);
-        ros::Duration(0.05).sleep();
+    if(ros::master::check()){
+        as_msgs::CarCommands msgCommands;
+        msgCommands.motor = -1.0;
+        msgCommands.steering = 0.0;
+        msgCommands.Mtv = 0.0;
+        for(int i=0; i<5; i++){
+            pubCommands.publish(msgCommands);
+            ros::Duration(0.05).sleep();
+        }
+        ROS_ERROR("MPC says Goodbye :)");
     }
-    ROS_ERROR("MPC says Goodbye :)");
     ros::shutdown();
 }
 
@@ -56,6 +59,8 @@ int main(int argc, char **argv) {
     ros::Subscriber subState = nh.subscribe(params.mpc.topics.state, 1, &MPC::stateCallback, &mpc);
     ros::Subscriber subPlanner = nh.subscribe(params.mpc.topics.planner, 1, &MPC::plannerCallback, &mpc);
     ros::Subscriber subTro = nh.subscribe(params.mpc.topics.tro, 1, &MPC::troCallback, &mpc);
+    
+    ros::Publisher pubFinish = nh.advertise<std_msgs::Bool>(params.mpc.topics.finish, 1);
     pubCommands = nh.advertise<as_msgs::CarCommands>(params.mpc.topics.commands, 1);
 
         // DEBUG
@@ -64,6 +69,9 @@ int main(int argc, char **argv) {
     nh.param<string>("Topics/Debug/ExitFlag", exitFlagTopic, "/AS/C/mpc/debug/exitflags");
     nh.param<string>("Topics/Debug/CurvatureTopic", curvTopic, "/AS/C/mpc/debug/curvature");
     nh.param<string>("Topics/Debug/ProgressTopic", progressTopic, "/AS/C/mpc/debug/progress");
+
+    nh.param<int>("mission", mpc.mission, 0); // current mission
+
     ros::Publisher pubTime = nh.advertise<std_msgs::Float32>(timeTopic, 10);
     ros::Publisher pubExitflag = nh.advertise<std_msgs::Int32>(exitFlagTopic, 10);
     ros::Publisher pubCurv = nh.advertise<std_msgs::Float32>(curvTopic, 10);
@@ -75,8 +83,6 @@ int main(int argc, char **argv) {
 	f = boost::bind(&dynamicCallback, _1, _2, &mpc);
 	server.setCallback(f);
 
-    mpc.mission = 1; // mision hardcoded
-
     ros::Duration(2).sleep();
 
     ROS_INFO_STREAM("MPC: publish frequency: " << mpc.Hz << "Hz");
@@ -86,6 +92,7 @@ int main(int argc, char **argv) {
     as_msgs::CarCommands msg;
     std_msgs::Float32 float_msg;
     std_msgs::Int32 exitflag_msg;
+    std_msgs::Bool boolMsg;
 
     ros::Rate r(mpc.Hz);
     // launch-prefix="gdb -ex run --args"
@@ -95,6 +102,9 @@ int main(int argc, char **argv) {
 
         mpc.msgCommands(&msg);
         if(mpc.forces.exit_flag == 1 || mpc.forces.exit_flag == 0) pubCommands.publish(msg); // publish car commands
+
+        boolMsg.data = mpc.isFinish();
+        pubFinish.publish(boolMsg); // Publish finish flag
 
         // DEBUG
         float_msg.data = mpc.elapsed_time.count()*1000;

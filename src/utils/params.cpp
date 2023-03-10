@@ -20,6 +20,8 @@ Params::Params(const ros::NodeHandle* nh) {
     nh->param<string>("Topics/Commands", mpc.topics.commands, "/AS/C/commands");
     nh->param<string>("Topics/Planner", mpc.topics.planner, "/AS/C/trajectory/partial");
     nh->param<string>("Topics/Tro", mpc.topics.tro, "/AS/C/trajectory/full");
+    nh->param<string>("Topics/Finish", mpc.topics.finish, "/AS/C/flags/finish");
+
         // Visualization topics
     nh->param<string>("Topics/Vis/PredictedSteering", mpc.topics.predictedSteering, "/AS/C/mpc/vis/predicted/steering");
     nh->param<string>("Topics/Vis/PredictedPath", mpc.topics.predictedPath, "/AS/C/mpc/vis/predicted/path");

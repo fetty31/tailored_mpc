@@ -60,13 +60,13 @@ Model {
       }
     }
   }
-  Created		  "11/26/2022 11:36:55 AM"
+  Created		  "3/8/2023 6:52:32 PM"
   Creator		  "embotech AG"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "embotech AG"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "11/26/2022 11:36:55 AM"
+  LastModifiedDate	  "3/8/2023 6:52:32 PM"
   RTWModifiedTimeStamp	  315310195
   ModelVersionFormat	  "1.%<AutoIncrement:2>"
   ConfigurationManager	  "None"
@@ -801,19 +801,19 @@ Model {
 	Help			"TailoredSolver_simulinkBlock provides an easy Simulink interface for simulating your customized solver.  \n"
 	"\nOUTPUTS = TailoredSolver(INPUTS) solves an optimization problem where:\n\n"
 	"INPUTS:\n"
-	" - lb - column vector of length 480\n "
-" - ub - column vector of length 400\n "
-" - hu - column vector of length 200\n "
-" - xinit - column vector of length 10\n "
-" - x0 - column vector of length 480\n "
-" - all_parameters - column vector of length 1240\n "
-" - num_of_threads - column vector of length 1\n "
+	" - lb - matrix of size [480x1]\n  "
+" - ub - matrix of size [400x1]\n  "
+" - hu - matrix of size [200x1]\n  "
+" - xinit - matrix of size [10x1]\n  "
+" - x0 - matrix of size [480x1]\n  "
+" - all_parameters - matrix of size [1240x1]\n  "
+" - num_of_threads - scalar\n  "
 
 	"\nOUTPUTS:\n"
-	" - U - column vector of length 280\n "
-" - X - column vector of length 200\n "
+	" - U - column vector of length 280\n  "
+" - X - column vector of length 200\n  "
 
-	"\n For more information, see https://forces.embotech.com/Documentation/graphical_interface/index.html \n "
+	"\n For more information, see https://forces.embotech.com/Documentation/simulink_interface/index.html \n "
 
 	Display			"port_label('input', 1, 'lb') \n  "
 "port_label('input', 2, 'ub') \n  "
@@ -822,8 +822,8 @@ Model {
 "port_label('input', 5, 'x0') \n  "
 "port_label('input', 6, 'all_parameters') \n  "
 "port_label('input', 7, 'num_of_threads') \n  "
-"port_label('output', 1, 'U') \n "
-"port_label('output', 2, 'X') \n "
+"port_label('output', 1, 'U') \n  "
+"port_label('output', 2, 'X') \n  "
 "if( exist('FORCES_PRO_Logo.jpg','file') ), image(imread('FORCES_PRO_Logo.jpg'),'center','on'); elseif( exist(['interface',filesep,'FORCES_PRO_Logo.jpg'],'file') ), image(imread(['interface',filesep,'FORCES_PRO_Logo.jpg']),'center','on'); elseif( exist(['TailoredSolver',filesep,'interface',filesep,'FORCES_PRO_Logo.jpg'],'file') ), image(imread(['TailoredSolver',filesep,'interface',filesep,'FORCES_PRO_Logo.jpg']),'center','on'); end \n "
 
       }

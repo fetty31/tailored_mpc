@@ -51,10 +51,12 @@ MPC::MPC(const Params* params){
     progress = Eigen::VectorXd::Zero(N); 
 
     lastState = Eigen::MatrixXd::Zero(N,6);                         // [x, y, theta, vx, vy, w]
-    lastCommands = Eigen::MatrixXd::Zero(N,n_controls-Nslacks);     // [diff_delta, diff_Fm, Mtv, delta, acc]
+    lastCommands = Eigen::MatrixXd::Zero(N,n_controls-Nslacks);     // [diff_delta, diff_Fm, Mtv, delta, Fm]
 
     solStates = Eigen::MatrixXd::Zero(N,n_states);        // [n, mu, vx, vy, w]
     solCommands = Eigen::MatrixXd::Zero(N,n_controls);    // [slack_vx, slack_track, diff_delta, diff_acc, Mtv, delta, Fm]
+
+    this->minVelFinish = params->mpc.minVelFinish;
 
     this->paramFlag = true;
 }
@@ -64,18 +66,20 @@ MPC::MPC(const Params* params){
 
 void MPC::stateCallback(const as_msgs::CarState::ConstPtr& msg){
 
-    // carState << msg->odom.position.x, msg->odom.position.y, msg->odom.heading, msg->odom.velocity.x, msg->odom.velocity.y + msg->odom.velocity.w*d_IMU, msg->odom.velocity.w, msg->steering, msg->odom.acceleration.x, msg->Mtv;
-    carState << msg->odom.position.x, msg->odom.position.y, msg->odom.heading, msg->odom.velocity.x, msg->odom.velocity.y, msg->odom.velocity.w, msg->steering, msg->odom.acceleration.x, 0.0;
-    // carState << msg->odom.position.x, msg->odom.position.y, msg->odom.heading, msg->odom.velocity.x, msg->odom.velocity.y + msg->odom.velocity.w*d_IMU, msg->odom.velocity.w, 0.0, msg->odom.acceleration.x;
+    // Update car state vector with new state
+    carState << msg->odom.position.x, msg->odom.position.y, msg->odom.heading, msg->odom.velocity.x, msg->odom.velocity.y, msg->odom.velocity.w, msg->steering, msg->odom.acceleration.x, 0.0 /*msg->Mtv*/;
 
-    stateFlag = true;
-
+    // Lapcount
+    lapcount.setPosition(carState.head(3));     // Update lapcount's position
+    if(!stateFlag) lapcount.getStartingLine();  // Compute lapcount's starting line
+    lapcount.run(); // counting laps
+    stateFlag = true; // we have received car state data
 }
 
 
 void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
 
-    if(!troActive){
+    if(!troActive){ // if we are in AutoX mode (we follow planner's trajectory)
         if (msg->objectives.size() < nPlanning){
                 ROS_WARN("MPC: Planner is too short!");
                 return;
@@ -87,14 +91,14 @@ void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
             planner(i, 0) = msg->objectives[i].x;
             planner(i, 1) = msg->objectives[i].y;
             planner(i, 2) = msg->objectives[i].s; 
-            planner(i, 3) = msg->objectives[i].k; 
+            planner(i, 3) = (msg->objectives[i].k == 0.0) ? 1e-9 : msg->objectives[i].k; // avoid absolut zeros 
             planner(i, 4) = msg->objectives[i].vx;
             planner(i, 5) = msg->objectives[i].L;
             planner(i, 6) = msg->objectives[i].R;
         }
 
-        smax = 2000;
-        plannerFlag = true;
+        smax = 20000;
+        plannerFlag = true; // we have received planner data
     }
 }
 
@@ -111,7 +115,7 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
         planner(i, 0) = msg->objectives[i].x;
         planner(i, 1) = msg->objectives[i].y;
         planner(i, 2) = msg->objectives[i].s; 
-        planner(i, 3) = msg->objectives[i].k; 
+        planner(i, 3) = (msg->objectives[i].k == 0.0) ? 1e-9 : msg->objectives[i].k; 
         planner(i, 4) = msg->objectives[i].vx;
         planner(i, 5) = msg->objectives[i].L;
         planner(i, 6) = msg->objectives[i].R;
@@ -119,7 +123,7 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
 
     smax = msg->smax;
     cout << "SMAX: " << smax << endl;
-    plannerFlag = troActive = true;
+    plannerFlag = troActive = true; // we are now following TRO's trajectory
     ROS_WARN_ONCE("MPC: FOLLOWING TRO! :)");
 
 }
@@ -137,10 +141,10 @@ void MPC::solve(){
         // Set number of internal threads
         forces.params.num_of_threads = this->Nthreads;
 
-        initial_conditions();
-        set_params_bounds();
+        initial_conditions();   // compute initial state (xinit)
+        set_params_bounds();    // set parameters & boundaries of the NLOP (Non Linear Optimization Problem)
 
-        /* Get i-th memory buffer */
+        // Get i-th memory buffer
         int i = 0;
         forces.mem_handle = TailoredSolver_internal_mem(i);
         /* Note: number of available memory buffers is controlled by code option max_num_mem */
@@ -152,11 +156,12 @@ void MPC::solve(){
         ROS_ERROR_STREAM("MPC solve time: " << forces.info.solvetime*1000 << " ms");
         ROS_ERROR_STREAM("MPC iterations: " << forces.info.it);
 
-        if(forces.exit_flag == 1) this->firstIter = false;
+        if(forces.exit_flag == 1 || forces.exit_flag == 0) this->firstIter = false;
         else this->firstIter = true;
 
         get_solution();
-        s_prediction();
+        if(forces.exit_flag == 1 || forces.exit_flag == 0) s_prediction(); 
+        /* Note: we predict the evolution of the progress (s) if optimal solution is found (exit flag == 1) or maximum number of iterations is reached (exit flag == 0)*/
 
         auto finish_time = chrono::system_clock::now();
 
@@ -203,8 +208,8 @@ void MPC::initial_conditions(){
     if(fabs(angle) > M_PI/2) angle = fabs(angle) - M_PI/2;
     else angle = M_PI/2 - fabs(angle);
 
-    double n0 = -s0_to_car.norm()*cos(fabs(angle))*sign; // normal distance from car to track
-    double t_angle = atan2(tangent(1), tangent(0)); // heading of the trajectory
+    double n0 = -s0_to_car.norm()*cos(fabs(angle))*sign;    // normal distance from car to track
+    double t_angle = atan2(tangent(1), tangent(0));         // heading of the trajectory
     double mu0 = -(t_angle - continuous(carState(2), t_angle));
 
     ROS_WARN_STREAM("mu0: " << mu0);
@@ -304,10 +309,13 @@ void MPC::set_params_bounds(){
             if(id_sinit < this->N){
                 
                 progress(k) = predicted_s(id_sinit);
+                cout << "id_sinit: " << id_sinit << endl;
 
                 // Set k(s), L(s), R(s) with the prediction from last MPC iteration 
-                double diff_s = progress(k) - this->planner(0, 2);
+                double diff_s = fmod(progress(k) - this->planner(0, 2), this->smax);
                 id_k = int(round(diff_s/this->delta_s));
+
+                cout << "diff_s: " << diff_s << endl;
 
                 if(diff_s < 0) id_k = 0;
 
@@ -319,7 +327,8 @@ void MPC::set_params_bounds(){
 
                     diff_s = progress(k) - progress(k-1);
 
-                    if(diff_s < 0) diff_s += this->smax; // If we are passing the start line, reset diff
+                    // if(diff_s < 0) diff_s += this->smax; // If we are passing the start line, reset diff
+                    if(diff_s < 0) diff_s = 0;
                     mean_s += diff_s;
                 }
 
@@ -334,7 +343,8 @@ void MPC::set_params_bounds(){
             }
         }
 
-        progress(k) = planner(plannerIdx, 2);
+        cout << "plannerIdx: " << plannerIdx << endl;
+        progress(k) = planner(plannerIdx, 2); // save current progress from planner
 
         this->forces.params.all_parameters[30 + k*this->Npar] = planner(plannerIdx, 3); // curvature 
         cout << "Curvature: " << forces.params.all_parameters[30+k*Npar] << endl;
@@ -498,6 +508,7 @@ void MPC::s_prediction(){
         // cout << sdot << endl;
 
         predicted_s(i) = fmod( predicted_s(i-1) + sdot*this->rk4_t, this->smax );
+        cout << "predicted_s(i): " << predicted_s(i) << endl;
 
         // Ensure sdot > 0
         if(sdot < 0){
@@ -533,12 +544,16 @@ void MPC::s_prediction(){
     // cout << predicted_s << endl;
 }
 
+bool MPC::isFinish(){
+    return this->finished;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //------------------------Auxiliar functions--------------------------------------------------
 
 void MPC::get_solution(){
 
-    // Change vec dimensions from x(5*N x 1) u(6*N x 1) to x(N x 5) u(N x 6)
+    // Change vec dimensions from x(5*N x 1) u(7*N x 1) to x(N x 5) u(N x 7)
     Eigen::MatrixXd u = output2eigen(forces.solution.U, sizeU);
     Eigen::MatrixXd x = output2eigen(forces.solution.X, sizeX);
 
@@ -562,6 +577,12 @@ void MPC::msgCommands(as_msgs::CarCommands *msg){
     msg->motor = solCommands(this->latency, 6);
     msg->steering = solCommands(this->latency, 5);
     msg->Mtv = solCommands(this->latency, 4);
+
+    // if(this->mission == 0 && lapcount.laps>=1 || this->mission==1 && lapcount.laps>=10){
+    //     msg->motor = -1.0; // braking!
+    //     if(carState(3) <= this->minVelFinish) finished = true; // we can publish finish flag!
+    //     ROS_ERROR("FINISH LINE CROSSED!!!");
+    // }
 
     cout << "steering: " << solCommands(this->latency, 5) << endl;
     cout << "motor: " << solCommands(this->latency, 6) << endl;
@@ -617,8 +638,8 @@ double MPC::throttle_to_torque(double throttle){
 }
 
 double MPC::ax_to_throttle(double ax){ 
-    if(ax >= 0) return min(ax/ax_max, 1.0);
-    else return max(ax/ax_max, -1.0);
+    if(ax >= 0) return min(m*ax/Cm, 1.0);
+    else return max(m*ax/Cm, -1.0);
 }
 
 double MPC::continuous(double psi, double psi_last){
@@ -724,8 +745,8 @@ void MPC::reconfigure(tailored_mpc::dynamicConfig& config){
         this->q_slack_vx = config.q_slack_vx;
         this->q_slack_track = config.q_slack_track;
 
-        this->bounds.u_min[1] = -config.diff_delta*M_PI/180.0;
-        this->bounds.u_min[2] = -config.diff_Fm;
+        this->bounds.u_min[2] = -config.diff_delta*M_PI/180.0;
+        this->bounds.u_min[3] = config.diff_Fm_brake;
 
         this->bounds.u_max[0] = config.diff_delta*M_PI/180.0;
         this->bounds.u_max[1] = config.diff_Fm;

@@ -29,11 +29,13 @@ struct Params{
         int Nthreads;           // number of threads
         int nPlanning;          // number of points we want from the planner
         bool TroProfile;        // set to true to follow TRO velocity profile 
+        double minVelFinish;    // minimum velocity to consider the car at finish state (depends on sensor accuracy)
         struct Topics{
             string commands;            // Car Commands topic
             string state;               // Car State topic
             string planner;             // Planner topic
             string tro;                 // Offline planner topic
+            string finish;              // Finish flag topic
             string predictedSteering;   // Visualization topics
             string predictedPath;
             string predictedHeading;

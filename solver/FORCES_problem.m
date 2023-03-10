@@ -11,7 +11,7 @@ addpath(filePath);
 % Create a new folder for all solver related files
 solverDir = [filePath, filesep, 'codeGen'];
 if ~exist(solverDir,'dir')
-    mkdir(solverDir)
+    mkdir(solverD.ir)
 end
 addpath(solverDir);
 

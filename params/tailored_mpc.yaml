@@ -18,6 +18,7 @@ Topics:
   Commands: /AS/C/commands
   Planner: /AS/C/trajectory/partial
   Tro: /AS/C/trajectory/full
+  Finish: /AS/C/flags/finish
   Debug:
     Time: /AS/C/mpc/debug/time
     ExitFlag: /AS/C/mpc/debug/exitflags
@@ -28,7 +29,6 @@ Topics:
     PredictedPath:      /vis/predictedPath/path
     PredictedHeading:   /vis/predictedPath/heading
     ActualPath:         /vis/actualPlanner/path
-  # TO DO: fill with other topics
 
 NLOP:
   N: 40                                               # Prediction horizon
@@ -36,10 +36,11 @@ NLOP:
 
 Hz: 20                                                #[s] MPC frequency
 rk4_t: 0.025                                          #[s] Runge Kutta integration time
-Nthreads: 10                                          # Number of threads
-TroProfile: false                                     # Set to true to follow TRO velocity profile 
+Nthreads: 5                                           # Number of threads
 
 nPlanning: 1900                                       # n points saved from the planner
+
+minVelFinish: 0.1                                     # Minimum velocity to consider the car at finish state
 
 
 # Aproximated values for Cm & p_long compatibility (for D=3000, lambda=5):
