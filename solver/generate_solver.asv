@@ -119,12 +119,12 @@ function f = objective(z, p)
 
     % State variables:
     delta = z(7);
-    %Fm = z(8);
+    Fm = z(8);
     n = z(9);
     mu = z(10);
     vx = z(11);
     vy = z(12);
-    %w = z(13);
+    w = z
 
     
     dRd = p(1);
@@ -143,15 +143,15 @@ function f = objective(z, p)
     q_slack_forces = p(31);
     
     % Progress rate
-    sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
+    sdot = ( z(11)*cos(z(10)) - z(12)*sin(z(10)) )/(1 - z(9)*k); % == (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
 
     % Slip difference
-    beta_dyn = atan(vy/vx);
-    beta_kin = atan(delta*Lr/(Lr+Lf));
+    beta_dyn = atan(z(12)/z(11));
+    beta_kin = atan(z(7)*Lr/(Lr+Lf));
     diff_beta = beta_dyn - beta_kin;
 
     %Objective function
-    f = -q_s*sdot + dRd*(diff_delta)^2 + dRa*(diff_Fm)^2 + q_Mtv*(Mtv)^2 + q_slip*(diff_beta)^2 + q_mu*(mu)^2 + q_n*(n)^2 + q_slack_vx * v_slack + q_slack_track * track_slack + q_slack_forces * forces_slack;
+    f = -q_s*sdot + dRd*(z(4))^2 + dRa*(z(5))^2 + q_Mtv*(z(6))^2 + q_slip*(diff_beta)^2 + q_mu*(z(10))^2 + q_n*(z(9))^2 + q_slack_vx*z(1) + q_slack_track*z(2) + q_slack_forces*z(3);
     
 end
 
@@ -234,21 +234,20 @@ function h = nonlin_const(z, p)
     Bf = p(12); 
     Cm = p(26);
     p_long = p(19);
-    %ax_max = p(24);
-    %ay_max = p(25);
-    %m = p(3);
+    ax_max = p(24);
+    ay_max = p(25);
+    m = p(3);
     
-    s1 = z(1); % velocity slack
-    s2 = z(2); % track slack
-    s3 = z(3); % forces slack
+    s1 = z(1);
+    s2 = z(2);
 
-    delta = z(7);
-    Fm = z(8);
-    n = z(9);
-    mu = z(10);
-    vx = z(11);
-    vy = z(12);
-    w = z(13);
+    delta = z(6);
+    Fm = z(7);
+    n = z(8);
+    mu = z(9);
+    vx = z(10);
+    vy = z(11);
+    w = z(12);
     
     % Length and width of the car
     long = 2.72;
@@ -262,10 +261,10 @@ function h = nonlin_const(z, p)
 
     h = [ n - long/2*sin(abs(mu)) + width/2*cos(mu) - s2; % <= L(s)
          -n + long/2*sin(abs(mu)) + width/2*cos(mu) - s2; % <= R(s)
-%          p_long*(Cm*Fm/Dr)^2 + (Fr/Dr)^2 - s3; % <= lambda
-%          p_long*(Cm*Fm/Df)^2 + (Ff/Df)^2 - s3; % <= lambda
-         p_long*(Fm)^2 + (Fr/Dr)^2 - s3; % <= lambda
-         p_long*(Fm)^2 + (Ff/Df)^2 - s3; % <= lambda
+%          p_long*(Cm*Fm/Dr)^2 + (Fr/Dr)^2; % <= lambda
+%          p_long*(Cm*Fm/Df)^2 + (Ff/Df)^2; % <= lambda
+         p_long*(Fm)^2 + (Fr/Dr)^2; % <= lambda
+         p_long*(Fm)^2 + (Ff/Df)^2; % <= lambda
          vx - s1]; 
      
 end

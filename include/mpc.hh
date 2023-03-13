@@ -35,14 +35,12 @@ struct Boundaries{
         // VARIABLES BOUNDARIES:
 
           // Bounds and initial guess for the control
-        vector<double> u_min =  { 0.0, 0.0, -3*M_PI/180, -5.0, -300}; // delta, Fm max,min bounds will be overwriten by dynamic reconfigure callback
+        vector<double> u_min =  { 0.0, 0.0, 0.0, -3*M_PI/180, -5.0, -300}; // delta, Fm max,min bounds will be overwritten by dynamic reconfigure callback
         vector<double> u_max  = { 3*M_PI/180, 0.25,  300};
-        vector<double> u0 = {  0.0, 0.0  };
 
           // Bounds and initial guess for the state
-        vector<double> x_min  = { -23.0*M_PI/180, -1, -3.5, -180.0*M_PI/180, 2.0, -5.0, -80.0*M_PI/180 };
-        vector<double> x_max  = { 23.0*M_PI/180, 1, 3.5, 180.0*M_PI/180, 25.0, 5.0, 80.0*M_PI/180 };
-        vector<double> x0 = { 0.0, -1.25, 0.0, 0.0, 15.0, 0.0, 0.0 };
+        vector<double> x_min  = { -23.0*M_PI/180, -1, -3.5, -180.0*M_PI/180, 2.0, -5.0, -100.0*M_PI/180 }; // the more critical bounds are overwritten by dynamic reconfigure callback
+        vector<double> x_max  = { 23.0*M_PI/180, 1, 3.5, 180.0*M_PI/180, 25.0, 5.0, 100.0*M_PI/180 };
 
 };
 
@@ -100,6 +98,7 @@ class MPC{
 
         double q_slack_vx = 0;
         double q_slack_track = 0;
+        double q_slack_forces = 0;
 
         // STATIC PARAMETERS: 
           // see "params.hh" for explanation

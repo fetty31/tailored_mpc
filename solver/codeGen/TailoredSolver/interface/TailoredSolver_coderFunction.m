@@ -18,15 +18,15 @@
 % 
 % [OUTPUTS] = TailoredSolver(INPUTS) solves an optimization problem where:
 % Inputs:
-% - lb - matrix of size [480x1]
+% - lb - matrix of size [520x1]
 % - ub - matrix of size [400x1]
 % - hu - matrix of size [200x1]
 % - xinit - matrix of size [10x1]
-% - x0 - matrix of size [480x1]
-% - all_parameters - matrix of size [1240x1]
+% - x0 - matrix of size [520x1]
+% - all_parameters - matrix of size [1280x1]
 % - num_of_threads - scalar
 % Outputs:
-% - U - column vector of length 280
+% - U - column vector of length 320
 % - X - column vector of length 200
 function [U, X] = TailoredSolver(lb, ub, hu, xinit, x0, all_parameters, num_of_threads)
     

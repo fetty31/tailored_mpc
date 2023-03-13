@@ -8,8 +8,8 @@ dictitems:
   Cf: -1.71
   Cm: 4400.0
   Cr: -1.71
-  Df: 1100.0
-  Dr: 1200.0
+  Df: 1200.0
+  Dr: 1500.0
   Vmax: 15.0
   Vmin: 1.0
   dMtv: 1000.0
@@ -17,7 +17,7 @@ dictitems:
   dRd: 1.0
   diff_Fm: 100.0
   diff_Fm_brake: -100.0
-  diff_delta: 1000.0
+  diff_delta: 500.0
   groups: !!python/object/new:dynamic_reconfigure.encoding.Config
     dictitems:
       Ax_max: 15.0
@@ -28,8 +28,8 @@ dictitems:
       Cf: -1.71
       Cm: 4400.0
       Cr: -1.71
-      Df: 1100.0
-      Dr: 1200.0
+      Df: 1200.0
+      Dr: 1500.0
       Vmax: 15.0
       Vmin: 1.0
       dMtv: 1000.0
@@ -37,39 +37,41 @@ dictitems:
       dRd: 1.0
       diff_Fm: 100.0
       diff_Fm_brake: -100.0
-      diff_delta: 1000.0
+      diff_delta: 500.0
       groups: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
       id: 0
       lambda: 1.0
       latency: 7
       name: Default
-      p_long: 1.0
+      p_long: 5.0
       parameters: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
       parent: 0
-      q_mu: 0.0
-      q_n: 50.0
-      q_nN: 50.0
-      q_s: 2.0
-      q_sN: 7.0
-      q_slack_track: 1000.0
+      q_mu: 0.1
+      q_n: 80.0
+      q_nN: 90.0
+      q_s: 3.5
+      q_sN: 3.0
+      q_slack_forces: 100.0
+      q_slack_track: 100.0
       q_slack_vx: 10.0
-      q_slip: 1.0
+      q_slip: 10.0
       state: true
       type: ''
       u_r: 0.045
     state: []
   lambda: 1.0
   latency: 7
-  p_long: 1.0
-  q_mu: 0.0
-  q_n: 50.0
-  q_nN: 50.0
-  q_s: 2.0
-  q_sN: 7.0
-  q_slack_track: 1000.0
+  p_long: 5.0
+  q_mu: 0.1
+  q_n: 80.0
+  q_nN: 90.0
+  q_s: 3.5
+  q_sN: 3.0
+  q_slack_forces: 100.0
+  q_slack_track: 100.0
   q_slack_vx: 10.0
-  q_slip: 1.0
+  q_slip: 10.0
   u_r: 0.045
 state: []

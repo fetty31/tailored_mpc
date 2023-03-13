@@ -32,7 +32,7 @@ Topics:
 
 NLOP:
   N: 40                                               # Prediction horizon
-  Nslacks: 2                                          # Number of slacks variables
+  Nslacks: 3                                          # Number of slacks variables
 
 Hz: 20                                                #[s] MPC frequency
 rk4_t: 0.025                                          #[s] Runge Kutta integration time

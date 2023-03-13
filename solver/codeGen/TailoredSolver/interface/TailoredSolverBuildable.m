@@ -81,7 +81,7 @@ classdef TailoredSolverBuildable < coder.ExternalDependency
                           'fevalstime', infos_fevalstime,...
                           'solver_id', infos_solver_id);
 
-            outputs_U = coder.nullcopy(zeros(280, 1));
+            outputs_U = coder.nullcopy(zeros(320, 1));
             outputs_X = coder.nullcopy(zeros(200, 1));
             output = struct('U', outputs_U,...
                             'X', outputs_X);
@@ -199,7 +199,7 @@ classdef TailoredSolverBuildable < coder.ExternalDependency
                           'fevalstime', infos_fevalstime,...
                           'solver_id', infos_solver_id);
                           
-            outputs_U = coder.nullcopy(double(zeros(280, 1)));
+            outputs_U = coder.nullcopy(double(zeros(320, 1)));
             outputs_X = coder.nullcopy(double(zeros(200, 1)));
             output = struct('U', outputs_U,...
                             'X', outputs_X);

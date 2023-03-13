@@ -2,16 +2,16 @@
 %
 %   OUTPUT = TailoredSolver(PARAMS) solves a multistage problem
 %   subject to the parameters supplied in the following struct:
-%       PARAMS.lb - matrix of size [480x1]
+%       PARAMS.lb - matrix of size [520x1]
 %       PARAMS.ub - matrix of size [400x1]
 %       PARAMS.hu - matrix of size [200x1]
 %       PARAMS.xinit - matrix of size [10x1]
-%       PARAMS.x0 - matrix of size [480x1]
-%       PARAMS.all_parameters - matrix of size [1240x1]
+%       PARAMS.x0 - matrix of size [520x1]
+%       PARAMS.all_parameters - matrix of size [1280x1]
 %       PARAMS.num_of_threads - scalar
 %
 %   OUTPUT returns the values of the last iteration of the solver where
-%       OUTPUT.U - column vector of length 280
+%       OUTPUT.U - column vector of length 320
 %       OUTPUT.X - column vector of length 200
 %
 %   [OUTPUT, EXITFLAG] = TailoredSolver(PARAMS) returns additionally
