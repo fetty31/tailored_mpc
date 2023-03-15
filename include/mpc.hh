@@ -65,6 +65,7 @@ class MPC{
 
         // MPC
         int nPlanning = 1900;     // number of points wanted from the planner
+        int nSearch = 200;        // number of points where we will look for the close point to the car
         bool firstIter = true;    // first iteration flag
         int samplingS = 10;       // s sampling distance 
         double delta_s = 0.025;   // planner discretization [m]
@@ -100,6 +101,8 @@ class MPC{
         double q_slack_track = 0;
         double q_slack_forces = 0;
 
+        double TROmu = 1.0;
+
         // STATIC PARAMETERS: 
           // see "params.hh" for explanation
         double m = 240;
@@ -128,6 +131,7 @@ class MPC{
         void get_solution();
 
         // Aux:
+        int first_index(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg); // looks for closer point to the car
         vector<double> vconcat(const vector<double>& x, const vector<double>& y);
         void printVec(vector<double> &input, int firstElements=0);
         Eigen::MatrixXd vector2eigen(vector<double> vect);

@@ -39,6 +39,8 @@ rk4_t: 0.025                                          #[s] Runge Kutta integrati
 Nthreads: 5                                           # Number of threads
 
 nPlanning: 1900                                       # n points saved from the planner
+plannerAccuracy: 0.025                                # [m] distance accuracy of the planner (distance between given points)
+nSearchAhead: 5                                       # [m] distance ahead where we will look for the closer point to the car
 
 minVelFinish: 0.1                                     # Minimum velocity to consider the car at finish state
 

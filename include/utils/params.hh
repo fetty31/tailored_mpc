@@ -26,8 +26,10 @@ struct Params{
     struct MPC{
         int Hz;                 // frequency of MPC [Hz]
         double rk4_t;           // runge kutta integration time [s]
+        double delta_s;         // distance between planner points [m]
         int Nthreads;           // number of threads
         int nPlanning;          // number of points we want from the planner
+        int nSearch;            // number of points where we will look for the closer point to the car
         bool TroProfile;        // set to true to follow TRO velocity profile 
         double minVelFinish;    // minimum velocity to consider the car at finish state (depends on sensor accuracy)
         struct Topics{

@@ -32,11 +32,14 @@ Params::Params(const ros::NodeHandle* nh) {
     nh->param<int>("NLOP/N", mpc.nlop.N, 40);
     nh->param<int>("NLOP/Nslacks", mpc.nlop.Nslacks, 2);
 
-    // MPC period (1/freq)
+    // MPC aux vars 
     nh->param<double>(("rk4_t"), mpc.rk4_t, 0.025);
+    nh->param<double>(("plannerAccuracy"), mpc.delta_s, 0.025);
     nh->param<int>(("nPlanning"), mpc.nPlanning, 1900);
     nh->param<int>(("Hz"), mpc.Hz, 20);
     nh->param<int>(("Nthreads"), mpc.Nthreads, 2);
     nh->param<bool>(("TroProfile"), mpc.TroProfile, false);
+    nh->param<int>(("nSearchAhead"), mpc.nSearch, 5);
+    mpc.nSearch = (int) mpc.nSearch/mpc.delta_s;
 
 }

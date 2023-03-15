@@ -12,7 +12,9 @@ MPC::MPC(const Params* params){
     // MPC
     this->Hz            = params->mpc.Hz;
     this->rk4_t         = params->mpc.rk4_t;
+    this->delta_s       = params->mpc.delta_s;
     this->nPlanning     = params->mpc.nPlanning;
+    this->nSearch       = params->mpc.nSearch;
     this->Nthreads      = params->mpc.Nthreads;
     this->troProfile    = params->mpc.TroProfile;
 
@@ -86,7 +88,9 @@ void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
         }
 
         // Fill planner matrix
-        for (unsigned int i = 0; i < nPlanning ; i++)
+        int idx0 = first_index(msg);
+        planner.resize(nPlanning-idx0, 7);
+        for (unsigned int i = idx0; i < nPlanning-idx0 ; i++)
         {	
             planner(i, 0) = msg->objectives[i].x;
             planner(i, 1) = msg->objectives[i].y;
@@ -110,7 +114,9 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
     }
 
     // Fill planner matrix
-    for (unsigned int i = 0; i < nPlanning ; i++)
+    int idx0 = first_index(msg);
+    planner.resize(nPlanning-idx0, 7);
+    for (unsigned int i = 0; i < nPlanning-idx0 ; i++)
     {	
         planner(i, 0) = msg->objectives[i].x;
         planner(i, 1) = msg->objectives[i].y;
@@ -380,7 +386,7 @@ void MPC::set_params_bounds(){
         this->forces.params.ub[k*(Nvar-Nslacks) + 4] = this->bounds.x_max[1];
         this->forces.params.ub[k*(Nvar-Nslacks) + 5] = this->bounds.x_max[2];
         this->forces.params.ub[k*(Nvar-Nslacks) + 6] = this->bounds.x_max[3];
-        this->forces.params.ub[k*(Nvar-Nslacks) + 7] = (troActive && troProfile) ? planner(plannerIdx,4) : this->bounds.x_max[4];
+        this->forces.params.ub[k*(Nvar-Nslacks) + 7] = (troActive && troProfile) ? TROmu*planner(plannerIdx,4) : this->bounds.x_max[4];
         this->forces.params.ub[k*(Nvar-Nslacks) + 8] = this->bounds.x_max[5];
         this->forces.params.ub[k*(Nvar-Nslacks) + 9] = this->bounds.x_max[6];
 
@@ -599,6 +605,37 @@ void MPC::msgCommands(as_msgs::CarCommands *msg){
     return;
 }
 
+int MPC::first_index(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
+
+	double dist, minDist;
+    int firstIdx = 0;
+	Eigen::Vector2d position, car_direction;
+
+    if(this->stateFlag){
+        car_direction(0) = cos(carState(2));
+        car_direction(1) = sin(carState(2));
+        for (unsigned int i = 0; i < this->nSearch; i++){
+
+            position(0) = (msg->objectives[i].x - carState(0));
+            position(1) = (msg->objectives[i].y - carState(1));
+
+            Eigen::Vector2d position_norm_vec = position/position.norm();
+
+            // Only take into account those points with an angle of <65º with respect to the actual position
+            if ( position_norm_vec.dot(car_direction) > cos(65.0 / 180.0 * M_PI)) {
+
+                dist = position.norm();
+                if (dist < minDist){
+                    minDist = dist;
+                    firstIdx = i;
+                }
+            }
+        }
+    }
+
+    return firstIdx;
+}
+
 vector<double> MPC::vconcat(const vector<double>& x, const vector<double>& y){
     vector<double> v(x.size() + y.size(),0.0);
 	move(x.begin(), x.end(), v.begin());
@@ -753,6 +790,7 @@ void MPC::reconfigure(tailored_mpc::dynamicConfig& config){
         this->q_slack_vx = config.q_slack_vx;
         this->q_slack_track = config.q_slack_track;
         this->q_slack_forces = config.q_slack_forces;
+        this->TROmu = config.troProfileMU;
 
         this->bounds.u_min[3] = -config.diff_delta*M_PI/180.0;
         this->bounds.u_min[4] = config.diff_Fm_brake;

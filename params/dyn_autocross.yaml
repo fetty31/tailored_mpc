@@ -1,75 +1,79 @@
 !!python/object/new:dynamic_reconfigure.encoding.Config
 dictitems:
-  Ax_max: 7.0
+  Ax_max: 15.0
   Ay_max: 15.0
-  Bf: 10.8529
-  Br: 10.1507
+  Bf: 15.1507
+  Br: 15.1507
   Cd: 0.8727
-  Cf: -1.1705
-  Cm: 5280.0
-  Cr: -1.1705
-  Df: 2785.4
-  Dr: 3152.3
-  Vmax: 10.0
+  Cf: -1.71
+  Cm: 4400.0
+  Cr: -1.71
+  Df: 2208.0635
+  Dr: 2563.599
+  Vmax: 12.0
   Vmin: 1.0
   dMtv: 1000.0
-  dRa: 0.6
-  dRd: 1.0
-  diff_Fm: 100.0
-  diff_Fm_brake: -100.0
-  diff_delta: 1000.0
+  dRa: 0.1
+  dRd: 10.0
+  diff_Fm: 1000.0
+  diff_Fm_brake: -1000.0
+  diff_delta: 100.0
   groups: !!python/object/new:dynamic_reconfigure.encoding.Config
     dictitems:
-      Ax_max: 7.0
+      Ax_max: 15.0
       Ay_max: 15.0
-      Bf: 10.8529
-      Br: 10.1507
+      Bf: 15.1507
+      Br: 15.1507
       Cd: 0.8727
-      Cf: -1.1705
-      Cm: 5280.0
-      Cr: -1.1705
-      Df: 2785.4
-      Dr: 3152.3
-      Vmax: 10.0
+      Cf: -1.71
+      Cm: 4400.0
+      Cr: -1.71
+      Df: 2208.0635
+      Dr: 2563.599
+      Vmax: 12.0
       Vmin: 1.0
       dMtv: 1000.0
-      dRa: 0.6
-      dRd: 1.0
-      diff_Fm: 100.0
-      diff_Fm_brake: -100.0
-      diff_delta: 1000.0
+      dRa: 0.1
+      dRd: 10.0
+      diff_Fm: 1000.0
+      diff_Fm_brake: -1000.0
+      diff_delta: 100.0
       groups: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
       id: 0
-      lambda: 5.5
-      latency: 8
+      lambda: 1.0
+      latency: 7
       name: Default
-      p_long: 5.5
+      p_long: 1.0
       parameters: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
       parent: 0
-      q_mu: 0.0
-      q_n: 10.0
-      q_nN: 7.0
-      q_s: 10.0
-      q_sN: 10.0
+      q_mu: 0.1
+      q_n: 90.0
+      q_nN: 90.0
+      q_s: 2.0
+      q_sN: 2.0
+      q_slack_forces: 100.0
       q_slack_track: 1000.0
-      q_slack_vx: 1000.0
-      q_slip: 120.0
+      q_slack_vx: 10.0
+      q_slip: 1.0
       state: true
+      troProfileMU: 1.0
       type: ''
-      u_r: 0.45
+      u_r: 0.045
     state: []
-  lambda: 5.5
-  latency: 8
-  p_long: 5.5
-  q_mu: 0.0
-  q_n: 10.0
-  q_nN: 7.0
-  q_s: 10.0
-  q_sN: 10.0
+  lambda: 1.0
+  latency: 7
+  p_long: 1.0
+  q_mu: 0.1
+  q_n: 90.0
+  q_nN: 90.0
+  q_s: 2.0
+  q_sN: 2.0
+  q_slack_forces: 100.0
   q_slack_track: 1000.0
-  q_slack_vx: 1000.0
-  q_slip: 120.0
-  u_r: 0.45
+  q_slack_vx: 10.0
+  q_slip: 1.0
+  troProfileMU: 1.0
+  u_r: 0.045
 state: []
