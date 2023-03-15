@@ -21,6 +21,7 @@ Params::Params(const ros::NodeHandle* nh) {
     nh->param<string>("Topics/Planner", mpc.topics.planner, "/AS/C/trajectory/partial");
     nh->param<string>("Topics/Tro", mpc.topics.tro, "/AS/C/trajectory/full");
     nh->param<string>("Topics/Velocities", mpc.topics.velocities, "/AS/C/pid/velocities");
+
         // Visualization topics
     nh->param<string>("Topics/Vis/PredictedSteering", mpc.topics.predictedSteering, "/AS/C/mpc/vis/predicted/steering");
     nh->param<string>("Topics/Vis/PredictedPath", mpc.topics.predictedPath, "/AS/C/mpc/vis/predicted/path");
@@ -32,9 +33,12 @@ Params::Params(const ros::NodeHandle* nh) {
     nh->param<int>("NLOP/Nslacks", mpc.nlop.Nslacks, 2);
 
     // MPC period (1/freq)
-    nh->param<double>(("MPC/rk4_t"), mpc.rk4_t, 0.025);
-    nh->param<int>(("MPC/nPlanning"), mpc.nPlanning, 1900);
-    nh->param<int>(("MPC/Hz"), mpc.Hz, 20);
-    nh->param<int>(("MPC/Nthreads"), mpc.Nthreads, 2);
+    nh->param<double>("MPC/rk4_t", mpc.rk4_t, 0.025);
+    nh->param<double>("MPC/plannerAccuracy", mpc.delta_s, 0.025);
+    nh->param<int>("MPC/nPlanning", mpc.nPlanning, 1900);
+    nh->param<int>("MPC/Hz", mpc.Hz, 20);
+    nh->param<int>("MPC/Nthreads", mpc.Nthreads, 2);
+    nh->param<int>("MPC/nSearchAhead", mpc.nSearch, 5);
+    mpc.nSearch = (int) mpc.nSearch/mpc.delta_s;
 
 }

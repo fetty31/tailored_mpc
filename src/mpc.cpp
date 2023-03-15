@@ -12,7 +12,9 @@ MPC::MPC(const Params* params){
     // MPC
     this->Hz            = params->mpc.Hz;
     this->rk4_t         = params->mpc.rk4_t;
+    this->delta_s       = params->mpc.delta_s;
     this->nPlanning     = params->mpc.nPlanning;
+    this->nSearch       = params->mpc.nSearch;
     this->Nthreads      = params->mpc.Nthreads;
 
     cout << "Hz: " << Hz << endl;
@@ -79,7 +81,9 @@ void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
         }
 
         // Fill planner matrix
-        for (unsigned int i = 0; i < nPlanning ; i++)
+        idx0 = first_index(msg);
+        planner.resize(nPlanning-idx0, 7);
+        for (unsigned int i = idx0; i < nPlanning-idx0 ; i++)
         {	
             planner(i, 0) = msg->objectives[i].x;
             planner(i, 1) = msg->objectives[i].y;
@@ -105,7 +109,9 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
     }
 
     // Fill planner matrix
-    for (unsigned int i = 0; i < nPlanning ; i++)
+    idx0 = first_index(msg);
+    planner.resize(nPlanning-idx0, 7);
+    for (unsigned int i = idx0; i < nPlanning-idx0 ; i++)
     {	
         planner(i, 0) = msg->objectives[i].x;
         planner(i, 1) = msg->objectives[i].y;
@@ -130,8 +136,8 @@ void MPC::velsCallback(const as_msgs::CarVelocityArray::ConstPtr& msg){
         return;
     }
 
-    pred_velocities.resize(msg->velocities.size());
-    for(int i=0; i < msg->velocities.size(); i++){
+    pred_velocities.resize(msg->velocities.size()-idx0);
+    for(int i=idx0; i < msg->velocities.size()-idx0; i++){
         pred_velocities(i) = msg->velocities[i].x;
     }
     this->velsFlag = true; // we have received velocity data
@@ -166,7 +172,7 @@ void MPC::solve(){
         ROS_ERROR_STREAM("MPC solve time: " << forces.info.solvetime*1000 << " ms");
         ROS_ERROR_STREAM("MPC iterations: " << forces.info.it);
 
-        if(forces.exit_flag == 1) this->firstIter = false;
+        if(forces.exit_flag == 1 || forces.exit_flag == 0) this->firstIter = false;
         else this->firstIter = true; // we go back to first iteration's pipeline if the NLOP didn't converge
 
         get_solution(); // save current solution (predicted states & controls)
@@ -560,6 +566,37 @@ void MPC::msgCommands(as_msgs::CarCommands *msg){
     // cout << "Mtv: " << solCommands(this->latency, 2) << endl;
 
     return;
+}
+
+int MPC::first_index(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
+
+	double dist, minDist;
+    int firstIdx = 0;
+	Eigen::Vector2d position, car_direction;
+
+    if(this->stateFlag){
+        car_direction(0) = cos(carState(2));
+        car_direction(1) = sin(carState(2));
+        for (unsigned int i = 0; i < this->nSearch; i++){
+
+            position(0) = (msg->objectives[i].x - carState(0));
+            position(1) = (msg->objectives[i].y - carState(1));
+
+            Eigen::Vector2d position_norm_vec = position/position.norm();
+
+            // Only take into account those points with an angle of <65º with respect to the actual position
+            if ( position_norm_vec.dot(car_direction) > cos(65.0 / 180.0 * M_PI)) {
+
+                dist = position.norm();
+                if (dist < minDist){
+                    minDist = dist;
+                    firstIdx = i;
+                }
+            }
+        }
+    }
+
+    return firstIdx;
 }
 
 vector<double> MPC::vconcat(const vector<double>& x, const vector<double>& y){
