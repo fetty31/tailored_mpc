@@ -592,11 +592,11 @@ void MPC::msgCommands(as_msgs::CarCommands *msg){
     msg->steering = solCommands(this->latency, 6);
     msg->Mtv = solCommands(this->latency, 5);
 
-    // if(this->mission == 0 && lapcount.laps>=1 || this->mission==1 && lapcount.laps>=10){
-    //     msg->motor = -1.0; // braking!
-    //     if(carState(3) <= this->minVelFinish) finished = true; // we can publish finish flag!
-    //     ROS_ERROR("FINISH LINE CROSSED!!!");
-    // }
+    if(this->mission == 0 && lapcount.laps>=1 || this->mission==1 && lapcount.laps>=10){
+        msg->motor = -1.0; // braking!
+        if(carState(3) <= this->minVelFinish) finished = true; // we can publish finish flag!
+        ROS_ERROR("FINISH LINE CROSSED!!!");
+    }
 
     cout << "steering: " << solCommands(this->latency, 6) << endl;
     cout << "motor: " << solCommands(this->latency, 7) << endl;

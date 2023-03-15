@@ -10,7 +10,7 @@ dictitems:
   Cr: -1.71
   Df: 2208.0635
   Dr: 2563.599
-  Vmax: 12.0
+  Vmax: 15.0
   Vmin: 1.0
   dMtv: 1000.0
   dRa: 0.1
@@ -30,7 +30,7 @@ dictitems:
       Cr: -1.71
       Df: 2208.0635
       Dr: 2563.599
-      Vmax: 12.0
+      Vmax: 15.0
       Vmin: 1.0
       dMtv: 1000.0
       dRa: 0.1
@@ -44,7 +44,7 @@ dictitems:
       lambda: 1.0
       latency: 7
       name: Default
-      p_long: 1.0
+      p_long: 10.0
       parameters: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
       parent: 0
@@ -64,7 +64,7 @@ dictitems:
     state: []
   lambda: 1.0
   latency: 7
-  p_long: 1.0
+  p_long: 10.0
   q_mu: 0.1
   q_n: 90.0
   q_nN: 90.0
