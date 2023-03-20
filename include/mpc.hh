@@ -35,14 +35,14 @@ struct Boundaries{
         // VARIABLES BOUNDARIES:
 
           // Bounds and initial guess for the control
-        vector<double> u_min =  { 0.0, -3*M_PI/180, -300}; // delta, Fm max,min bounds will be overwriten by dynamic reconfigure callback
-        vector<double> u_max  = { 3*M_PI/180, 300};
+        vector<double> u_min =  { 0.0, -3*M_PI/180 }; // delta max,min bounds will be overwriten by dynamic reconfigure callback
+        vector<double> u_max  = { 3*M_PI/180 };
         vector<double> u0 = {  0.0, 0.0  };
 
           // Bounds and initial guess for the state
-        vector<double> x_min  = { -23.0*M_PI/180, -2.0, -50.0*M_PI/180, -5.0, -50.0*M_PI/180 };
-        vector<double> x_max  = { 23.0*M_PI/180, 2.0, 50.0*M_PI/180, 5.0, 50.0*M_PI/180 };
-        vector<double> x0 = { 0.0, 0.0, 0.0, 0.0, 0.0 };
+        vector<double> x_min  = { -23.0*M_PI/180, -5.0, -M_PI, -50.0*M_PI/180 };
+        vector<double> x_max  = { 23.0*M_PI/180, 5.0, M_PI, 50.0*M_PI/180 };
+        vector<double> x0 = { 0.0, 0.0, 0.0, 0.0 };
 
 };
 
@@ -88,14 +88,11 @@ class MPC{
         double u_r = 0.45;
         double Cd = 0.8727;
         double q_slip = 2;
-        double q_n = 5;
-        double q_nN = 5;
-        double q_mu = 0.1;
+        double q_theta = 0.1;
         double lambda = 1;
-        double q_s = 30;
+        double q_y = 30;
+        double q_yN = 30;
         // int latency = 4; made public for debugging
-        double dMtv = 1;
-        double q_sN = 10;
 
         double q_slack_track = 0;
 
@@ -169,15 +166,15 @@ class MPC{
         Eigen::MatrixXd planner; // [x, y, s, k, vx, L, R]
 
         //Actual state of the car
-        Eigen::VectorXd carState; // [x, y, theta, vx, vy, w, delta(steering), acc, Mtv]
+        Eigen::VectorXd carState; // [x, y, theta, vx, vy, r, delta (steering), acc, Mtv]
 
         // Previous state
-        Eigen::MatrixXd lastState;    // [x, y, theta, vx, vy, w]
+        Eigen::MatrixXd lastState;    // [x, y, theta, vx, vy, r]
         Eigen::MatrixXd lastCommands; // [diff_delta, Mtv, delta]
 
         // Previous solution
-        Eigen::MatrixXd solStates;    // [n, mu, vy, w]
-        Eigen::MatrixXd solCommands;  // [slack_track, diff_delta, Mtv, delta]
+        Eigen::MatrixXd solStates;    // [y, vy, theta (heading/yaw), r]
+        Eigen::MatrixXd solCommands;  // [slack_track, diff_delta, delta]
 };
 
 

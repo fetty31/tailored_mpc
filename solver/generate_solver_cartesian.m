@@ -1,4 +1,4 @@
-function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_states, n_controls, useFastSolver, floattype)
+function [model, codeoptions] = generate_solver_cartesian(solverDir, horizonLength, n_states, n_controls, useFastSolver, floattype)
     %% Check function args    
     if (nargin < 3)
         error('The function ''generatePathTrackingSolver'' is not meant to run standalone! Please run ''FORCES_problem'' instead.');
@@ -12,12 +12,12 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
 
     %% Problem dimensions
     N = horizonLength;
-    Npar = 25;
+    Npar = 24;
     model = {};
     model.N = N;                        % horizon length
     model.nvar = n_states+n_controls;   % number of variables
     model.neq  = n_states;              % number of equality constraints
-    model.nh = 2;                       % number of inequality constraint functions
+    model.nh = 0;                       % number of inequality constraint functions
     model.npar = Npar;                  % number of runtime parameters
 
     %% Objective function 
@@ -28,11 +28,11 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
 %     model.continuous_dynamics = @my_continuous_dynamics;
     
     % Nonlinear inequalities
-    model.ineq = @nonlin_const;
-    model.huidx = (1:model.nh)';
-    model.hlidx = [];
-    model.hu = [];
-    model.hl = [];
+%     model.ineq = @nonlin_const;
+%     model.huidx = (1:model.nh)';
+%     model.hlidx = [];
+%     model.hu = [];
+%     model.hl = [];
     
     % Indices on LHS of dynamical constraint - for efficiency reasons, make
     % sure the matrix E has structure [0 I] where I is the identity matrix.
@@ -41,15 +41,15 @@ function [model, codeoptions] = generate_solver(solverDir, horizonLength, n_stat
     %% Inequality constraints
     % upper/lower variable bounds lb <= z <= ub
     %          inputs          |             states
-    % z = [slack_track, diff_delta, Mtv, delta, n, mu, vy, r]    
-    model.lbidx = [1, 2, 3, 4, 5, 6, 7, 8]';
-    model.ubidx = [2, 3, 4, 5, 6, 7, 8]';
+    % z = [slack_track, diff_delta, delta, y, vy, heading (or yaw), r]    
+    model.lbidx = [1, 2, 3, 5, 6, 7]'; % y variable doesn't have any upper or lower bounds
+    model.ubidx = [2, 3, 5, 6, 7]';
     model.lb = []; 
     model.ub = [];
     
     %% Initial conditions
     % Initial conditions on all states
-    model.xinitidx = 2:8; % use this to specify on which variables initial conditions are imposed
+    model.xinitidx = 2:7; % use this to specify on which variables initial conditions are imposed
 
     %% Linear subsystem
 %     model.linInIdx = [1, 2]';
@@ -108,22 +108,17 @@ function f = objective(z, p)
     Lf = p(4);
     Lr = p(5);
     q_slip = p(17);
-    q_n = p(18);
-    q_s = p(20);
-    q_mu = p(19);
-    q_Mtv = p(21);
-    Ts = p(22);
-    k = p(25);
-    q_slack_track = p(23);
+    q_theta = p(18);
+    q_y = p(19);
+    y_target = p(24);
+    theta_target = p(23);
+    q_slack_track = p(21);
 
-    vx = p(24);
-    delta = z(4);
-    n = z(5);
-    mu = z(6);
-    vy = z(7);
-    
-    % Progress rate
-    sdot = Ts * (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
+    vx = p(22);
+    delta = z(3);
+    y = z(4);
+    vy = z(5);
+    theta = z(6);
 
     % Slip difference
     beta_dyn = atan(vy/vx);
@@ -131,16 +126,16 @@ function f = objective(z, p)
     diff_beta = beta_dyn - beta_kin;
 
     %Objective function
-    f = -q_s*sdot + dRd*(z(2))^2 + q_Mtv*(z(3))^2 + q_slip*(diff_beta)^2 + q_mu*(mu)^2 + q_n*(n)^2 + q_slack_track*z(1);
+    f = dRd*(z(2))^2 + q_slip*(diff_beta)^2 + q_y*(y_target - y)^2 + q_theta*(theta_target - theta)^2 + q_slack_track*z(1);
     
 end
 
 
 function xnext = integrated_dynamics(z, p)
 
-    u = z(1:3);
-    x = z(4:8);
-    Ts = p(22);
+    u = z(1:2);
+    x = z(3:7);
+    Ts = p(20);
 
     xnext = RK4(x, u, @my_continuous_dynamics, Ts, p);
 
@@ -149,14 +144,13 @@ end
 function xdot = my_continuous_dynamics(x, u, p)
     
     delta = x(1);
-    n = x(2);
-    mu = x(3);
+    y = x(2);
+    vy = x(3);
     vx = p(24);
-    vy = x(4);
+    theta = x(4);
     r = x(5);
     
     diff_delta = u(2);
-    Mtv = u(3);
     
     m = p(2);
     I = p(3);
@@ -173,7 +167,6 @@ function xdot = my_continuous_dynamics(x, u, p)
     Cd = p(14);
     rho = p(15);
     Ar = p(16);
-    k = p(25);
     
     % Slip angles
     alpha_R = atan((vy-Lr*r)/(vx));
@@ -183,15 +176,12 @@ function xdot = my_continuous_dynamics(x, u, p)
     Fr = Dr*sin(Cr*atan(Br*alpha_R));
     Ff = Df*sin(Cf*atan(Bf*alpha_F));
     
-    %Progress rate change
-    sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
-    
     % Differential equations (time dependent)
     xdot = [diff_delta;
-            vx*sin(mu) + vy*cos(mu);
-            r - k*sdot;
+            vx*sin(theta) + vy*cos(theta);
             (1/m)*(Fr + Ff*cos(delta) - m*vx*r);
-            (1/I)*(Ff*cos(delta)*Lf - Fr*Lr + Mtv)];
+            r;
+            (1/I)*(Ff*cos(delta)*Lf - Fr*Lr)];
 end
 
 function h = nonlin_const(z, p)
