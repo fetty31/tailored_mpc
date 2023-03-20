@@ -36,10 +36,10 @@ NLOP:
   Nslacks: 1                                          # Number of slacks variables            
 
 MPC:
-  Hz: 20                                              #[s] MPC frequency
+  Hz: 50                                              #[s] MPC frequency
   rk4_t: 0.025                                        #[s] Runge Kutta integration time
-  Nthreads: 10                                        # Number of threads
+  Nthreads: 5                                         # Number of threads
 
-  nPlanning: 1000                                     # n points saved from the planner
+  nPlanning: 1500                                     # n points saved from the planner
   plannerAccuracy: 0.025                              # [m] distance accuracy of the planner (distance between given points)
   nSearchAhead: 5                                     # [m] distance ahead where we will look for the closer point to the car
