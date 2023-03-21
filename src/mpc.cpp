@@ -50,6 +50,7 @@ MPC::MPC(const Params* params){
     carState = Eigen::VectorXd::Zero(9);
     predicted_s = Eigen::VectorXd::Zero(N);
     progress = Eigen::VectorXd::Zero(N); 
+    pred_velocities = Eigen::VectorXd::Zero(nPlanning);
 
     lastState = Eigen::MatrixXd::Zero(N,6);                         // [x, y, theta, vx, vy, w]
     lastCommands = Eigen::MatrixXd::Zero(N,n_controls-Nslacks);     // [diff_delta, Mtv, delta]
@@ -343,15 +344,15 @@ void MPC::set_params_bounds(){
                     diff_s = progress(k) - progress(k-1);
                     cout << "diff_s inside mean: " << diff_s << endl;
  
-                    if(diff_s < 0) diff_s += this->smax; // If we are passing the start line, reset diff
-                    // if(diff_s < 0) diff_s = 0;
+                    // if(diff_s < 0) diff_s += this->smax; // If we are passing the start line, reset diff
+                    if(diff_s < 0) diff_s = 0;
 
                     cout << "diff_s inside mean final: " << diff_s << endl;
                     mean_s += diff_s;
                 }
 
                 if(id_sinit == this->N) {
-                    mean_s = round(mean_s/5/delta_s);
+                    mean_s = round(mean_s/5.0/delta_s);
                 }
 
             }else{
@@ -379,7 +380,7 @@ void MPC::set_params_bounds(){
         this->forces.params.hu[k*nh + 1] = fabs(planner(plannerIdx, 6)); // R(s) ortogonal right dist from the path to the track limits
 
         // Variables bounds:
-        this->forces.params.lb[k*Nvar] =     this->bounds.u_min[0];
+        this->forces.params.lb[k*Nvar]     = this->bounds.u_min[0];
         this->forces.params.lb[k*Nvar + 1] = this->bounds.u_min[1];
         this->forces.params.lb[k*Nvar + 2] = this->bounds.u_min[2];
         this->forces.params.lb[k*Nvar + 3] = this->bounds.x_min[0];
@@ -389,7 +390,7 @@ void MPC::set_params_bounds(){
         this->forces.params.lb[k*Nvar + 7] = this->bounds.x_min[4];
 
             // Slack variables doesn't have any upper bounds, so Nvar-Nslacks is used here
-        this->forces.params.ub[k*(Nvar-Nslacks)] =     this->bounds.u_max[0];
+        this->forces.params.ub[k*(Nvar-Nslacks)]     = this->bounds.u_max[0];
         this->forces.params.ub[k*(Nvar-Nslacks) + 1] = this->bounds.u_max[1];
         this->forces.params.ub[k*(Nvar-Nslacks) + 2] = this->bounds.x_max[0];
         this->forces.params.ub[k*(Nvar-Nslacks) + 3] = this->bounds.x_max[1];

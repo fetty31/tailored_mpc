@@ -52,8 +52,6 @@ class MPC{
 
         // Internal variables/methods of MPC
 
-        Eigen::VectorXd pred_velocities; // predicted velocities (vel profile from long_pid pkg)
-
         bool plannerFlag = false, stateFlag = false, velsFlag = false;
         bool paramFlag = false;                       // flag for parameters set up
         bool dynParamFlag = false;                    // flag for dynamic parameters set up
@@ -178,6 +176,10 @@ class MPC{
         // Previous solution
         Eigen::MatrixXd solStates;    // [n, mu, vy, w]
         Eigen::MatrixXd solCommands;  // [slack_track, diff_delta, Mtv, delta]
+
+        // Predicted velocities (vel profile from long_pid pkg)
+        Eigen::VectorXd pred_velocities; 
+        
 };
 
 
