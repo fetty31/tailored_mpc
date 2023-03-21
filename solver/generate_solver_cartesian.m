@@ -41,15 +41,15 @@ function [model, codeoptions] = generate_solver_cartesian(solverDir, horizonLeng
     %% Inequality constraints
     % upper/lower variable bounds lb <= z <= ub
     %          inputs          |             states
-    % z = [slack_track, diff_delta, delta, y, vy, heading (or yaw), r]    
-    model.lbidx = [1, 2, 3, 5, 6, 7]'; % y variable doesn't have any upper or lower bounds
-    model.ubidx = [2, 3, 5, 6, 7]';
+    % z = [diff_delta, delta, y, vy, heading (or yaw), r]    
+    model.lbidx = [1, 2, 3, 4, 5, 6]'; 
+    model.ubidx = [1, 2, 3, 4, 5, 6]';
     model.lb = []; 
     model.ub = [];
     
     %% Initial conditions
     % Initial conditions on all states
-    model.xinitidx = 2:7; % use this to specify on which variables initial conditions are imposed
+    model.xinitidx = 1:6; % use this to specify on which variables initial conditions are imposed
 
     %% Linear subsystem
 %     model.linInIdx = [1, 2]';
@@ -115,10 +115,10 @@ function f = objective(z, p)
     q_slack_track = p(21);
 
     vx = p(22);
-    delta = z(3);
-    y = z(4);
-    vy = z(5);
-    theta = z(6);
+    delta = z(2);
+    y = z(3);
+    vy = z(4);
+    theta = z(5);
 
     % Slip difference
     beta_dyn = atan(vy/vx);
@@ -126,15 +126,15 @@ function f = objective(z, p)
     diff_beta = beta_dyn - beta_kin;
 
     %Objective function
-    f = dRd*(z(2))^2 + q_slip*(diff_beta)^2 + q_y*(y_target - y)^2 + q_theta*(theta_target - theta)^2 + q_slack_track*z(1);
+    f = dRd*(z(1))^2 + q_slip*(diff_beta)^2 + q_y*(y_target - y)^2;
     
 end
 
 
 function xnext = integrated_dynamics(z, p)
 
-    u = z(1:2);
-    x = z(3:7);
+    u = z(1:1);
+    x = z(2:6);
     Ts = p(20);
 
     xnext = RK4(x, u, @my_continuous_dynamics, Ts, p);
@@ -146,11 +146,11 @@ function xdot = my_continuous_dynamics(x, u, p)
     delta = x(1);
     y = x(2);
     vy = x(3);
-    vx = p(24);
+    vx = p(22);
     theta = x(4);
     r = x(5);
     
-    diff_delta = u(2);
+    diff_delta = u(1);
     
     m = p(2);
     I = p(3);

@@ -60,13 +60,13 @@ Model {
       }
     }
   }
-  Created		  "12/16/2022 12:32:27 AM"
+  Created		  "3/21/2023 11:21:15 AM"
   Creator		  "embotech AG"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "embotech AG"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "12/16/2022 12:32:27 AM"
+  LastModifiedDate	  "3/21/2023 11:21:15 AM"
   RTWModifiedTimeStamp	  315310195
   ModelVersionFormat	  "1.%<AutoIncrement:2>"
   ConfigurationManager	  "None"
@@ -767,7 +767,7 @@ Model {
       BlockType		      S-Function
       Name		      "TailoredSolver"
       SID		      "1"
-      Ports		      [7, 1]
+      Ports		      [6, 1]
       Position		      [170, 99, 650, 180]
       ZOrder		      1
       FunctionName	      "TailoredSolver_simulinkBlockcompact"
@@ -801,26 +801,24 @@ Model {
 	Help			"TailoredSolver_simulinkBlockcompact provides an easy Simulink interface for simulating your customized solver.  \n"
 	"\nOUTPUTS = TailoredSolver(INPUTS) solves an optimization problem where:\n\n"
 	"INPUTS:\n"
-	" - lb - matrix of size [320x1]\n  "
-" - ub - matrix of size [280x1]\n  "
-" - hu - matrix of size [80x1]\n  "
-" - xinit - matrix of size [7x1]\n  "
-" - x0 - matrix of size [320x1]\n  "
-" - all_parameters - matrix of size [1000x1]\n  "
+	" - lb - matrix of size [480x1]\n  "
+" - ub - matrix of size [480x1]\n  "
+" - xinit - matrix of size [6x1]\n  "
+" - x0 - matrix of size [480x1]\n  "
+" - all_parameters - matrix of size [1920x1]\n  "
 " - num_of_threads - scalar\n  "
 
 	"\nOUTPUTS:\n"
-	" - outputs - column vector of length 320\n  "
+	" - outputs - column vector of length 480\n  "
 
 	"\n For more information, see https://forces.embotech.com/Documentation/simulink_interface/index.html \n "
 
 	Display			"port_label('input', 1, 'lb') \n  "
 "port_label('input', 2, 'ub') \n  "
-"port_label('input', 3, 'hu') \n  "
-"port_label('input', 4, 'xinit') \n  "
-"port_label('input', 5, 'x0') \n  "
-"port_label('input', 6, 'all_parameters') \n  "
-"port_label('input', 7, 'num_of_threads') \n  "
+"port_label('input', 3, 'xinit') \n  "
+"port_label('input', 4, 'x0') \n  "
+"port_label('input', 5, 'all_parameters') \n  "
+"port_label('input', 6, 'num_of_threads') \n  "
 "port_label('output', 1, 'outputs') \n  "
 "if( exist('FORCES_PRO_Logo.jpg','file') ), image(imread('FORCES_PRO_Logo.jpg'),'center','on'); elseif( exist(['interface',filesep,'FORCES_PRO_Logo.jpg'],'file') ), image(imread(['interface',filesep,'FORCES_PRO_Logo.jpg']),'center','on'); elseif( exist(['TailoredSolver',filesep,'interface',filesep,'FORCES_PRO_Logo.jpg'],'file') ), image(imread(['TailoredSolver',filesep,'interface',filesep,'FORCES_PRO_Logo.jpg']),'center','on'); end \n "
 

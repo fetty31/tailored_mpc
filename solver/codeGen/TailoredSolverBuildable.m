@@ -82,7 +82,7 @@ classdef TailoredSolverBuildable < coder.ExternalDependency
                           'solver_id', infos_solver_id);
 
             outputs_U = coder.nullcopy(zeros(160, 1));
-            outputs_X = coder.nullcopy(zeros(160, 1));
+            outputs_X = coder.nullcopy(zeros(320, 1));
             output = struct('U', outputs_U,...
                             'X', outputs_X);
             
@@ -90,16 +90,15 @@ classdef TailoredSolverBuildable < coder.ExternalDependency
         end
 
         function [output,exitflag,info] = forcesCallWithParams(params)
-            [output,exitflag,info] = TailoredSolverBuildable.forcesCall(params.lb, params.ub, params.hu, params.xinit, params.x0, params.all_parameters, params.num_of_threads);
+            [output,exitflag,info] = TailoredSolverBuildable.forcesCall(params.lb, params.ub, params.xinit, params.x0, params.all_parameters, params.num_of_threads);
         end
 
-        function [output,exitflag,info] = forcesCall(lb, ub, hu, xinit, x0, all_parameters, num_of_threads)
+        function [output,exitflag,info] = forcesCall(lb, ub, xinit, x0, all_parameters, num_of_threads)
             solvername = 'TailoredSolver';
 
             
             params = struct('lb', double(lb),...
                             'ub', double(ub),...
-                            'hu', double(hu),...
                             'xinit', double(xinit),...
                             'x0', double(x0),...
                             'all_parameters', double(all_parameters),...
@@ -200,7 +199,7 @@ classdef TailoredSolverBuildable < coder.ExternalDependency
                           'solver_id', infos_solver_id);
                           
             outputs_U = coder.nullcopy(double(zeros(160, 1)));
-            outputs_X = coder.nullcopy(double(zeros(160, 1)));
+            outputs_X = coder.nullcopy(double(zeros(320, 1)));
             output = struct('U', outputs_U,...
                             'X', outputs_X);
             exitflag = coder.nullcopy(int32(0));

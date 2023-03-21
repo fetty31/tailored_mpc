@@ -18,19 +18,18 @@
 % 
 % [OUTPUTS] = TailoredSolver(INPUTS) solves an optimization problem where:
 % Inputs:
-% - lb - matrix of size [320x1]
-% - ub - matrix of size [280x1]
-% - hu - matrix of size [80x1]
-% - xinit - matrix of size [7x1]
-% - x0 - matrix of size [320x1]
-% - all_parameters - matrix of size [1000x1]
+% - lb - matrix of size [480x1]
+% - ub - matrix of size [480x1]
+% - xinit - matrix of size [6x1]
+% - x0 - matrix of size [480x1]
+% - all_parameters - matrix of size [1920x1]
 % - num_of_threads - scalar
 % Outputs:
 % - U - column vector of length 160
-% - X - column vector of length 160
-function [U, X] = TailoredSolver(lb, ub, hu, xinit, x0, all_parameters, num_of_threads)
+% - X - column vector of length 320
+function [U, X] = TailoredSolver(lb, ub, xinit, x0, all_parameters, num_of_threads)
     
-    [output, ~, ~] = TailoredSolverBuildable.forcesCall(lb, ub, hu, xinit, x0, all_parameters, num_of_threads);
+    [output, ~, ~] = TailoredSolverBuildable.forcesCall(lb, ub, xinit, x0, all_parameters, num_of_threads);
     U = output.U;
     X = output.X;
 end

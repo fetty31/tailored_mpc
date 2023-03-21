@@ -193,14 +193,14 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
     {
     mexErrMsgTxt("PARAMS.lb must be a double.");
     }
-    if( mxGetM(par) != 320 || mxGetN(par) != 1 ) 
+    if( mxGetM(par) != 480 || mxGetN(par) != 1 ) 
 	{
-    mexErrMsgTxt("PARAMS.lb must be of size [320 x 1]");
+    mexErrMsgTxt("PARAMS.lb must be of size [480 x 1]");
     }
 #endif	 
 	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
 	{
-		copyMArrayToC_double(mxGetPr(par), params.lb,320);
+		copyMArrayToC_double(mxGetPr(par), params.lb,480);
 
 	}
 	par = mxGetField(PARAMS, 0, "ub");
@@ -213,34 +213,14 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
     {
     mexErrMsgTxt("PARAMS.ub must be a double.");
     }
-    if( mxGetM(par) != 280 || mxGetN(par) != 1 ) 
+    if( mxGetM(par) != 480 || mxGetN(par) != 1 ) 
 	{
-    mexErrMsgTxt("PARAMS.ub must be of size [280 x 1]");
+    mexErrMsgTxt("PARAMS.ub must be of size [480 x 1]");
     }
 #endif	 
 	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
 	{
-		copyMArrayToC_double(mxGetPr(par), params.ub,280);
-
-	}
-	par = mxGetField(PARAMS, 0, "hu");
-#ifdef MEXARGMUENTCHECKS
-    if( par == NULL )	
-	{
-        mexErrMsgTxt("PARAMS.hu not found");
-    }
-    if( !mxIsDouble(par) )
-    {
-    mexErrMsgTxt("PARAMS.hu must be a double.");
-    }
-    if( mxGetM(par) != 80 || mxGetN(par) != 1 ) 
-	{
-    mexErrMsgTxt("PARAMS.hu must be of size [80 x 1]");
-    }
-#endif	 
-	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
-	{
-		copyMArrayToC_double(mxGetPr(par), params.hu,80);
+		copyMArrayToC_double(mxGetPr(par), params.ub,480);
 
 	}
 	par = mxGetField(PARAMS, 0, "xinit");
@@ -253,14 +233,14 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
     {
     mexErrMsgTxt("PARAMS.xinit must be a double.");
     }
-    if( mxGetM(par) != 7 || mxGetN(par) != 1 ) 
+    if( mxGetM(par) != 6 || mxGetN(par) != 1 ) 
 	{
-    mexErrMsgTxt("PARAMS.xinit must be of size [7 x 1]");
+    mexErrMsgTxt("PARAMS.xinit must be of size [6 x 1]");
     }
 #endif	 
 	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
 	{
-		copyMArrayToC_double(mxGetPr(par), params.xinit,7);
+		copyMArrayToC_double(mxGetPr(par), params.xinit,6);
 
 	}
 	par = mxGetField(PARAMS, 0, "x0");
@@ -273,14 +253,14 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
     {
     mexErrMsgTxt("PARAMS.x0 must be a double.");
     }
-    if( mxGetM(par) != 320 || mxGetN(par) != 1 ) 
+    if( mxGetM(par) != 480 || mxGetN(par) != 1 ) 
 	{
-    mexErrMsgTxt("PARAMS.x0 must be of size [320 x 1]");
+    mexErrMsgTxt("PARAMS.x0 must be of size [480 x 1]");
     }
 #endif	 
 	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
 	{
-		copyMArrayToC_double(mxGetPr(par), params.x0,320);
+		copyMArrayToC_double(mxGetPr(par), params.x0,480);
 
 	}
 	par = mxGetField(PARAMS, 0, "all_parameters");
@@ -293,14 +273,14 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
     {
     mexErrMsgTxt("PARAMS.all_parameters must be a double.");
     }
-    if( mxGetM(par) != 1000 || mxGetN(par) != 1 ) 
+    if( mxGetM(par) != 1920 || mxGetN(par) != 1 ) 
 	{
-    mexErrMsgTxt("PARAMS.all_parameters must be of size [1000 x 1]");
+    mexErrMsgTxt("PARAMS.all_parameters must be of size [1920 x 1]");
     }
 #endif	 
 	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
 	{
-		copyMArrayToC_double(mxGetPr(par), params.all_parameters,1000);
+		copyMArrayToC_double(mxGetPr(par), params.all_parameters,1920);
 
 	}
 	par = mxGetField(PARAMS, 0, "num_of_threads");
@@ -345,9 +325,9 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
 	mxSetField(plhs[0], 0, "U", outvar);
 
 
-	/* column vector of length 160 */
-	outvar = mxCreateDoubleMatrix(160, 1, mxREAL);
-	copyCArrayToM_double((&(output.X[0])), mxGetPr(outvar), 160);
+	/* column vector of length 320 */
+	outvar = mxCreateDoubleMatrix(320, 1, mxREAL);
+	copyCArrayToM_double((&(output.X[0])), mxGetPr(outvar), 320);
 	mxSetField(plhs[0], 0, "X", outvar);
 
 

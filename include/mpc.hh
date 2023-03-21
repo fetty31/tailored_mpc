@@ -35,13 +35,13 @@ struct Boundaries{
         // VARIABLES BOUNDARIES:
 
           // Bounds and initial guess for the control
-        vector<double> u_min =  { 0.0, -3*M_PI/180 }; // delta max,min bounds will be overwriten by dynamic reconfigure callback
+        vector<double> u_min =  { -3*M_PI/180 }; // delta max,min bounds will be overwriten by dynamic reconfigure callback
         vector<double> u_max  = { 3*M_PI/180 };
         vector<double> u0 = {  0.0, 0.0  };
 
           // Bounds and initial guess for the state
-        vector<double> x_min  = { -23.0*M_PI/180, -5.0, -M_PI, -50.0*M_PI/180 };
-        vector<double> x_max  = { 23.0*M_PI/180, 5.0, M_PI, 50.0*M_PI/180 };
+        vector<double> x_min  = { -23.0*M_PI/180, -20000, -5.0, -M_PI, -50.0*M_PI/180 };
+        vector<double> x_max  = { 23.0*M_PI/180, 20000, 5.0, M_PI, 50.0*M_PI/180 };
         vector<double> x0 = { 0.0, 0.0, 0.0, 0.0 };
 
 };
@@ -112,11 +112,11 @@ class MPC{
 
         // Initial conditions evaluation
         void initial_conditions();
+        Eigen::VectorXd heading;
+        Eigen::MatrixXd y_bounds;
 
         // S prediction
-        void s_prediction();
-        Eigen::VectorXd predicted_s;
-        Eigen::VectorXd progress;
+        void state_prediction();
         double smax = 0;
 
         // FORCESPRO:
@@ -170,11 +170,11 @@ class MPC{
 
         // Previous state
         Eigen::MatrixXd lastState;    // [x, y, theta, vx, vy, r]
-        Eigen::MatrixXd lastCommands; // [diff_delta, Mtv, delta]
+        Eigen::MatrixXd lastCommands; // [diff_delta, delta]
 
         // Previous solution
         Eigen::MatrixXd solStates;    // [y, vy, theta (heading/yaw), r]
-        Eigen::MatrixXd solCommands;  // [slack_track, diff_delta, delta]
+        Eigen::MatrixXd solCommands;  // [diff_delta, delta]
 };
 
 
