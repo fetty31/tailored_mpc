@@ -60,13 +60,13 @@ Model {
       }
     }
   }
-  Created		  "3/21/2023 11:21:15 AM"
+  Created		  "3/21/2023 12:24:14 PM"
   Creator		  "embotech AG"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "embotech AG"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "3/21/2023 11:21:15 AM"
+  LastModifiedDate	  "3/21/2023 12:24:14 PM"
   RTWModifiedTimeStamp	  315310195
   ModelVersionFormat	  "1.%<AutoIncrement:2>"
   ConfigurationManager	  "None"
@@ -801,15 +801,15 @@ Model {
 	Help			"TailoredSolver_simulinkBlock provides an easy Simulink interface for simulating your customized solver.  \n"
 	"\nOUTPUTS = TailoredSolver(INPUTS) solves an optimization problem where:\n\n"
 	"INPUTS:\n"
-	" - lb - matrix of size [480x1]\n  "
-" - ub - matrix of size [480x1]\n  "
-" - xinit - matrix of size [6x1]\n  "
-" - x0 - matrix of size [480x1]\n  "
+	" - lb - matrix of size [400x1]\n  "
+" - ub - matrix of size [400x1]\n  "
+" - xinit - matrix of size [5x1]\n  "
+" - x0 - matrix of size [400x1]\n  "
 " - all_parameters - matrix of size [1920x1]\n  "
 " - num_of_threads - scalar\n  "
 
 	"\nOUTPUTS:\n"
-	" - U - column vector of length 160\n  "
+	" - U - column vector of length 80\n  "
 " - X - column vector of length 320\n  "
 
 	"\n For more information, see https://forces.embotech.com/Documentation/simulink_interface/index.html \n "

@@ -41,15 +41,15 @@ function [model, codeoptions] = generate_solver_cartesian(solverDir, horizonLeng
     %% Inequality constraints
     % upper/lower variable bounds lb <= z <= ub
     %          inputs          |             states
-    % z = [diff_delta, delta, y, vy, heading (or yaw), r]    
-    model.lbidx = [1, 2, 3, 4, 5, 6]'; 
-    model.ubidx = [1, 2, 3, 4, 5, 6]';
+    % z = [delta, y, vy, heading (or yaw), r]    
+    model.lbidx = [1, 2, 3, 4, 5]'; 
+    model.ubidx = [1, 2, 3, 4, 5]';
     model.lb = []; 
     model.ub = [];
     
     %% Initial conditions
     % Initial conditions on all states
-    model.xinitidx = 1:6; % use this to specify on which variables initial conditions are imposed
+    model.xinitidx = 1:5; % use this to specify on which variables initial conditions are imposed
 
     %% Linear subsystem
 %     model.linInIdx = [1, 2]';
@@ -115,10 +115,10 @@ function f = objective(z, p)
     q_slack_track = p(21);
 
     vx = p(22);
-    delta = z(2);
-    y = z(3);
-    vy = z(4);
-    theta = z(5);
+    delta = z(1);
+    y = z(2);
+    vy = z(3);
+    theta = z(4);
 
     % Slip difference
     beta_dyn = atan(vy/vx);
@@ -134,7 +134,7 @@ end
 function xnext = integrated_dynamics(z, p)
 
     u = z(1:1);
-    x = z(2:6);
+    x = z(2:5);
     Ts = p(20);
 
     xnext = RK4(x, u, @my_continuous_dynamics, Ts, p);
@@ -143,14 +143,12 @@ end
 
 function xdot = my_continuous_dynamics(x, u, p)
     
-    delta = x(1);
-    y = x(2);
-    vy = x(3);
+    delta = u(1);
+    y = x(1);
+    vy = x(2);
     vx = p(22);
-    theta = x(4);
-    r = x(5);
-    
-    diff_delta = u(1);
+    theta = x(3);
+    r = x(4);
     
     m = p(2);
     I = p(3);
@@ -177,8 +175,7 @@ function xdot = my_continuous_dynamics(x, u, p)
     Ff = Df*sin(Cf*atan(Bf*alpha_F));
     
     % Differential equations (time dependent)
-    xdot = [diff_delta;
-            vx*sin(theta) + vy*cos(theta);
+    xdot = [vx*sin(theta) + vy*cos(theta);
             (1/m)*(Fr + Ff*cos(delta) - m*vx*r);
             r;
             (1/I)*(Ff*cos(delta)*Lf - Fr*Lr)];

@@ -193,14 +193,14 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
     {
     mexErrMsgTxt("PARAMS.lb must be a double.");
     }
-    if( mxGetM(par) != 480 || mxGetN(par) != 1 ) 
+    if( mxGetM(par) != 400 || mxGetN(par) != 1 ) 
 	{
-    mexErrMsgTxt("PARAMS.lb must be of size [480 x 1]");
+    mexErrMsgTxt("PARAMS.lb must be of size [400 x 1]");
     }
 #endif	 
 	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
 	{
-		copyMArrayToC_double(mxGetPr(par), params.lb,480);
+		copyMArrayToC_double(mxGetPr(par), params.lb,400);
 
 	}
 	par = mxGetField(PARAMS, 0, "ub");
@@ -213,14 +213,14 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
     {
     mexErrMsgTxt("PARAMS.ub must be a double.");
     }
-    if( mxGetM(par) != 480 || mxGetN(par) != 1 ) 
+    if( mxGetM(par) != 400 || mxGetN(par) != 1 ) 
 	{
-    mexErrMsgTxt("PARAMS.ub must be of size [480 x 1]");
+    mexErrMsgTxt("PARAMS.ub must be of size [400 x 1]");
     }
 #endif	 
 	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
 	{
-		copyMArrayToC_double(mxGetPr(par), params.ub,480);
+		copyMArrayToC_double(mxGetPr(par), params.ub,400);
 
 	}
 	par = mxGetField(PARAMS, 0, "xinit");
@@ -233,14 +233,14 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
     {
     mexErrMsgTxt("PARAMS.xinit must be a double.");
     }
-    if( mxGetM(par) != 6 || mxGetN(par) != 1 ) 
+    if( mxGetM(par) != 5 || mxGetN(par) != 1 ) 
 	{
-    mexErrMsgTxt("PARAMS.xinit must be of size [6 x 1]");
+    mexErrMsgTxt("PARAMS.xinit must be of size [5 x 1]");
     }
 #endif	 
 	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
 	{
-		copyMArrayToC_double(mxGetPr(par), params.xinit,6);
+		copyMArrayToC_double(mxGetPr(par), params.xinit,5);
 
 	}
 	par = mxGetField(PARAMS, 0, "x0");
@@ -253,14 +253,14 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
     {
     mexErrMsgTxt("PARAMS.x0 must be a double.");
     }
-    if( mxGetM(par) != 480 || mxGetN(par) != 1 ) 
+    if( mxGetM(par) != 400 || mxGetN(par) != 1 ) 
 	{
-    mexErrMsgTxt("PARAMS.x0 must be of size [480 x 1]");
+    mexErrMsgTxt("PARAMS.x0 must be of size [400 x 1]");
     }
 #endif	 
 	if ( (mxGetN(par) != 0) && (mxGetM(par) != 0) )
 	{
-		copyMArrayToC_double(mxGetPr(par), params.x0,480);
+		copyMArrayToC_double(mxGetPr(par), params.x0,400);
 
 	}
 	par = mxGetField(PARAMS, 0, "all_parameters");
@@ -319,9 +319,9 @@ void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_defau
 
 	/* copy output to matlab arrays */
 	plhs[0] = mxCreateStructMatrix(1, 1, 2, outputnames);
-		/* column vector of length 160 */
-	outvar = mxCreateDoubleMatrix(160, 1, mxREAL);
-	copyCArrayToM_double((&(output.U[0])), mxGetPr(outvar), 160);
+		/* column vector of length 80 */
+	outvar = mxCreateDoubleMatrix(80, 1, mxREAL);
+	copyCArrayToM_double((&(output.U[0])), mxGetPr(outvar), 80);
 	mxSetField(plhs[0], 0, "U", outvar);
 
 

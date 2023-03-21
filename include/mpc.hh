@@ -35,13 +35,13 @@ struct Boundaries{
         // VARIABLES BOUNDARIES:
 
           // Bounds and initial guess for the control
-        vector<double> u_min =  { -3*M_PI/180 }; // delta max,min bounds will be overwriten by dynamic reconfigure callback
-        vector<double> u_max  = { 3*M_PI/180 };
-        vector<double> u0 = {  0.0, 0.0  };
+        vector<double> u_min =  { -23.0*M_PI/180. }; // delta max,min bounds will be overwriten by dynamic reconfigure callback
+        vector<double> u_max =  { 23.0*M_PI/180. };
+        vector<double> u0 = { 0.0 };
 
           // Bounds and initial guess for the state
-        vector<double> x_min  = { -23.0*M_PI/180, -20000, -5.0, -M_PI, -50.0*M_PI/180 };
-        vector<double> x_max  = { 23.0*M_PI/180, 20000, 5.0, M_PI, 50.0*M_PI/180 };
+        vector<double> x_min  = { -20000, -5.0, -M_PI, -50.0*M_PI/180. };
+        vector<double> x_max  = { 20000, 5.0, M_PI, 50.0*M_PI/180. };
         vector<double> x0 = { 0.0, 0.0, 0.0, 0.0 };
 
 };

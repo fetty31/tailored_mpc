@@ -9,7 +9,7 @@ dictitems:
   Dr: 3152.3
   Vy_max: 5.0
   YawRate_max: 80.0
-  dRd: 0.1
+  dRd: 10.0
   diff_delta: 1000.0
   groups: !!python/object/new:dynamic_reconfigure.encoding.Config
     dictitems:
@@ -22,7 +22,7 @@ dictitems:
       Dr: 3152.3
       Vy_max: 5.0
       YawRate_max: 80.0
-      dRd: 0.1
+      dRd: 10.0
       diff_delta: 1000.0
       groups: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
@@ -35,8 +35,8 @@ dictitems:
       q_slack_track: 5.0
       q_slip: 2.0
       q_theta: 0.2
-      q_y: 100.0
-      q_yN: 100.0
+      q_y: 1000.0
+      q_yN: 1000.0
       state: true
       type: ''
       u_r: 0.45
@@ -45,7 +45,7 @@ dictitems:
   q_slack_track: 5.0
   q_slip: 2.0
   q_theta: 0.2
-  q_y: 100.0
-  q_yN: 100.0
+  q_y: 1000.0
+  q_yN: 1000.0
   u_r: 0.45
 state: []

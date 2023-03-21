@@ -89,7 +89,7 @@ visualization_msgs::MarkerArray VisualizationTools::getMarkersSteering(Eigen::Ma
 		marker.ns= "steering";
 		marker.id = id++;
 
-		q.setRPY( 0, 0, state(i, 2) + commands(i, 2)*3.9);
+		q.setRPY( 0, 0, state(i, 2) + commands(i, 0)*3.9);
 
 		marker.pose.position.x = state(i, 0);
 		marker.pose.position.y = state(i, 1);
