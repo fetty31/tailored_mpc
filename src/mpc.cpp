@@ -76,23 +76,24 @@ void MPC::stateCallback(const as_msgs::CarState::ConstPtr& msg){
 void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
 
     if(!troActive){ // if we are in AutoX mode (we follow planner's trajectory)
-        if (msg->objectives.size() < nPlanning){
+        if (msg->objectives.size() < nPlanning+nSearch){
                 ROS_WARN("MPC: Planner is too short!");
                 return;
         }
 
         // Fill planner matrix
         idx0 = first_index(msg);
+        cout << "first index picked from planner: " << idx0 << endl;
         planner.resize(nPlanning-idx0, 7);
-        for (unsigned int i = idx0; i < nPlanning-idx0 ; i++)
+        for (unsigned int i = idx0; i < nPlanning ; i++)
         {	
-            planner(i, 0) = msg->objectives[i].x;
-            planner(i, 1) = msg->objectives[i].y;
-            planner(i, 2) = msg->objectives[i].s; 
-            planner(i, 3) = (msg->objectives[i].k == 0.0) ? 1e-7 : msg->objectives[i].k; // avoid absolut zeros
-            planner(i, 4) = msg->objectives[i].vx;
-            planner(i, 5) = msg->objectives[i].L;
-            planner(i, 6) = msg->objectives[i].R;
+            planner(i-idx0, 0) = msg->objectives[i].x;
+            planner(i-idx0, 1) = msg->objectives[i].y;
+            planner(i-idx0, 2) = msg->objectives[i].s; 
+            planner(i-idx0, 3) = (msg->objectives[i].k == 0.0) ? 1e-7 : msg->objectives[i].k; // avoid absolut zeros
+            planner(i-idx0, 4) = msg->objectives[i].vx;
+            planner(i-idx0, 5) = msg->objectives[i].L;
+            planner(i-idx0, 6) = msg->objectives[i].R;
 
             if(msg->objectives[i].s > smax) smax = msg->objectives[i].s; // save maximum progress
         }
@@ -104,7 +105,7 @@ void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
 
 void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
 
-    if (msg->objectives.size() < nPlanning){
+    if (msg->objectives.size() < nPlanning+nSearch){
 			ROS_WARN("MPC: TRO is too short!");
 			return;
     }
@@ -112,15 +113,15 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
     // Fill planner matrix
     idx0 = first_index(msg);
     planner.resize(nPlanning-idx0, 7);
-    for (unsigned int i = idx0; i < nPlanning-idx0 ; i++)
+    for (unsigned int i = idx0; i < nPlanning ; i++)
     {	
-        planner(i, 0) = msg->objectives[i].x;
-        planner(i, 1) = msg->objectives[i].y;
-        planner(i, 2) = msg->objectives[i].s; 
-        planner(i, 3) = (msg->objectives[i].k == 0.0) ? 1e-7 : msg->objectives[i].k; 
-        planner(i, 4) = msg->objectives[i].vx;
-        planner(i, 5) = msg->objectives[i].L;
-        planner(i, 6) = msg->objectives[i].R;
+        planner(i-idx0, 0) = msg->objectives[i].x;
+        planner(i-idx0, 1) = msg->objectives[i].y;
+        planner(i-idx0, 2) = msg->objectives[i].s; 
+        planner(i-idx0, 3) = (msg->objectives[i].k == 0.0) ? 1e-7 : msg->objectives[i].k; 
+        planner(i-idx0, 4) = msg->objectives[i].vx;
+        planner(i-idx0, 5) = msg->objectives[i].L;
+        planner(i-idx0, 6) = msg->objectives[i].R;
     }
 
     smax = msg->smax;
@@ -138,8 +139,8 @@ void MPC::velsCallback(const as_msgs::CarVelocityArray::ConstPtr& msg){
     }
 
     pred_velocities.resize(msg->velocities.size()-idx0);
-    for(int i=idx0; i < msg->velocities.size()-idx0; i++){
-        pred_velocities(i) = msg->velocities[i].x;
+    for(int i=idx0; i < msg->velocities.size(); i++){
+        pred_velocities(i-idx0) = msg->velocities[i].x;
     }
     this->velsFlag = true; // we have received velocity data
 
@@ -327,7 +328,7 @@ void MPC::set_params_bounds(){
                 ROS_WARN_STREAM("planner(0, 2): " << planner(0, 2));
 
                 
-                double diff_s = fmod(progress(k) - this->planner(0, 2), this->smax);
+                double diff_s = fmod(progress(k) - planner(0, 2), this->smax);
                 id_k = int(round(diff_s/this->delta_s));
 
                 ROS_WARN_STREAM("diff_s: " << diff_s);
@@ -571,7 +572,7 @@ void MPC::msgCommands(as_msgs::CarCommands *msg){
 
 int MPC::first_index(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
 
-	double dist, minDist;
+	double dist = 0.0, minDist = 100.0;
     int firstIdx = 0;
 	Eigen::Vector2d position, car_direction;
 
