@@ -530,8 +530,6 @@ void MPC::s_prediction(){
         firstIter = true;    
     }
 
-    cout << "PREDICTED S:\n";
-    cout << predicted_s << endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
