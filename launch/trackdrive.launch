@@ -1,7 +1,7 @@
 <launch>
 
     <!-- TAILORED MPC -->
-    <node pkg="tailored_mpc" type="tailored_mpc_exec" name="tailored_mpc" output="screen">
+    <node pkg="tailored_mpc" type="tailored_mpc_exec" name="tailored_mpc" output="screen" launch-prefix="gdb -ex run --args">
         <rosparam file="$(find tailored_mpc)/params/tailored_mpc.yaml"/>
     </node>
 

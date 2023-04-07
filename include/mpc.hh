@@ -64,11 +64,11 @@ class MPC{
         int Nslacks = 2;              // number of slack vars
         int Npar = 31;                // number of real time parameters
         int sizeU, sizeX;             // size of states and controls FORCES arrays
-        int idx0 = 0;                 // idx of closest point to the car
+        // int idx0 = 0;                 // idx of closest point to the car
 
         // MPC
         int nPlanning = 1900;     // number of points wanted from the planner
-        int nSearch = 200;        // number of points where we will look for the close point to the car
+        int nSearch = 200;        // number of points where we will look for the close point to the car [not used]
         bool firstIter = true;    // first iteration flag
         int samplingS = 10;       // s sampling distance 
         double delta_s = 0.025;   // planner discretization [m]
