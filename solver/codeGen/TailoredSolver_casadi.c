@@ -37,7 +37,6 @@ extern "C" {
 #define casadi_s5 CASADI_PREFIX(s5)
 #define casadi_s6 CASADI_PREFIX(s6)
 #define casadi_s7 CASADI_PREFIX(s7)
-#define casadi_s8 CASADI_PREFIX(s8)
 #define casadi_sign CASADI_PREFIX(sign)
 #define casadi_sq CASADI_PREFIX(sq)
 
@@ -62,15 +61,14 @@ casadi_real casadi_sign(casadi_real x) { return x<0 ? -1 : x>0 ? 1 : x;}
 
 static const casadi_int casadi_s0[12] = {8, 1, 0, 8, 0, 1, 2, 3, 4, 5, 6, 7};
 static const casadi_int casadi_s1[29] = {25, 1, 0, 25, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24};
-static const casadi_int casadi_s2[3] = {0, 0, 0};
-static const casadi_int casadi_s3[5] = {1, 1, 0, 1, 0};
-static const casadi_int casadi_s4[18] = {1, 8, 0, 1, 2, 3, 4, 5, 6, 7, 7, 0, 0, 0, 0, 0, 0, 0};
-static const casadi_int casadi_s5[9] = {5, 1, 0, 5, 0, 1, 2, 3, 4};
-static const casadi_int casadi_s6[37] = {5, 8, 0, 0, 5, 9, 14, 16, 18, 22, 26, 0, 1, 2, 3, 4, 1, 2, 3, 4, 0, 1, 2, 3, 4, 1, 2, 1, 2, 1, 2, 3, 4, 1, 2, 3, 4};
-static const casadi_int casadi_s7[6] = {2, 1, 0, 2, 0, 1};
-static const casadi_int casadi_s8[17] = {2, 8, 0, 2, 2, 2, 2, 4, 6, 6, 6, 0, 1, 0, 1, 0, 1};
+static const casadi_int casadi_s2[5] = {1, 1, 0, 1, 0};
+static const casadi_int casadi_s3[18] = {1, 8, 0, 1, 2, 3, 4, 5, 6, 7, 7, 0, 0, 0, 0, 0, 0, 0};
+static const casadi_int casadi_s4[9] = {5, 1, 0, 5, 0, 1, 2, 3, 4};
+static const casadi_int casadi_s5[37] = {5, 8, 0, 0, 5, 9, 14, 16, 18, 22, 26, 0, 1, 2, 3, 4, 1, 2, 3, 4, 0, 1, 2, 3, 4, 1, 2, 1, 2, 1, 2, 3, 4, 1, 2, 3, 4};
+static const casadi_int casadi_s6[6] = {2, 1, 0, 2, 0, 1};
+static const casadi_int casadi_s7[17] = {2, 8, 0, 2, 2, 2, 2, 4, 6, 6, 6, 0, 1, 0, 1, 0, 1};
 
-/* TailoredSolver_objective_1:(i0[8],i1[25],i2[],i3[])->(o0,o1[1x8,7nz]) */
+/* TailoredSolver_objective_1:(i0[8],i1[25])->(o0,o1[1x8,7nz]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a0, a1, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a2, a20, a21, a22, a23, a24, a25, a3, a4, a5, a6, a7, a8, a9;
     a0=arg[1]? arg[1][0] : 0;
@@ -180,13 +178,21 @@ int TailoredSolver_objective_1(const casadi_real** arg, casadi_real** res, casad
 
 const casadi_int* TailoredSolver_objective_1_sparsity_out(casadi_int i) {
     switch (i) {
-        case 0: return casadi_s3;
-        case 1: return casadi_s4;
+        case 0: return casadi_s2;
+        case 1: return casadi_s3;
         default: return 0;
     }
 }
 
-/* TailoredSolver_dynamics_1:(i0[8],i1[25],i2[],i3[])->(o0[5],o1[5x8,26nz]) */
+int TailoredSolver_objective_1_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+    if (sz_arg) *sz_arg = 2;
+    if (sz_res) *sz_res = 2;
+    if (sz_iw) *sz_iw = 0;
+    if (sz_w) *sz_w = 0;
+    return 0;
+}
+
+/* TailoredSolver_dynamics_1:(i0[8],i1[25])->(o0[5],o1[5x8,26nz]) */
 static int casadi_f1(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a0, a1, a10, a100, a101, a102, a103, a104, a105, a106, a107, a108, a11, a12, a13, a14, a15, a16, a17, a18, a19, a2, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a3, a30, a31, a32, a33, a34, a35, a36, a37, a38, a39, a4, a40, a41, a42, a43, a44, a45, a46, a47, a48, a49, a5, a50, a51, a52, a53, a54, a55, a56, a57, a58, a59, a6, a60, a61, a62, a63, a64, a65, a66, a67, a68, a69, a7, a70, a71, a72, a73, a74, a75, a76, a77, a78, a79, a8, a80, a81, a82, a83, a84, a85, a86, a87, a88, a89, a9, a90, a91, a92, a93, a94, a95, a96, a97, a98, a99;
     a0=arg[0]? arg[0][3] : 0;
@@ -1604,13 +1610,21 @@ int TailoredSolver_dynamics_1(const casadi_real** arg, casadi_real** res, casadi
 
 const casadi_int* TailoredSolver_dynamics_1_sparsity_out(casadi_int i) {
     switch (i) {
-        case 0: return casadi_s5;
-        case 1: return casadi_s6;
+        case 0: return casadi_s4;
+        case 1: return casadi_s5;
         default: return 0;
     }
 }
 
-/* TailoredSolver_inequalities_1:(i0[8],i1[25],i2[],i3[])->(o0[2],o1[2x8,6nz]) */
+int TailoredSolver_dynamics_1_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+    if (sz_arg) *sz_arg = 2;
+    if (sz_res) *sz_res = 2;
+    if (sz_iw) *sz_iw = 0;
+    if (sz_w) *sz_w = 0;
+    return 0;
+}
+
+/* TailoredSolver_inequalities_1:(i0[8],i1[25])->(o0[2],o1[2x8,6nz]) */
 static int casadi_f2(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a0, a1, a2, a3, a4, a5, a6, a7;
     a0=arg[0]? arg[0][4] : 0;
@@ -1668,13 +1682,21 @@ int TailoredSolver_inequalities_1(const casadi_real** arg, casadi_real** res, ca
 
 const casadi_int* TailoredSolver_inequalities_1_sparsity_out(casadi_int i) {
     switch (i) {
-        case 0: return casadi_s7;
-        case 1: return casadi_s8;
+        case 0: return casadi_s6;
+        case 1: return casadi_s7;
         default: return 0;
     }
 }
 
-/* TailoredSolver_objective_40:(i0[8],i1[25],i2[],i3[])->(o0,o1[1x8,7nz]) */
+int TailoredSolver_inequalities_1_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+    if (sz_arg) *sz_arg = 2;
+    if (sz_res) *sz_res = 2;
+    if (sz_iw) *sz_iw = 0;
+    if (sz_w) *sz_w = 0;
+    return 0;
+}
+
+/* TailoredSolver_objective_40:(i0[8],i1[25])->(o0,o1[1x8,7nz]) */
 static int casadi_f3(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a0, a1, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a2, a20, a21, a22, a23, a24, a25, a3, a4, a5, a6, a7, a8, a9;
     a0=arg[1]? arg[1][0] : 0;
@@ -1784,13 +1806,21 @@ int TailoredSolver_objective_40(const casadi_real** arg, casadi_real** res, casa
 
 const casadi_int* TailoredSolver_objective_40_sparsity_out(casadi_int i) {
     switch (i) {
-        case 0: return casadi_s3;
-        case 1: return casadi_s4;
+        case 0: return casadi_s2;
+        case 1: return casadi_s3;
         default: return 0;
     }
 }
 
-/* TailoredSolver_inequalities_40:(i0[8],i1[25],i2[],i3[])->(o0[2],o1[2x8,6nz]) */
+int TailoredSolver_objective_40_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+    if (sz_arg) *sz_arg = 2;
+    if (sz_res) *sz_res = 2;
+    if (sz_iw) *sz_iw = 0;
+    if (sz_w) *sz_w = 0;
+    return 0;
+}
+
+/* TailoredSolver_inequalities_40:(i0[8],i1[25])->(o0[2],o1[2x8,6nz]) */
 static int casadi_f4(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a0, a1, a2, a3, a4, a5, a6, a7;
     a0=arg[0]? arg[0][4] : 0;
@@ -1848,10 +1878,18 @@ int TailoredSolver_inequalities_40(const casadi_real** arg, casadi_real** res, c
 
 const casadi_int* TailoredSolver_inequalities_40_sparsity_out(casadi_int i) {
     switch (i) {
-        case 0: return casadi_s7;
-        case 1: return casadi_s8;
+        case 0: return casadi_s6;
+        case 1: return casadi_s7;
         default: return 0;
     }
+}
+
+int TailoredSolver_inequalities_40_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+    if (sz_arg) *sz_arg = 2;
+    if (sz_res) *sz_res = 2;
+    if (sz_iw) *sz_iw = 0;
+    if (sz_w) *sz_w = 0;
+    return 0;
 }
 
 #ifdef __cplusplus

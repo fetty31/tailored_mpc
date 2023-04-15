@@ -18,34 +18,24 @@ extern "C" {
 
 int TailoredSolver_objective_1(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 
-void TailoredSolver_objective_1_incref(void);
-
 const casadi_int* TailoredSolver_objective_1_sparsity_out(casadi_int i);
-
+int TailoredSolver_objective_1_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
 int TailoredSolver_dynamics_1(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 
-void TailoredSolver_dynamics_1_incref(void);
-
 const casadi_int* TailoredSolver_dynamics_1_sparsity_out(casadi_int i);
-
+int TailoredSolver_dynamics_1_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
 int TailoredSolver_inequalities_1(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 
-void TailoredSolver_inequalities_1_incref(void);
-
 const casadi_int* TailoredSolver_inequalities_1_sparsity_out(casadi_int i);
-
+int TailoredSolver_inequalities_1_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
 int TailoredSolver_objective_40(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 
-void TailoredSolver_objective_40_incref(void);
-
 const casadi_int* TailoredSolver_objective_40_sparsity_out(casadi_int i);
-
+int TailoredSolver_objective_40_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
 int TailoredSolver_inequalities_40(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 
-void TailoredSolver_inequalities_40_incref(void);
-
 const casadi_int* TailoredSolver_inequalities_40_sparsity_out(casadi_int i);
-
+int TailoredSolver_inequalities_40_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

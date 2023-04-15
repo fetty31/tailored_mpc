@@ -1,6 +1,6 @@
 #TailoredSolver : A fast customized optimization solver.
 #
-#Copyright (C) 2013-2022 EMBOTECH AG [info@embotech.com]. All rights reserved.
+#Copyright (C) 2013-2023 EMBOTECH AG [info@embotech.com]. All rights reserved.
 #
 #
 #This program is distributed in the hope that it will be useful.

@@ -17,25 +17,6 @@ void dynamicCallback(tailored_mpc::dynamicConfig &config, uint32_t level, MPC* m
 
 }
 
-void subscribing(MPC* mpc)
-{
-
-    // Node handler shared pointer
-    ros::NodeHandlePtr node = boost::make_shared<ros::NodeHandle>("~");
-
-    // Topics
-    string velsTopic;
-
-    // Setting params from yaml
-    node->param<string>("Topics/Velocities", velsTopic, "/AS/C/pid/velocity");
-
-    // Subscribers
-	ros::Subscriber subVel = node->subscribe(velsTopic, 1, &MPC::velsCallback, mpc);
-
-    ros::spin();
-
-}
-
 void my_SIGhandler(int sig){
 
     if(ros::master::check()){
@@ -72,9 +53,8 @@ int main(int argc, char **argv) {
     MPC mpc(&params);
 
     // Spawn another thread
-    // boost::shared_ptr<MPC> mpcPtr = boost::make_shared<MPC>(mpc);
-    boost::thread thread_subs(subscribing, &mpc);
-    ros::NodeHandlePtr node = boost::make_shared<ros::NodeHandle>("~");
+    // boost::thread thread_subs(subscribing, &mpc);
+    // ros::NodeHandlePtr node = boost::make_shared<ros::NodeHandle>("~");
 
     // Visualization tools
     VisualizationTools rviz = VisualizationTools(&mpc, &params);
@@ -83,7 +63,7 @@ int main(int argc, char **argv) {
     ros::Subscriber subState = nh.subscribe(params.mpc.topics.state, 1, &MPC::stateCallback, &mpc);
     ros::Subscriber subPlanner = nh.subscribe(params.mpc.topics.planner, 1, &MPC::plannerCallback, &mpc);
     ros::Subscriber subTro = nh.subscribe(params.mpc.topics.tro, 1, &MPC::troCallback, &mpc);
-    // ros::Subscriber subVel = nh.subscribe(params.mpc.topics.velocities, 1, &MPC::velsCallback, &mpc);
+    ros::Subscriber subVel = nh.subscribe(params.mpc.topics.velocities, 1, &MPC::velsCallback, &mpc);
     pubCommands = nh.advertise<as_msgs::CarCommands>(params.mpc.topics.commands, 1);
 
         // DEBUG

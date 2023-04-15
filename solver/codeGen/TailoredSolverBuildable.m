@@ -1,6 +1,6 @@
 % TailoredSolver : A fast customized optimization solver.
 % 
-% Copyright (C) 2013-2022 EMBOTECH AG [info@embotech.com]. All rights reserved.
+% Copyright (C) 2013-2023 EMBOTECH AG [info@embotech.com]. All rights reserved.
 % 
 % 
 % This program is distributed in the hope that it will be useful.
@@ -36,7 +36,18 @@ classdef TailoredSolverBuildable < coder.ExternalDependency
             if(~strcmp(foldername, 'interface') || ~strcmp(solvername, 'TailoredSolver'))
                 solverpath = fullfile(buildablepath, 'TailoredSolver');
             end
-            ForcesUpdateBuildInfo(buildInfo, cfg, 'TailoredSolver', solverpath, 1, true);
+            solverInfo = struct();
+            solverInfo.solvername = 'TailoredSolver';
+            solverInfo.solverpath = solverpath;
+            solverInfo.pythonClientFormat = false;
+            solverInfo.useParallel = 1;
+            solverInfo.isNLP = true;
+            ForcesUpdateBuildInfo(buildInfo, cfg, solverInfo);
+            postUpdateBuildInfoScript = [solverInfo.solvername, 'PostUpdateBuildInfo'];
+            if exist(fullfile(buildablepath, [postUpdateBuildInfoScript, '.m']), 'file')
+                postUpdateBuildInfo = str2func(postUpdateBuildInfoScript);
+                postUpdateBuildInfo(buildInfo, cfg, solverInfo);
+            end
         end
         
         function [output,exitflag,info] = forcesInitOutputsMatlab()
@@ -152,7 +163,7 @@ classdef TailoredSolverBuildable < coder.ExternalDependency
             output.U = cast(output_c.U, 'like', output.U);
             output.X = cast(output_c.X, 'like', output.X);
             
-            exitflag = exitflag_c;
+            exitflag = cast(exitflag_c, 'like', exitflag);
         end
     end
 

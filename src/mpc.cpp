@@ -320,7 +320,7 @@ void MPC::set_params_bounds(){
                 ROS_INFO_STREAM("planner(0, 2): " << planner(0, 2));
                 ROS_INFO_STREAM("smax: " << this->smax);
                 
-                double diff_s = double(progress(k)) - double(planner(0,2));
+                double diff_s = progress(k) - planner(0,2);
                 ROS_INFO_STREAM("diff_s: " << diff_s);
 
                 if(diff_s < -10.0) diff_s += this->smax; // If we are passing the start line, reset diff (here we use 10m to make sure we have actually crossed the start line)
@@ -481,11 +481,7 @@ void MPC::s_prediction(){
 
         double sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
 
-        cout << "sdot:" << sdot << endl;
-
         predicted_s(i) = predicted_s(i-1) + sdot*this->rk4_t;
-
-        cout << "predicted s: " << predicted_s(i) << endl;
 
         // Ensure sdot > 0
         if(sdot < 0){

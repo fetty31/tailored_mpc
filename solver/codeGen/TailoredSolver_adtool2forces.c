@@ -1,6 +1,6 @@
 /*
  * AD tool to FORCESPRO Template - missing information to be filled in by createADTool.m 
- * (C) embotech AG, Zurich, Switzerland, 2013-2022. All rights reserved.
+ * (C) embotech AG, Zurich, Switzerland, 2013-2023. All rights reserved.
  *
  * This file is part of the FORCESPRO client, and carries the same license.
  */ 
@@ -57,10 +57,11 @@ extern solver_int32_default TailoredSolver_adtool2forces(TailoredSolver_float *x
     /* AD tool input and output arrays */
     const TailoredSolver_callback_float *in[4];
     TailoredSolver_callback_float *out[7];
-	
+    
 
-	/* Allocate working arrays for AD tool */
-	TailoredSolver_callback_float w[109];
+    /* Allocate working arrays for AD tool */
+    
+    TailoredSolver_callback_float w[109];
 	
     /* temporary storage for AD tool sparse output */
     TailoredSolver_callback_float this_f = (TailoredSolver_callback_float) 0.0;
