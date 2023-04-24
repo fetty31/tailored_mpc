@@ -11,6 +11,10 @@ struct Params{
     // Constructor
     Params(const ros::NodeHandle* nh);
 
+    struct Debug{
+        string path;  // path where we will save debugging info
+    } debug;
+
     struct Vehicle{
         int m;                          // Car's mass (without pilot)
         double width, longue;           // Car's track width & length

@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
 
     ros::Duration(2.0).sleep();
 
-    ROS_INFO_STREAM("MPC: publish frequency: " << mpc.Hz << "Hz");
+    ROS_WARN_STREAM("MPC: publish frequency: " << mpc.Hz << "Hz");
     ROS_WARN_STREAM("MPC: internal threads: " << mpc.Nthreads);
 
     // Msgs declaration

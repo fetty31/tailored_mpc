@@ -7,8 +7,6 @@ MPC::MPC(const Params* params){
     this->N = params->mpc.nlop.N;
     this->Nslacks = params->mpc.nlop.Nslacks;
 
-    ROS_INFO_STREAM("Nslacks: " << Nslacks);
-
     // MPC
     this->Hz            = params->mpc.Hz;
     this->rk4_t         = params->mpc.rk4_t;
@@ -16,9 +14,6 @@ MPC::MPC(const Params* params){
     this->nPlanning     = params->mpc.nPlanning;
     this->nSearch       = params->mpc.nSearch;
     this->Nthreads      = params->mpc.Nthreads;
-
-    ROS_INFO_STREAM("Hz: " << Hz);
-    ROS_INFO_STREAM("rk4_t: " << rk4_t);
 
     // Vehicle params
     this->m         = params->vehicle.m;
@@ -41,10 +36,6 @@ MPC::MPC(const Params* params){
 
     this->n_states = int(sizeX/N);      // number of car state variables
     this->n_controls = int(sizeU/N);    // number of commands variables    
-
-    ROS_INFO_STREAM("n_states: " << n_states);
-    ROS_INFO_STREAM("n_controls: " << n_controls);
-    ROS_INFO_STREAM("Npar: " << Npar);
 
     planner = Eigen::MatrixXd::Zero(nPlanning,7);
     carState = Eigen::VectorXd::Zero(9);
@@ -124,7 +115,6 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
     }
 
     smax = msg->smax;
-    // cout << "SMAX: " << smax << endl;
     plannerFlag = troActive = true; // we are now following TRO's trajectory
     ROS_WARN_ONCE("MPC: FOLLOWING TRO! :)");
 
@@ -169,9 +159,9 @@ void MPC::solve(){
         // Solve
         forces.exit_flag = TailoredSolver_solve(&forces.params, &forces.solution, &forces.info, forces.mem_handle, NULL, forces.ext_func);
 
-        ROS_ERROR_STREAM("MPC exit flag: " << forces.exit_flag);
-        ROS_ERROR_STREAM("MPC solve time: " << forces.info.solvetime*1000 << " ms");
-        ROS_ERROR_STREAM("MPC iterations: " << forces.info.it);
+        ROS_WARN_STREAM("TAILORED MPC exit flag: " << forces.exit_flag);
+        // ROS_WARN_STREAM("TAILORED MPC solve time: " << forces.info.solvetime*1000 << " ms");
+        // ROS_WARN_STREAM("TAILORED MPC iterations: " << forces.info.it);
 
         if(forces.exit_flag == 1 || forces.exit_flag == 0) this->firstIter = false;
         else this->firstIter = true; // we go back to first iteration's pipeline if the NLOP didn't converge
@@ -184,7 +174,7 @@ void MPC::solve(){
 
         elapsed_time = finish_time - start_time;
 
-        ROS_WARN("TAILORED MPC elapsed time: %f ms", elapsed_time.count()*1000);
+        // ROS_WARN("TAILORED MPC elapsed time: %f ms", elapsed_time.count()*1000);
 
         // Save data
         // save<float>("/home/fetty/Desktop/control_ws2022/src/control/tailored_mpc/debug/", "solve_time.txt", elapsed_time.count()*1000, true);
@@ -316,18 +306,18 @@ void MPC::set_params_bounds(){
                 
                 progress(k) = predicted_s(id_sinit);
 
-                ROS_INFO_STREAM("predicted_s: " << progress(k));
-                ROS_INFO_STREAM("planner(0, 2): " << planner(0, 2));
-                ROS_INFO_STREAM("smax: " << this->smax);
+                cout << "predicted_s: " << progress(k) << endl;
+                cout << "planner(0, 2): " << planner(0, 2) << endl;
+                cout << "smax: " << this->smax << endl;
                 
                 double diff_s = progress(k) - planner(0,2);
-                ROS_INFO_STREAM("diff_s: " << diff_s);
+                cout << "diff_s: " << diff_s << endl;
 
-                if(diff_s < -10.0) diff_s += this->smax; // If we are passing the start line, reset diff (here we use 10m to make sure we have actually crossed the start line)
+                if(diff_s < -30.0) diff_s += this->smax; // If we are passing the start line, reset diff (here we use 30m to make sure we have actually crossed the start line)
                 id_k = int(round(diff_s/this->delta_s));
 
-                ROS_INFO_STREAM("diff_s: " << diff_s);
-                ROS_INFO_STREAM("id_k: " << id_k);
+                cout << "diff_s: " << diff_s << endl;
+                cout << "id_k: " << id_k << endl;
 
                 id_sinit++;
                 if(diff_s > 0.0) plannerIdx = id_k; 
@@ -339,8 +329,8 @@ void MPC::set_params_bounds(){
                     diff_s = progress(k) - progress(k-1);
                     cout << "diff_s: " << diff_s << endl;
  
-                    // if(diff_s < 0) diff_s += this->smax; // If we are passing the start line, reset diff
-                    if(diff_s < 0) diff_s = 0;
+                    if(diff_s < -30.0) diff_s += this->smax; // If we are passing the start line, reset diff
+                    // if(diff_s < 0) diff_s = 0;
 
                     mean_s += diff_s;
                 }
@@ -482,6 +472,7 @@ void MPC::s_prediction(){
         double sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
 
         predicted_s(i) = predicted_s(i-1) + sdot*this->rk4_t;
+        if(predicted_s(i) > this->smax) predicted_s(i) -= this->smax; // if we have done one lap, reset progress
 
         // Ensure sdot > 0
         if(sdot < 0){

@@ -54,7 +54,7 @@ add_library(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${FORCESPRO_LIBRARY})
 target_link_libraries(${PROJECT_NAME}_exec ${catkin_LIBRARIES} ${PROJECT_NAME})
 
-add_dependencies(${PROJECT_NAME} as_msgs_generate_messages_cpp)
+# add_dependencies(${PROJECT_NAME} as_msgs_generate_messages_cpp)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 
 # Mandatory for parallelism (OpenMP)

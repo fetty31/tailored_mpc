@@ -14,23 +14,25 @@ Vehicle:
   Rwheel: 0.2                                         # Effective wheel radius
 
 Topics:
-  State: /AS/C/state
-  Commands: /AS/C/steering
-  Planner: /AS/C/trajectory/partial
-  Tro: /AS/C/trajectory/full
+  State:      /AS/C/state
+  Commands:   /AS/C/steering
+  Planner:    /AS/C/trajectory/partial
+  Tro:        /AS/C/trajectory/full
   Velocities: /AS/C/pid/velocity
   Debug:
-    Time: /AS/C/mpc/debug/time
-    ExitFlag: /AS/C/mpc/debug/exitflags
-    Curvature: /AS/C/mpc/debug/curvature
-    Progress: /AS/C/mpc/debug/progress
-    Velocity: /AS/C/mpc/debug/velocity
+    Time:       /AS/C/mpc/debug/time
+    ExitFlag:   /AS/C/mpc/debug/exitflags
+    Curvature:  /AS/C/mpc/debug/curvature
+    Progress:   /AS/C/mpc/debug/progress
+    Velocity:   /AS/C/mpc/debug/velocity
   Vis:
     PredictedSteering:  /vis/predictedPath/steering
     PredictedPath:      /vis/predictedPath/path
     PredictedHeading:   /vis/predictedPath/heading
     ActualPath:         /vis/actualPlanner/path
-  # TO DO: fill with other topics
+
+Debug:
+  Path: $(find tailored_mpc)/debug/
 
 NLOP:
   N: 40                                               # Prediction horizon
@@ -43,4 +45,4 @@ MPC:
 
   nPlanning: 1500                                     # n points saved from the planner
   plannerAccuracy: 0.025                              # [m] distance accuracy of the planner (distance between given points)
-  nSearchAhead: 5                                     # [m] distance ahead where we will look for the closer point to the car
+  nSearchAhead: 5                                     # [m] distance ahead where we will look for the closer point to the car (int)
