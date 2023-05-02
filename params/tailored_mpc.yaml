@@ -39,7 +39,7 @@ NLOP:
   Nslacks: 1                                          # Number of slacks variables            
 
 MPC:
-  Hz: 50                                              #[s] MPC frequency
+  Hz: 40                                              #[s] MPC frequency
   rk4_t: 0.025                                        #[s] Runge Kutta integration time
   Nthreads: 5                                         # Number of threads
 
