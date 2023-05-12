@@ -29,7 +29,7 @@ dictitems:
       groups: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
       id: 0
-      latency: 5
+      latency: 3
       name: Default
       parameters: !!python/object/new:dynamic_reconfigure.encoding.Config
         state: []
@@ -45,7 +45,7 @@ dictitems:
       type: ''
       u_r: 0.045
     state: []
-  latency: 5
+  latency: 3
   q_mu: 0.01
   q_n: 150.0
   q_nN: 150.0

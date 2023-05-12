@@ -204,7 +204,7 @@ function h = nonlin_const(z, p)
     long = 2.72;
     width = 1.2 + 0.4;
 
-    h = [ n - long/2*sin(abs(mu)) + width/2*cos(mu) - s1;  % <= L(s)
+    h = [ n + long/2*sin(abs(mu)) + width/2*cos(mu) - s1;  % <= L(s)
          -n + long/2*sin(abs(mu)) + width/2*cos(mu) - s1]; % <= R(s) 
      
 end
