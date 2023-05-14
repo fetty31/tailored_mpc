@@ -49,7 +49,7 @@ MPC::MPC(const Params* params){
     solStates = Eigen::MatrixXd::Zero(N,n_states);        // [n, mu, vy, w]
     solCommands = Eigen::MatrixXd::Zero(N,n_controls);    // [slack_track, diff_delta, Mtv, delta]
 
-    this->paramFlag = true;
+    this->debug_path = params->debug.path;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -135,13 +135,12 @@ void MPC::velsCallback(const as_msgs::CarVelocityArray::ConstPtr& msg){
 
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //------------------------Principal functions--------------------------------------------------
 
 void MPC::solve(){
 
-    if(paramFlag && dynParamFlag && plannerFlag && stateFlag && velsFlag){
+    if(dynParamFlag && plannerFlag && stateFlag && velsFlag){
         
         auto start_time = chrono::system_clock::now();
 
@@ -177,20 +176,17 @@ void MPC::solve(){
         // ROS_WARN("TAILORED MPC elapsed time: %f ms", elapsed_time.count()*1000);
 
         // Save data
-        // save<float>("/home/fetty/Desktop/control_ws2022/src/control/tailored_mpc/debug/", "solve_time.txt", elapsed_time.count()*1000, true);
-        // save<int>("/home/fetty/Desktop/control_ws2022/src/control/tailored_mpc/debug/", "exit_flags.txt", forces.exit_flag, true);
+        // save<float>(this->debug_path, "solve_time.txt", elapsed_time.count()*1000, true);
+        // save<int>(this->debug_path, "exit_flags.txt", forces.exit_flag, true);
 
         
     }else{
 
-        if(!paramFlag || !dynParamFlag){
-            ROS_ERROR("MPC: Parameters aren't properly defined");
-            ROS_ERROR_STREAM("Static params: " << paramFlag);
-            ROS_ERROR_STREAM("Dyn params: " << dynParamFlag);
-        }else{
+        if(!dynParamFlag) ROS_ERROR("MPC: Dynamic Parameters aren't properly defined");
+        else{
             ROS_ERROR("MPC: No data from state car, planner or velocity profile");
             ROS_ERROR_STREAM("Planner status: " << plannerFlag);
-            ROS_ERROR_STREAM("State status: " << stateFlag);
+            ROS_ERROR_STREAM("State status: "   << stateFlag);
             ROS_ERROR_STREAM("Vel profile status: " << velsFlag);
         }
     }
@@ -313,7 +309,7 @@ void MPC::set_params_bounds(){
                 double diff_s = progress(k) - planner(0,2);
                 cout << "diff_s: " << diff_s << endl;
 
-                if(diff_s < -30.0) diff_s += this->smax; // If we are passing the start line, reset diff (here we use 30m to make sure we have actually crossed the start line)
+                if(diff_s < -15.0) diff_s += this->smax; // If we are passing the start line, reset diff (here we use 30m to make sure we have actually crossed the start line)
                 id_k = int(round(diff_s/this->delta_s));
 
                 cout << "diff_s: " << diff_s << endl;
@@ -321,7 +317,7 @@ void MPC::set_params_bounds(){
 
                 id_sinit++;
                 if(diff_s > 0.0) plannerIdx = id_k; 
-                /* NOTE: if -10 <= diff_s <= 0, we take the first idx of the planner (plannerIdx = 0) */
+                /* NOTE: if -15 <= diff_s <= 0, we take the first idx of the planner (plannerIdx = 0) */
 
                 // Average of last 5 delta_s 
                 if(k != 0 && id_sinit > this->N - 5){
@@ -329,8 +325,7 @@ void MPC::set_params_bounds(){
                     diff_s = progress(k) - progress(k-1);
                     cout << "diff_s: " << diff_s << endl;
  
-                    if(diff_s < -30.0) diff_s += this->smax; // If we are passing the start line, reset diff
-                    // if(diff_s < 0) diff_s = 0;
+                    if(diff_s < -15.0) diff_s += this->smax; // If we are passing the start line, reset diff
 
                     mean_s += diff_s;
                 }
@@ -538,6 +533,32 @@ void MPC::msgCommands(as_msgs::CarCommands *msg){
     // cout << "Mtv: " << solCommands(this->latency, 2) << endl;
 
     return;
+}
+
+void MPC::get_debug_solution(as_msgs::MPCdebug *msg){
+
+    if(this->forces.exit_flag != -1){
+
+        msg->header.stamp = ros::Time::now();
+
+        msg->diff_delta = solCommands(this->latency, 1);
+        msg->Mtv        = solCommands(this->latency, 2);
+        msg->delta      = solCommands(this->latency, 3);
+
+        msg->n  = solStates(this->latency, 0);
+        msg->mu = solStates(this->latency, 1);
+        msg->vy = solStates(this->latency, 2);
+        msg->r  = solStates(this->latency, 3);
+
+        msg->s = planner(this->latency, 2);
+        msg->k = this->forces.params.all_parameters[24 + this->latency * this->Npar];
+
+        double vx = this->forces.params.all_parameters[23 + this->latency * this->Npar];
+
+        msg->alpha_f = atan( (msg->vy + this->Lf * msg->r)/vx ) - msg->delta;
+        msg->alpha_r = atan( (msg->vy - this->Lr * msg->r)/vx );
+    }
+
 }
 
 int MPC::first_index(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){

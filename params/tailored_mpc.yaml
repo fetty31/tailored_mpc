@@ -22,9 +22,8 @@ Topics:
   Debug:
     Time:       /AS/C/mpc/debug/time
     ExitFlag:   /AS/C/mpc/debug/exitflags
-    Curvature:  /AS/C/mpc/debug/curvature
-    Progress:   /AS/C/mpc/debug/progress
     Velocity:   /AS/C/mpc/debug/velocity
+    Solution:   /AS/C/mpc/debug/solution
   Vis:
     PredictedSteering:  /vis/predictedPath/steering
     PredictedPath:      /vis/predictedPath/path

@@ -1,10 +1,10 @@
 !!python/object/new:dynamic_reconfigure.encoding.Config
 dictitems:
-  Bf: 15.1507
-  Br: 15.1507
+  Bf: 10.5507
+  Br: 10.5507
   Cd: 0.8727
-  Cf: -1.1705
-  Cr: -1.1705
+  Cf: -1.2705
+  Cr: -1.2705
   Df: 2208.0635
   Dr: 2563.599
   Vy_max: 5.0
@@ -14,11 +14,11 @@ dictitems:
   diff_delta: 200.0
   groups: !!python/object/new:dynamic_reconfigure.encoding.Config
     dictitems:
-      Bf: 15.1507
-      Br: 15.1507
+      Bf: 10.5507
+      Br: 10.5507
       Cd: 0.8727
-      Cf: -1.1705
-      Cr: -1.1705
+      Cf: -1.2705
+      Cr: -1.2705
       Df: 2208.0635
       Dr: 2563.599
       Vy_max: 5.0

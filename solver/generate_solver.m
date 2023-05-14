@@ -179,9 +179,9 @@ function xdot = my_continuous_dynamics(x, u, p)
     alpha_R = atan((vy-Lr*r)/(vx));
     alpha_F = atan((vy+Lf*r)/(vx)) - delta;
     
-    % Simplified Pacejka magic formula
-    Fr = Dr*sin(Cr*atan(Br*alpha_R));
-    Ff = Df*sin(Cf*atan(Bf*alpha_F));
+    % Linear tire model
+    Fr = Dr*alpha_R;
+    Ff = Df*alpha_F;
     
     %Progress rate change
     sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
