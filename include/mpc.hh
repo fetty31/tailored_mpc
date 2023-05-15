@@ -21,6 +21,7 @@
 #include "as_msgs/CarState.h"
 #include "as_msgs/CarCommands.h"
 #include "as_msgs/CarVelocityArray.h"
+#include "as_msgs/MPCdebug.h"
 
 // Utilities
 #include "utils/params.hh"
@@ -52,8 +53,9 @@ class MPC{
 
         // Internal variables/methods of MPC
 
+        string debug_path;
+
         bool plannerFlag = false, stateFlag = false, velsFlag = false;
-        bool paramFlag = false;                       // flag for parameters set up
         bool dynParamFlag = false;                    // flag for dynamic parameters set up
         bool troActive = false, troProfile = false;   // whether TRO/GRO are publishing
 
@@ -108,8 +110,6 @@ class MPC{
         double I = 93;
         double longue = 2.72;
         double width = 1.5;
-        double d_IMU = -0.318;
-        double Rwheel = 0.2;
 
         // Initial conditions evaluation
         void initial_conditions();
@@ -141,6 +141,7 @@ class MPC{
         void msgCommands(as_msgs::CarCommands *msg);
         void saveEigen(string filePath, string name, Eigen::MatrixXd data, bool erase); // save matrix data into file
         template<typename mytype> void save(string filePath, string name, mytype data, bool time);
+        void get_debug_solution(as_msgs::MPCdebug *msg);
 
         // Callbacks
         void stateCallback(const as_msgs::CarState::ConstPtr& msg);

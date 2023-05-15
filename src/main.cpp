@@ -43,8 +43,6 @@ int main(int argc, char **argv) {
 
     // Signal handler for publishing 0s when dying
     signal(SIGINT,  my_SIGhandler); // override default ros sigint signal
-    // signal(SIGTERM, my_SIGhandler);
-    // signal(SIGKILL, my_SIGhandler);
 
     // Params object
     Params params = Params(&nh);
@@ -67,20 +65,18 @@ int main(int argc, char **argv) {
     pubCommands = nh.advertise<as_msgs::CarCommands>(params.mpc.topics.commands, 1);
 
         // DEBUG
-    string timeTopic, exitFlagTopic, curvTopic, progressTopic, velocityTopic;
+    string timeTopic, exitFlagTopic, solutionTopic, velocityTopic;
     nh.param<string>("Topics/Debug/Time", timeTopic, "/AS/C/mpc/debug/time");
     nh.param<string>("Topics/Debug/ExitFlag", exitFlagTopic, "/AS/C/mpc/debug/exitflags");
-    nh.param<string>("Topics/Debug/Curvature", curvTopic, "/AS/C/mpc/debug/curvature");
-    nh.param<string>("Topics/Debug/Progress", progressTopic, "/AS/C/mpc/debug/progress");
     nh.param<string>("Topics/Debug/Velocity", velocityTopic, "/AS/C/mpc/debug/velocity");
+    nh.param<string>("Topics/Debug/Solution", solutionTopic, "/AS/C/mpc/debug/solution");
 
     nh.param<int>("mission", mpc.mission, 0); // current mission
 
     ros::Publisher pubTime = nh.advertise<std_msgs::Float32>(timeTopic, 1);
     ros::Publisher pubExitflag = nh.advertise<std_msgs::Int32>(exitFlagTopic, 1);
-    ros::Publisher pubCurv = nh.advertise<std_msgs::Float32>(curvTopic, 1);
-    ros::Publisher pubProgress = nh.advertise<std_msgs::Float32>(progressTopic, 1);
     ros::Publisher pubVel = nh.advertise<std_msgs::Float32>(velocityTopic, 1);
+    ros::Publisher pubDebug = nh.advertise<as_msgs::MPCdebug>(solutionTopic, 1);
 
     // Dynamic reconfigure
 	dynamic_reconfigure::Server<tailored_mpc::dynamicConfig> server;
@@ -95,6 +91,7 @@ int main(int argc, char **argv) {
 
     // Msgs declaration
     as_msgs::CarCommands msg;
+    as_msgs::MPCdebug debug_msg;
     std_msgs::Float32 float_msg;
     std_msgs::Int32 exitflag_msg;
 
@@ -111,17 +108,14 @@ int main(int argc, char **argv) {
         float_msg.data = mpc.elapsed_time.count()*1000;
         pubTime.publish(float_msg);
 
-        float_msg.data = mpc.planner(mpc.latency,3);
-        pubCurv.publish(float_msg);
-
         exitflag_msg.data = mpc.forces.exit_flag;
         pubExitflag.publish(exitflag_msg);
 
-        float_msg.data = mpc.planner(mpc.latency,2);
-        pubProgress.publish(float_msg);
-
         float_msg.data = mpc.pred_velocities(0);
         pubVel.publish(float_msg);
+
+        mpc.get_debug_solution(&debug_msg);
+        pubDebug.publish(debug_msg);
 
         rviz.rviz_predicted();  // visualize predicted states
         rviz.rviz_actual();     // visualize actual states

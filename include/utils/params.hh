@@ -19,11 +19,9 @@ struct Params{
         int m;                          // Car's mass (without pilot)
         double width, longue;           // Car's track width & length
         double Lf, Lr;                  // Longitudinal distance from CoG to front and rear wheels
-        double d_IMU;                   // distance from IMU's sensor to CoG
         double Ar, rho;                 // aero area & air density
         double I;                       // moment of inertia (of the car)
         double gravity;
-        double Rwheel;                  // effective wheel radius
 
     } vehicle;
 

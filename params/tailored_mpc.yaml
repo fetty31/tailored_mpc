@@ -10,8 +10,6 @@ Vehicle:
   longue: 2.72                                        # Car's length
   Lf: 0.708                                           # Distance from CoG to front axis
   Lr: 0.822                                           # Distance from CoG to rear axis
-  d_IMU: -0.318                                       # Distance from vectornav to CoG
-  Rwheel: 0.2                                         # Effective wheel radius
 
 Topics:
   State:      /AS/C/state
@@ -22,9 +20,8 @@ Topics:
   Debug:
     Time:       /AS/C/mpc/debug/time
     ExitFlag:   /AS/C/mpc/debug/exitflags
-    Curvature:  /AS/C/mpc/debug/curvature
-    Progress:   /AS/C/mpc/debug/progress
     Velocity:   /AS/C/mpc/debug/velocity
+    Solution:   /AS/C/mpc/debug/solution
   Vis:
     PredictedSteering:  /vis/predictedPath/steering
     PredictedPath:      /vis/predictedPath/path
