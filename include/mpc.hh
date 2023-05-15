@@ -111,7 +111,6 @@ class MPC{
         double I = 93;
         double longue = 2.72;
         double width = 1.5;
-        double d_IMU = -0.318;
         double Rwheel = 0.2;
 
         // Initial conditions evaluation

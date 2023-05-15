@@ -5,8 +5,8 @@ dictitems:
   Cd: 0.8727
   Cf: -1.2705
   Cr: -1.2705
-  Df: 2208.0635
-  Dr: 2563.599
+  Df: -43423
+  Dr: -43423
   Vy_max: 5.0
   YawRate_max: 100.0
   dMtv: 100.0
@@ -19,8 +19,8 @@ dictitems:
       Cd: 0.8727
       Cf: -1.2705
       Cr: -1.2705
-      Df: 2208.0635
-      Dr: 2563.599
+      Df: -43423
+      Dr: -43423
       Vy_max: 5.0
       YawRate_max: 100.0
       dMtv: 100.0

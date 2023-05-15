@@ -21,7 +21,6 @@ MPC::MPC(const Params* params){
     this->width     = params->vehicle.width;
     this->Lr        = params->vehicle.Lr;
     this->Lf        = params->vehicle.Lf;
-    this->d_IMU     = params->vehicle.d_IMU;
     this->I         = params->vehicle.I;
     this->Ar        = params->vehicle.Ar;
     this->rho       = params->vehicle.rho;

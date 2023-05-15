@@ -11,7 +11,6 @@ Params::Params(const ros::NodeHandle* nh) {
     nh->param<double>("Vehicle/width",      vehicle.width,      1.5);
     nh->param<double>("Vehicle/Lf",         vehicle.Lf,         0.708);
     nh->param<double>("Vehicle/Lr",         vehicle.Lr,         0.822);
-    nh->param<double>("Vehicle/d_IMU",      vehicle.d_IMU,      -0.318);
     nh->param<double>("Vehicle/inertia",    vehicle.I,          93);
     nh->param<double>("Vehicle/gravity",    vehicle.gravity,    9.81);
     nh->param<double>("Vehicle/rho",        vehicle.rho,        1.255);

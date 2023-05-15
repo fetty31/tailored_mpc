@@ -2,16 +2,15 @@
 
 Vehicle:
   m: 240                                              # Car's mass
-  inertia: 180                                        # Inertial moment
+  inertia: 130.6                                      # Inertial moment
   gravity: 9.81                                       # Gravity's acceleration
   Ar: 1                                               # Area of air contact
   rho: 1.255                                          # Air's density
   width: 1.5                                          # Car's width
   longue: 2.72                                        # Car's length
-  Lf: 0.708                                           # Distance from CoG to front axis
-  Lr: 0.822                                           # Distance from CoG to rear axis
-  d_IMU: -0.318                                       # Distance from vectornav to CoG
-  Rwheel: 0.2                                         # Effective wheel radius
+  Lf: 0.7803                                          # Distance from CoG to front axis
+  Lr: 0.7497                                          # Distance from CoG to rear axis
+  Rwheel: 0.2032                                      # Effective wheel radius
 
 Topics:
   State:      /AS/C/state

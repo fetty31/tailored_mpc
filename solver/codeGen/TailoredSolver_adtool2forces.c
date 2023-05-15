@@ -61,7 +61,7 @@ extern solver_int32_default TailoredSolver_adtool2forces(TailoredSolver_float *x
 
     /* Allocate working arrays for AD tool */
     
-    TailoredSolver_callback_float w[109];
+    TailoredSolver_callback_float w[89];
 	
     /* temporary storage for AD tool sparse output */
     TailoredSolver_callback_float this_f = (TailoredSolver_callback_float) 0.0;
