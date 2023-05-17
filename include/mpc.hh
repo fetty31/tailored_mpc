@@ -20,6 +20,9 @@
 #include "as_msgs/ObjectiveArrayCurv.h"
 #include "as_msgs/CarState.h"
 #include "as_msgs/CarCommands.h"
+#include "as_msgs/MPCdebug.h"
+
+#include "ctrl_msgs/ModeParameters.h"
 
 // Utilities for parameters
 #include "utils/params.hh"
@@ -48,9 +51,12 @@ class MPC{
 
     private:
 
+        // Internal variables/methods of MPC
+
+        string debug_path;
+
         // Internal flags
         bool plannerFlag = false, stateFlag = false;
-        bool paramFlag = false;                       // flag for parameters set up
         bool dynParamFlag = false;                    // flag for dynamic parameters set up
         bool troActive = false, troProfile = false;   // whether TRO/GRO are publishing
         bool finished = false;
@@ -114,7 +120,6 @@ class MPC{
         double I = 93;
         double longue = 2.72;
         double width = 1.5;
-        double d_IMU = -0.318;
         double Rwheel = 0.2;
 
         // Initial conditions evaluation
@@ -136,8 +141,9 @@ class MPC{
         void printVec(vector<double> &input, int firstElements=0);
         Eigen::MatrixXd vector2eigen(vector<double> vect);
         Eigen::MatrixXd output2eigen(double* array, int size);
-        double throttle_to_torque(double throttle);
-        double ax_to_throttle(double ax);
+        double throttle_to_torque(double &throttle);
+        double ax_to_throttle(double &ax);
+        double trq_to_force(double &trq);
         double continuous(double psi, double psi_last); // Garanty that both angles are on the same range
         const string currentDateTime(); // get current date/time, format is YYYY-MM-DD.HH:mm:ss
 
@@ -150,15 +156,17 @@ class MPC{
         MPC(const Params* params);
 
         void reconfigure(tailored_mpc::dynamicConfig& config);
-        void msgCommands(as_msgs::CarCommands *msg);
+        void msgCommands(as_msgs::CarCommands *gas, as_msgs::CarCommands *steering);
         void saveEigen(string filePath, string name, Eigen::MatrixXd data, bool erase); // save matrix data into file
         template<typename mytype> void save(string filePath, string name, mytype data, bool time);
+        void get_debug_solution(as_msgs::MPCdebug *msg);
         bool isFinish();
 
         // Callbacks
         void stateCallback(const as_msgs::CarState::ConstPtr& msg);
         void plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg);
         void troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg);
+        void modeParamCallback(const ctrl_msgs::ModeParameters::ConstPtr& msg);
 
         // Solve method
         void solve();
@@ -188,7 +196,7 @@ class MPC{
 
         // Previous solution
         Eigen::MatrixXd solStates;    // [n, mu, vx, vy, w]
-        Eigen::MatrixXd solCommands;  // [slack_vx, slack_track, diff_delta, diff_acc, Mtv, delta, Fm]
+        Eigen::MatrixXd solCommands;  // [slack_vx, slack_track, slack_forces, diff_delta, diff_acc, Mtv, delta, Fm]
 
 };
 

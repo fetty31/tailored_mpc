@@ -11,11 +11,14 @@ struct Params{
     // Constructor
     Params(const ros::NodeHandle* nh);
 
+    struct Debug{
+        string path;  // path where we will save debugging info
+    } debug;
+
     struct Vehicle{
         int m;                          // Car's mass (without pilot)
         double width, longue;           // Car's track width & length
         double Lf, Lr;                  // Longitudinal distance from CoG to front and rear wheels
-        double d_IMU;                   // distance from IMU's sensor to CoG
         double Ar, rho;                 // aero area & air density
         double I;                       // moment of inertia (of the car)
         double gravity;
@@ -33,11 +36,13 @@ struct Params{
         bool TroProfile;        // set to true to follow TRO velocity profile 
         double minVelFinish;    // minimum velocity to consider the car at finish state (depends on sensor accuracy)
         struct Topics{
-            string commands;            // Car Commands topic
+            string commands;            // Gas Commands topic
+            string steering;            // Steering commands topic
             string state;               // Car State topic
             string planner;             // Planner topic
             string tro;                 // Offline planner topic
             string finish;              // Finish flag topic
+            string mode_param;          // Mode Parameters topic
             string predictedSteering;   // Visualization topics
             string predictedPath;
             string predictedHeading;

@@ -8,7 +8,7 @@
 #include "std_msgs/Int32.h"
 #include "std_msgs/Bool.h"
 
-ros::Publisher pubCommands; // Commands publisher
+ros::Publisher pubCommands, pubSteer; // Commands publisher
 
 void dynamicCallback(tailored_mpc::dynamicConfig &config, uint32_t level, MPC* mpc){
 
@@ -59,23 +59,23 @@ int main(int argc, char **argv) {
     ros::Subscriber subState = nh.subscribe(params.mpc.topics.state, 1, &MPC::stateCallback, &mpc);
     ros::Subscriber subPlanner = nh.subscribe(params.mpc.topics.planner, 1, &MPC::plannerCallback, &mpc);
     ros::Subscriber subTro = nh.subscribe(params.mpc.topics.tro, 1, &MPC::troCallback, &mpc);
+    ros::Subscriber subModeParam = nh.subscribe(params.mpc.topics.mode_param, 1, &MPC::modeParamCallback, &mpc);
     
     ros::Publisher pubFinish = nh.advertise<std_msgs::Bool>(params.mpc.topics.finish, 1);
     pubCommands = nh.advertise<as_msgs::CarCommands>(params.mpc.topics.commands, 1);
+    pubSteer = nh.advertise<as_msgs::CarCommands>(params.mpc.topics.steering, 1);
 
         // DEBUG
-    string timeTopic, exitFlagTopic, curvTopic, progressTopic;
+    string timeTopic, exitFlagTopic, solutionTopic;
     nh.param<string>("Topics/Debug/Time", timeTopic, "/AS/C/mpc/debug/time");
     nh.param<string>("Topics/Debug/ExitFlag", exitFlagTopic, "/AS/C/mpc/debug/exitflags");
-    nh.param<string>("Topics/Debug/CurvatureTopic", curvTopic, "/AS/C/mpc/debug/curvature");
-    nh.param<string>("Topics/Debug/ProgressTopic", progressTopic, "/AS/C/mpc/debug/progress");
+    nh.param<string>("Topics/Debug/Solution", solutionTopic, "/AS/C/mpc/debug/solution");
 
     nh.param<int>("mission", mpc.mission, 0); // current mission
 
     ros::Publisher pubTime = nh.advertise<std_msgs::Float32>(timeTopic, 10);
     ros::Publisher pubExitflag = nh.advertise<std_msgs::Int32>(exitFlagTopic, 10);
-    ros::Publisher pubCurv = nh.advertise<std_msgs::Float32>(curvTopic, 10);
-    ros::Publisher pubProgress = nh.advertise<std_msgs::Float32>(progressTopic, 10);
+    ros::Publisher pubDebug = nh.advertise<as_msgs::MPCdebug>(solutionTopic, 1);
 
     // Dynamic reconfigure
 	dynamic_reconfigure::Server<tailored_mpc::dynamicConfig> server;
@@ -89,7 +89,8 @@ int main(int argc, char **argv) {
     ROS_WARN_STREAM("MPC: internal threads: " << mpc.Nthreads);
 
     // Msgs declaration
-    as_msgs::CarCommands msg;
+    as_msgs::CarCommands gas_msg, steering_msg;
+    as_msgs::MPCdebug debug_msg;
     std_msgs::Float32 float_msg;
     std_msgs::Int32 exitflag_msg;
     std_msgs::Bool boolMsg;
@@ -100,8 +101,11 @@ int main(int argc, char **argv) {
 
         mpc.solve(); // Solve the NLOP
 
-        mpc.msgCommands(&msg);
-        if(mpc.forces.exit_flag == 1 || mpc.forces.exit_flag == 0 ) pubCommands.publish(msg); // publish car commands
+        mpc.msgCommands(&gas_msg, &steering_msg);
+        if(mpc.forces.exit_flag == 1 || mpc.forces.exit_flag == 0 ){
+            pubCommands.publish(gas_msg); // publish car commands
+            pubSteer.publish(steering_msg);
+        }
 
         boolMsg.data = mpc.isFinish();
         pubFinish.publish(boolMsg); // Publish finish flag
@@ -110,14 +114,11 @@ int main(int argc, char **argv) {
         float_msg.data = mpc.elapsed_time.count()*1000;
         pubTime.publish(float_msg);
 
-        float_msg.data = mpc.planner(mpc.latency,3);
-        pubCurv.publish(float_msg);
-
         exitflag_msg.data = mpc.forces.exit_flag;
         pubExitflag.publish(exitflag_msg);
 
-        float_msg.data = mpc.planner(mpc.latency,2);
-        pubProgress.publish(float_msg);
+        mpc.get_debug_solution(&debug_msg);
+        pubDebug.publish(debug_msg);
 
         rviz.rviz_predicted();  // visualize predicted states
         rviz.rviz_actual();     // visualize actual states
