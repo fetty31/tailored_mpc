@@ -176,7 +176,7 @@ void MPC::solve(){
 
         // Save data
         // save<float>(this->debug_path, "solve_time.txt", elapsed_time.count()*1000, true);
-        // save<int>(this->debug_path, "exit_flags.txt", forces.exit_flag, true);
+        save<int>(this->debug_path, "exit_flags.csv", forces.exit_flag, true);
 
         
     }else{
@@ -464,6 +464,9 @@ void MPC::s_prediction(){
         double w = solStates(i-1, 3);
         double k = forces.params.all_parameters[24 + (i-1)*this->Npar]; // curvature from planner
 
+        save<double>(this->debug_path, "curvature.csv", k, true);
+        save<double>(this->debug_path, "deviation.csv", n, true);
+
         double sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
 
         predicted_s(i) = predicted_s(i-1) + sdot*this->rk4_t;
@@ -489,6 +492,8 @@ void MPC::s_prediction(){
         lastCommands(i-1, 2) = solCommands(i-1, 3); // Delta
 
     }
+
+    saveEigen(this->debug_path, "horizon.csv", lastState.leftCols(2), false);
 
     // If predicted s is too small set initial s again
     double totalLength = predicted_s(this->N-1) - predicted_s(0);
@@ -557,6 +562,10 @@ void MPC::get_debug_solution(as_msgs::MPCdebug *msg){
 
         msg->alpha_f = atan( (msg->vy + this->Lf * msg->r)/vx ) - msg->delta;
         msg->alpha_r = atan( (msg->vy - this->Lr * msg->r)/vx );
+
+        msg->x = this->lastState(this->latency, 0);
+        msg->y = this->lastState(this->latency, 1);
+        msg->heading = this->lastState(this->latency, 2);
     }
 
 }
@@ -663,6 +672,7 @@ void MPC::saveEigen(string filePath, string name, Eigen::MatrixXd data, bool era
         const static Eigen::IOFormat CSVFormat(Eigen::FullPrecision, Eigen::DontAlignCols, ", ", "\n");
 
         if (file.is_open()){
+            if(!erase) file << "\n";
             file << data.format(CSVFormat);
             file.close(); // Remeber to close the file!
         }
@@ -683,7 +693,7 @@ void MPC::save(string filePath, string name, mytype data, bool time){
         // Write csv
         ofstream file;
         file.open(filePath + name, ios::app);
-        if(time) file << ros::Time::now() << " : " << data << endl;
+        if(time) file << ros::Time::now().toSec() << "," << data << endl;
         else file << data << endl;
         file.close(); // Remeber to close the file!
 

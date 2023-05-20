@@ -73,6 +73,9 @@ int main(int argc, char **argv) {
 
     nh.param<int>("mission", mpc.mission, 0); // current mission
 
+    bool debug;
+    nh.param<bool>("Debug/Flag", debug, false);
+
     ros::Publisher pubTime = nh.advertise<std_msgs::Float32>(timeTopic, 1);
     ros::Publisher pubExitflag = nh.advertise<std_msgs::Int32>(exitFlagTopic, 1);
     ros::Publisher pubVel = nh.advertise<std_msgs::Float32>(velocityTopic, 1);
@@ -114,8 +117,10 @@ int main(int argc, char **argv) {
         float_msg.data = mpc.pred_velocities(0);
         pubVel.publish(float_msg);
 
-        mpc.get_debug_solution(&debug_msg);
-        pubDebug.publish(debug_msg);
+        if(debug){
+            mpc.get_debug_solution(&debug_msg);
+            pubDebug.publish(debug_msg);
+        }
 
         rviz.rviz_predicted();  // visualize predicted states
         rviz.rviz_actual();     // visualize actual states

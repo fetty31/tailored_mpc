@@ -180,7 +180,6 @@ class MPC{
 
         // Predicted velocities (vel profile from long_pid pkg)
         Eigen::VectorXd pred_velocities; 
-        
 };
 
 

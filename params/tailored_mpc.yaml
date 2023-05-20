@@ -29,6 +29,7 @@ Topics:
     ActualPath:         /vis/actualPlanner/path
 
 Debug:
+  Flag: true
   Path: $(find tailored_mpc)/debug/
 
 NLOP:
