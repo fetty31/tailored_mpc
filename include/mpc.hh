@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <eigen3/Eigen/Dense>
+#include <regex>
 
 // Dynamic reconfigure headers
 #include <dynamic_reconfigure/server.h>
@@ -140,7 +141,7 @@ class MPC{
         void reconfigure(tailored_mpc::dynamicConfig& config);
         void msgCommands(as_msgs::CarCommands *msg);
         void saveEigen(string filePath, string name, Eigen::MatrixXd data, bool erase); // save matrix data into file
-        template<typename mytype> void save(string filePath, string name, mytype data, bool time);
+        template<typename mytype> void save(string filePath, string name, mytype data, bool time, bool unique=false);
         void get_debug_solution(as_msgs::MPCdebug *msg);
 
         // Callbacks

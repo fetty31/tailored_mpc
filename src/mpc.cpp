@@ -176,7 +176,7 @@ void MPC::solve(){
 
         // Save data
         // save<float>(this->debug_path, "solve_time.txt", elapsed_time.count()*1000, true);
-        save<int>(this->debug_path, "exit_flags.csv", forces.exit_flag, true);
+        // save<int>(this->debug_path, "exit_flags.csv", forces.exit_flag, true);
 
         
     }else{
@@ -464,8 +464,8 @@ void MPC::s_prediction(){
         double w = solStates(i-1, 3);
         double k = forces.params.all_parameters[24 + (i-1)*this->Npar]; // curvature from planner
 
-        save<double>(this->debug_path, "curvature.csv", k, true);
-        save<double>(this->debug_path, "deviation.csv", n, true);
+        // save<double>(this->debug_path, "curvature.csv", k, true);
+        // save<double>(this->debug_path, "deviation.csv", n, true);
 
         double sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
 
@@ -493,7 +493,7 @@ void MPC::s_prediction(){
 
     }
 
-    saveEigen(this->debug_path, "horizon.csv", lastState.leftCols(2), false);
+    // saveEigen(this->debug_path, "horizon.csv", lastState.leftCols(2), false);
 
     // If predicted s is too small set initial s again
     double totalLength = predicted_s(this->N-1) - predicted_s(0);
@@ -686,13 +686,21 @@ void MPC::saveEigen(string filePath, string name, Eigen::MatrixXd data, bool era
 }
 
 template<typename mytype>
-void MPC::save(string filePath, string name, mytype data, bool time){
+void MPC::save(string filePath, string name, mytype data, bool time, bool unique){
 
     try{
         
         // Write csv
         ofstream file;
-        file.open(filePath + name, ios::app);
+        std::string full_name;
+        if(unique){
+            std::string datetime = currentDateTime();
+            datetime = regex_replace(datetime, regex(":"), "-");
+            full_name = filePath + name + "_" + datetime + ".csv";
+        }else{
+            full_name = filePath + name;
+        }
+        file.open(full_name, ios::app);
         if(time) file << ros::Time::now().toSec() << "," << data << endl;
         else file << data << endl;
         file.close(); // Remeber to close the file!
