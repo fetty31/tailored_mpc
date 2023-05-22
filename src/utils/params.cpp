@@ -4,6 +4,7 @@ Params::Params(const ros::NodeHandle* nh) {
 
     // Debug
     nh->param<string>("Debug/Path", debug.path, "");
+    nh->param<bool>("Debug/Flag", debug.flag, false);
 
     // Vehicle params
     nh->param<int>("Vehicle/m",             vehicle.m,          240);

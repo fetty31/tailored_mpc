@@ -13,6 +13,7 @@ struct Params{
 
     struct Debug{
         string path;  // path where we will save debugging info
+        bool flag;  // path where we will save debugging info
     } debug;
 
     struct Vehicle{

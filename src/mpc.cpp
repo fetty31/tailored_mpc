@@ -48,6 +48,7 @@ MPC::MPC(const Params* params){
     solCommands = Eigen::MatrixXd::Zero(N,n_controls);    // [slack_track, diff_delta, Mtv, delta]
 
     this->debug_path = params->debug.path;
+    this->debug_flag = params->debug.flag;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -178,7 +179,6 @@ void MPC::solve(){
         // save<float>(this->debug_path, "solve_time.txt", elapsed_time.count()*1000, true);
         // save<int>(this->debug_path, "exit_flags.csv", forces.exit_flag, true);
 
-        
     }else{
 
         if(!dynParamFlag) ROS_ERROR("MPC: Dynamic Parameters aren't properly defined");

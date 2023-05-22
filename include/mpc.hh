@@ -37,8 +37,8 @@ struct Boundaries{
         // VARIABLES BOUNDARIES:
 
           // Bounds and initial guess for the control
-        vector<double> u_min =  { 0.0, -3*M_PI/180, -300}; // delta max,min bounds will be overwriten by dynamic reconfigure callback
-        vector<double> u_max  = { 3*M_PI/180, 300};
+        vector<double> u_min =  { 0.0, -3*M_PI/180, -800}; // delta max,min bounds will be overwriten by dynamic reconfigure callback
+        vector<double> u_max  = { 3*M_PI/180, 800};
         vector<double> u0 = {  0.0, 0.0  };
 
           // Bounds and initial guess for the state
@@ -164,6 +164,7 @@ class MPC{
         chrono::duration<double> elapsed_time;
 
         int latency = 4;
+        bool debug_flag = false;
 
         // Planner's trajectory matrix 
         Eigen::MatrixXd planner; // [x, y, s, k, vx, L, R]

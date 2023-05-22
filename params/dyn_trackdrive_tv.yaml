@@ -9,7 +9,7 @@ dictitems:
   Dr: 2563.599
   Vy_max: 5.0
   YawRate_max: 100.0
-  dMtv: 0.0001
+  dMtv: 1.0e-05
   dRd: 100.0
   diff_delta: 200.0
   groups: !!python/object/new:dynamic_reconfigure.encoding.Config
@@ -23,7 +23,7 @@ dictitems:
       Dr: 2563.599
       Vy_max: 5.0
       YawRate_max: 100.0
-      dMtv: 0.0001
+      dMtv: 1.0e-05
       dRd: 100.0
       diff_delta: 200.0
       groups: !!python/object/new:dynamic_reconfigure.encoding.Config
