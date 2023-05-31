@@ -42,8 +42,8 @@ struct Boundaries{
         vector<double> u0 = {  0.0, 0.0  };
 
           // Bounds and initial guess for the state
-        vector<double> x_min  = { -23.0*M_PI/180, -2.0, -50.0*M_PI/180, -5.0, -50.0*M_PI/180 };
-        vector<double> x_max  = { 23.0*M_PI/180, 2.0, 50.0*M_PI/180, 5.0, 50.0*M_PI/180 };
+        vector<double> x_min  = { -23.0*M_PI/180, -2.0, -50.0*M_PI/180, -5.0, -100.0*M_PI/180 };
+        vector<double> x_max  = { 23.0*M_PI/180, 2.0, 50.0*M_PI/180, 5.0, 100.0*M_PI/180 };
         vector<double> x0 = { 0.0, 0.0, 0.0, 0.0, 0.0 };
 
 };

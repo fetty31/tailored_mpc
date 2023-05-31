@@ -494,6 +494,8 @@ void MPC::s_prediction(){
     }
 
     // saveEigen(this->debug_path, "horizon.csv", lastState.leftCols(2), false);
+    // saveEigen(this->debug_path, "solCommands.csv", solCommands, true);
+    // saveEigen(this->debug_path, "solStates.csv", solStates, true);
 
     // If predicted s is too small set initial s again
     double totalLength = predicted_s(this->N-1) - predicted_s(0);
@@ -537,12 +539,15 @@ void MPC::msgCommands(as_msgs::CarCommands *msg){
     // cout << "steering: " << solCommands(this->latency, 3) << endl;
     // cout << "Mtv: " << solCommands(this->latency, 2) << endl;
 
+    // save<double>(this->debug_path, "steering_fss.csv", solCommands(this->latency, 3), true);
+    // save<double>(this->debug_path, "mz_fss.csv", solCommands(this->latency, 2), true);
+
     return;
 }
 
 void MPC::get_debug_solution(as_msgs::MPCdebug *msg){
 
-    if(this->forces.exit_flag != -1){
+    if(this->forces.exit_flag == 0 || this->forces.exit_flag == 1){
 
         msg->header.stamp = ros::Time::now();
 
@@ -562,6 +567,9 @@ void MPC::get_debug_solution(as_msgs::MPCdebug *msg){
 
         msg->alpha_f = atan( (msg->vy + this->Lf * msg->r)/vx ) - msg->delta;
         msg->alpha_r = atan( (msg->vy - this->Lr * msg->r)/vx );
+
+        msg->kin_beta = atan(msg->delta*this->Lr/(this->Lr+this->Lf));
+        msg->beta     = atan(msg->vy/vx);
 
         msg->x = this->lastState(this->latency, 0);
         msg->y = this->lastState(this->latency, 1);
@@ -722,7 +730,6 @@ const string MPC::currentDateTime(){ // Get current date/time, format is YYYY-MM
 
     return buf;
 }
-
 
 void MPC::reconfigure(tailored_mpc::dynamicConfig& config){
 
