@@ -35,8 +35,8 @@ dictitems:
         state: []
       parent: 0
       q_mu: 0.01
-      q_n: 150.0
-      q_nN: 150.0
+      q_n: 550.0
+      q_nN: 550.0
       q_s: 10.0
       q_sN: 10.0
       q_slack_track: 1000.0
@@ -47,8 +47,8 @@ dictitems:
     state: []
   latency: 5
   q_mu: 0.01
-  q_n: 150.0
-  q_nN: 150.0
+  q_n: 550.0
+  q_nN: 550.0
   q_s: 10.0
   q_sN: 10.0
   q_slack_track: 1000.0
