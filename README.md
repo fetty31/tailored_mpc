@@ -1,9 +1,9 @@
 <a name="readme-top"></a>
 <br />
 <div align="center">
-<a> <img src="common/logo/cat15x_cupra.png" alt="Logo" width="355"> </a>
+<a> <img src="docs/mpc_black.png" alt="Logo" width="855"> </a>
 <h3 align="center">Tailored MPC</h3>
-<p align="center">
+<p align="left">
         This pkg is thought to be the main AS controller for CAT15x. Within this repo you will find 3 different controllers (time-variant, spatial-variant and lateral (also time-variant)). The one used for the 2022-2023 season is the lateral approach, leaving the others for a future implementation.
     <br />
   </p>
@@ -35,8 +35,6 @@
         </li>
     </ol>
 </details>
-
-<br />
 
 # Getting Started
 
