@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <boost/thread/thread.hpp>
 
+#include "as_msgs/Float32Stamped.h"
 #include "std_msgs/Float32.h"
 #include "std_msgs/Int32.h"
 
@@ -76,7 +77,7 @@ int main(int argc, char **argv) {
 
     ros::Publisher pubTime = nh.advertise<std_msgs::Float32>(timeTopic, 1);
     ros::Publisher pubExitflag = nh.advertise<std_msgs::Int32>(exitFlagTopic, 1);
-    ros::Publisher pubVel = nh.advertise<std_msgs::Float32>(velocityTopic, 1);
+    ros::Publisher pubVel = nh.advertise<as_msgs::Float32Stamped>(velocityTopic, 1);
     ros::Publisher pubDebug = nh.advertise<as_msgs::MPCdebug>(solutionTopic, 1);
 
     // Dynamic reconfigure
@@ -93,6 +94,7 @@ int main(int argc, char **argv) {
     // Msgs declaration
     as_msgs::CarCommands msg;
     as_msgs::MPCdebug debug_msg;
+    as_msgs::Float32Stamped as_float_msg;
     std_msgs::Float32 float_msg;
     std_msgs::Int32 exitflag_msg;
 
@@ -112,8 +114,9 @@ int main(int argc, char **argv) {
         exitflag_msg.data = mpc.forces.exit_flag;
         pubExitflag.publish(exitflag_msg);
 
-        float_msg.data = mpc.pred_velocities(0);
-        pubVel.publish(float_msg);
+        as_float_msg.header.stamp = ros::Time::now();
+        as_float_msg.data = mpc.pred_velocities(0);
+        pubVel.publish(as_float_msg);
 
         if(mpc.debug_flag){
             mpc.get_debug_solution(&debug_msg);
