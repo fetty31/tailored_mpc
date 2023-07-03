@@ -493,7 +493,7 @@ void MPC::s_prediction(){
 
     }
 
-    // saveEigen(this->debug_path, "horizon.csv", lastState.leftCols(2), false);
+    // saveEigen(this->debug_path, "horizon_fss.csv", lastState.leftCols(2), false);
     // saveEigen(this->debug_path, "solCommands.csv", solCommands, true);
     // saveEigen(this->debug_path, "solStates.csv", solStates, true);
 
@@ -538,9 +538,6 @@ void MPC::msgCommands(as_msgs::CarCommands *msg){
 
     // cout << "steering: " << solCommands(this->latency, 3) << endl;
     // cout << "Mtv: " << solCommands(this->latency, 2) << endl;
-
-    // save<double>(this->debug_path, "steering_fss.csv", solCommands(this->latency, 3), true);
-    // save<double>(this->debug_path, "mz_fss.csv", solCommands(this->latency, 2), true);
 
     return;
 }

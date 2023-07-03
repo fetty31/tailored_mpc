@@ -84,7 +84,7 @@ __NOTE:__ The other branches are still in an early development process. They're 
 This pkg depends on the self-defined [as_msgs](https://bcnemotorsport.upc.edu:81/autonomous-systems-group/autonomous_systems). Make sure to have this msgs on your current workspace.
 
 ## Solver dependecies
-As said before, this pkg depends on [Embotech]((https://www.embotech.com/products/forcespro/overview/)) ForcesPro solver so a Hardware/Software license is needed. See the __Solvers__ section from [AS README.md](https://bcnemotorsport.upc.edu:81/autonomous-systems-group/autonomous_systems) for more information.
+As said before, this pkg depends on [Embotech](https://www.embotech.com/products/forcespro/overview/) ForcesPro solver so a Hardware/Software license is needed. See the __Solvers__ section from [AS README.md](https://bcnemotorsport.upc.edu:81/autonomous-systems-group/autonomous_systems) for more information.
 
 # Approach
 

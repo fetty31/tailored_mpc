@@ -1,0 +1,57 @@
+!!python/object/new:dynamic_reconfigure.encoding.Config
+dictitems:
+  Bf: 10.5507
+  Br: 10.5507
+  Cd: 0.8727
+  Cf: -1.2705
+  Cr: -1.2705
+  Df: 2208.0635
+  Dr: 2563.599
+  Vy_max: 5.0
+  YawRate_max: 100.0
+  dMtv: 100.0
+  dRd: 100.0
+  diff_delta: 200.0
+  groups: !!python/object/new:dynamic_reconfigure.encoding.Config
+    dictitems:
+      Bf: 10.5507
+      Br: 10.5507
+      Cd: 0.8727
+      Cf: -1.2705
+      Cr: -1.2705
+      Df: 2208.0635
+      Dr: 2563.599
+      Vy_max: 5.0
+      YawRate_max: 100.0
+      dMtv: 100.0
+      dRd: 100.0
+      diff_delta: 200.0
+      groups: !!python/object/new:dynamic_reconfigure.encoding.Config
+        state: []
+      id: 0
+      latency: 5
+      name: Default
+      parameters: !!python/object/new:dynamic_reconfigure.encoding.Config
+        state: []
+      parent: 0
+      q_mu: 0.01
+      q_n: 550.0
+      q_nN: 550.0
+      q_s: 10.0
+      q_sN: 10.0
+      q_slack_track: 1000.0
+      q_slip: 2.0
+      state: true
+      type: ''
+      u_r: 0.045
+    state: []
+  latency: 5
+  q_mu: 0.01
+  q_n: 550.0
+  q_nN: 550.0
+  q_s: 10.0
+  q_sN: 10.0
+  q_slack_track: 1000.0
+  q_slip: 2.0
+  u_r: 0.045
+state: []
