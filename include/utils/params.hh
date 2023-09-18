@@ -47,6 +47,9 @@ struct Params{
         } topics;
         struct NLOP{
             int N;          // Horizon length of the optimization problem 
+            int n_states;   // Number of state variables
+            int n_controls; // Number of control variables
+            int Npar;       // Number of parameters for optimization problem [ 23 (MPC parameters) + (initial state) + n (curvature points == N) ]
             int Nslacks;    // Number of slack variables
 
         } nlop;

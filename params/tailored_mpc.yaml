@@ -34,13 +34,13 @@ Debug:
 
 NLOP:
   N: 40                                               # Prediction horizon
-  Nslacks: 1                                          # Number of slacks variables            
+  Nstates: 5                                          # Number of state variables
+  Ncontrols: 2                                        # Number of control variables
+  Npar: 16                                            # Number of real time parameters
 
 MPC:
   Hz: 40                                              #[s] MPC frequency
-  rk4_t: 0.025                                        #[s] Runge Kutta integration time
-  Nthreads: 5                                         # Number of threads
+  rk4_t: 0.025                                        #[s] Euler's method integration time
 
   nPlanning: 2000                                     # n points saved from the planner
   plannerAccuracy: 0.025                              # [m] distance accuracy of the planner (distance between given points)
-  nSearchAhead: 5                                     # [m] distance ahead where we will look for the closer point to the car (int)

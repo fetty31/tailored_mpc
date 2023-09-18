@@ -28,7 +28,8 @@
 #include "utils/params.hh"
 
 // Include headers of solver
-#include "forces.hh"
+#include "utils/forces.hh"
+#include "utils/optimizer.hh"
 
 using namespace std;
 
@@ -37,7 +38,7 @@ struct Boundaries{
         // VARIABLES BOUNDARIES:
 
           // Bounds and initial guess for the control
-        vector<double> u_min =  { 0.0, -3*M_PI/180, -800}; // delta max,min bounds will be overwriten by dynamic reconfigure callback
+        vector<double> u_min =  { -3*M_PI/180, -800}; // delta max,min bounds will be overwriten by dynamic reconfigure callback
         vector<double> u_max  = { 3*M_PI/180, 800};
         vector<double> u0 = {  0.0, 0.0  };
 
@@ -45,6 +46,12 @@ struct Boundaries{
         vector<double> x_min  = { -23.0*M_PI/180, -2.0, -50.0*M_PI/180, -5.0, -150.0*M_PI/180 };
         vector<double> x_max  = { 23.0*M_PI/180, 2.0, 50.0*M_PI/180, 5.0, 150.0*M_PI/180 };
         vector<double> x0 = { 0.0, 0.0, 0.0, 0.0, 0.0 };
+
+        double lower_continuity = -0.01; // Lower bound continuity constraint
+        double upper_continuity = 0.01;  // Upper bound continuity constraint
+
+        double lower_track = 0.0;        // Lower bound track constraint
+        double upper_track = 1.5;        // Upper bound track constraint
 
 };
 
@@ -67,7 +74,6 @@ class MPC{
         int Nslacks = 2;              // number of slack vars
         int Npar = 31;                // number of real time parameters
         int sizeU, sizeX;             // size of states and controls FORCES arrays
-        // int idx0 = 0;                 // idx of closest point to the car
 
         // MPC
         int nPlanning = 1900;     // number of points wanted from the planner
@@ -125,6 +131,11 @@ class MPC{
         void set_params_bounds(); // here parameters & boundaries are added in the same for loop
         void get_solution();
 
+        // CASADI + IPOPT:
+        void set_boundaries_IPOPT(); 
+        void set_parameters_IPOPT();
+        void solve_IPOPT();
+
         // Aux:
         int first_index(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg);
         vector<double> vconcat(const vector<double>& x, const vector<double>& y);
@@ -155,6 +166,7 @@ class MPC{
 
         // Structs declaration
         Boundaries bounds;
+        IPOPT ipopt;
         ForcesproSolver forces = ForcesproSolver();
 
         // MPC

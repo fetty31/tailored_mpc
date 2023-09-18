@@ -72,8 +72,6 @@ void MPC::plannerCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
         }
 
         // Fill planner matrix
-        // idx0 = first_index(msg);
-        // planner.resize(nPlanning-idx0, 7);
         for (unsigned int i = 0; i < nPlanning ; i++)
         {	
             planner(i, 0) = msg->objectives[i].x;
@@ -100,8 +98,6 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
     }
 
     // Fill planner matrix
-    // idx0 = first_index(msg);
-    // planner.resize(nPlanning-idx0, 7);
     for (unsigned int i = 0; i < nPlanning ; i++)
     {	
         planner(i, 0) = msg->objectives[i].x;
@@ -126,7 +122,6 @@ void MPC::velsCallback(const as_msgs::CarVelocityArray::ConstPtr& msg){
         return;
     }
 
-    // pred_velocities.resize(msg->velocities.size()-idx0);
     for(int i=0; i < msg->velocities.size(); i++){
         pred_velocities(i) = msg->velocities[i].x;
     }
@@ -145,7 +140,7 @@ void MPC::solve(){
         auto start_time = chrono::system_clock::now();
 
         // Set number of internal threads
-        forces.params.num_of_threads = this->Nthreads;
+        // forces.params.num_of_threads = this->Nthreads;
 
         initial_conditions();   // compute initial state (xinit)
         set_params_bounds();    // set parameters & boundaries of the NLOP (Non Linear Optimization Problem)
@@ -191,6 +186,42 @@ void MPC::solve(){
     }
 }
 
+void MPC::solve_IPOPT(){
+
+    set_boundaries_IPOPT();
+    set_parameters_IPOPT();
+
+    // Bounds and initial guess
+    std::map<std::string, casadi::DM> arg, sol;
+    arg["lbx"] = ipopt.lbx;
+    arg["ubx"] = ipopt.ubx;
+    arg["lbg"] = vconcat(vconcat(ipopt.lbg_next,ipopt.lbg_track),ipopt.lbg_elipse);
+    arg["ubg"] = vconcat(vconcat(ipopt.ubg_next,ipopt.ubg_track),ipopt.ubg_elipse);
+    arg["x0"] = ipopt.x0;
+    arg["p"] = ipopt.p;
+
+    // Solve the NLOP
+    if(ipopt.solver_ptr){
+        sol = (*ipopt.solver_ptr)(arg);
+
+        casadi::Dict stats;
+        stats = (*ipopt.solver_ptr).stats();
+
+        ipopt.exit_flag = stats["return_status"].get_str(); // Maximum_Iterations_Exceeded
+        ipopt.solution = vector<double>(sol.at("x"));
+
+        // Exit Flag:
+        cout << "IPOPT EXIT FLAG = " << ipopt.exit_flag << endl;
+
+        cout << "SOLUTION: " << endl;
+        printVec(ipopt.solution, 15);
+
+    }else{
+        ROS_ERROR("IPOPT SOLVER POINTER IS NULL");
+    }
+    
+}
+
 void MPC::initial_conditions(){
 
     // Calculate tangent vector of the trajectory
@@ -218,21 +249,194 @@ void MPC::initial_conditions(){
     // ROS_WARN_STREAM("mu0: " << mu0);
     // ROS_WARN_STREAM("n0: " << n0);
 
-    // xinit = [diff_delta, Mtv, delta, n, mu, Vy, w]
-    forces.params.xinit[0] = 0.0;
-    forces.params.xinit[1] = carState(8);
-    forces.params.xinit[2] = carState(6);
-    forces.params.xinit[3] = n0;
-    forces.params.xinit[4] = mu0;
-    forces.params.xinit[5] = carState(4);
-    forces.params.xinit[6] = carState(5);
+    vector<double> xinit(this->n_states); // xinit = [delta, n, mu, Vy, w]
+    xinit[0] = carState(6);
+    xinit[1] = n0;
+    xinit[2] = mu0;
+    xinit[3] = carState(4);
+    xinit[4] = carState(5);
 
-    // cout << "Xinit:\n";
-    // for(int i=0;i<7;i++){
-    //     cout << forces.params.xinit[i] << endl;
-    // }
+    cout << "XINIT: " << endl;
+    printVec(xinit);
 
-    // cout << "Steering feedback: " << carState(6) << endl;
+    // forces.params.xinit[0] = 0.0;
+    // forces.params.xinit[1] = carState(8);
+    // forces.params.xinit[2] = carState(6);
+    // forces.params.xinit[3] = n0;
+    // forces.params.xinit[4] = mu0;
+    // forces.params.xinit[5] = carState(4);
+    // forces.params.xinit[6] = carState(5);
+
+    return xinit;
+
+}
+
+// set_boundaries_IPOPT: Set boundaries for state, control variables and equality & inequality constraints
+void MPC::set_boundaries_IPOPT(){
+
+    /* TO DO:
+        - fill initial guess x0 with different values depending on previous solution
+        - only execute this function once --> put outside X0 calculation/filling
+    */
+
+    vector<double> X_MIN;
+    vector<double> X_MAX;
+    // vector<double> X0;
+    vector<double> U_MIN;
+    vector<double> U_MAX;
+    // vector<double> U0;
+
+    // Reserve memory
+    X_MIN.reserve(this->bounds.x_min.size()*(this->N+1));
+    X_MAX.reserve(this->bounds.x_max.size()*(this->N+1));
+    // X0.reserve(this->bounds.x0.size()*(this->N+1));
+    U_MIN.reserve(this->bounds.u_min.size()*this->N);
+    U_MAX.reserve(this->bounds.u_max.size()*this->N);
+    // U0.reserve(this->bounds.u0.size()*this->N);
+
+    // Bounds of constraints
+    vector<double> lbg_next(n_states*(N+1), this->bounds.lower_continuity);  // lower boundaries continuity constraint
+    vector<double> lbg_track(2*(N+1), this->bounds.lower_track);             // lower boundaries track constraint
+
+    vector<double> ubg_next(n_states*(N+1), this->bounds.upper_continuity);  // upper boundaries continuity constraint
+
+    vector<double> ubg_track; // upper boundaries track constraint
+    for(unsigned i=0; i<N+1; i++){
+        ubg_track.push_back(planner(i,5));
+        ubg_track.push_back(planner(i,6));
+    }
+
+    ipopt.lbg_next = lbg_next;
+    ipopt.lbg_track = lbg_track;
+    ipopt.ubg_next = ubg_next;
+    ipopt.ubg_track = ubg_track;
+
+    for(int k=0; k<N+1; k++){
+
+        X_MIN.insert(X_MIN.end(), this->bounds.x_min.begin(), this->bounds.x_min.end());
+        X_MAX.insert(X_MAX.end(), this->bounds.x_max.begin(), this->bounds.x_max.end());
+
+        // X0.insert(X0.end(), this->bounds.x0.begin(), this->bounds.x0.end());
+
+        if(k<N){
+            U_MIN.insert(U_MIN.end(), this->bounds.u_min.begin(), this->bounds.u_min.end());
+            U_MAX.insert(U_MAX.end(), this->bounds.u_max.begin(), this->bounds.u_max.end());
+
+            // U0.insert(U0.end(), this->bounds.u0.begin(), this->bounds.u0.end());
+        }
+    }
+
+    ipopt.lbx = vconcat(X_MIN,U_MIN);
+    ipopt.ubx = vconcat(X_MAX,U_MAX);
+    // ipopt.x0 = vconcat(X0,U0);
+
+}
+
+void MPC::set_parameters_IPOPT(){
+
+    /* TO DO:
+        - set curvature & velocity depending on progress prediction
+    */
+
+    vector<double> param = {this->dRd, 
+                        this->m, 
+                        this->I, 
+                        this->Lf, 
+                        this->Lr, 
+                        this->Dr, 
+                        this->Df, 
+                        this->Cr, 
+                        this->Cf, 
+                        this->Br, 
+                        this->Bf, 
+                        this->gravity, 
+                        this->q_slip, 
+                        this->q_n, 
+                        this->q_mu, 
+                        this->q_s};
+
+    vector<double> curvature(this->N), velocity(this->N);
+    for (unsigned int i = 0; i < this->N; i++){
+        curvature[i] = planner(i,3);
+        velocity[i] = pred_velocities(i);
+    }
+
+    vector<double> xinit = initial_conditions(); // initial conditions evaluation
+
+    param.reserve(xinit.size()+param.size()+curvature.size()+velocity.size()); // reserve memory
+
+    param.insert(param.end(), xinit.begin(), xinit.end()); // insert initial state vector
+
+    param.insert(param.end(), curvature.begin(), curvature.end()); // insert midline path's curvature
+
+    param.insert(param.end(), velocity.begin(), velocity.end()); // insert velocity profile
+
+    ipopt.p = param;
+
+}
+
+void MPC::s_prediction(){
+
+    predicted_s.setZero();
+    cout << "S_PRED inicial: " << progress(0) << endl;
+    predicted_s(0) = progress(0);
+
+    lastState(0,0) = carState(0);
+    lastState(0,1) = carState(1);
+    lastState(0,2) = carState(2);
+    lastState(0,3) = carState(3);
+    lastState(0,4) = solStates(0,2);
+    lastState(0,5) = solStates(0,3);
+
+    for(int i=1; i < N; i++){
+
+        double theta = lastState(i-1, 2);
+        double n = solStates(i-1, 0);
+        double mu = solStates(i-1, 1);
+        double vx = ipopt.p[this->Npar +this->n_states + this->N + (i-1)]; // predicted vel. from longitudinal pid
+        double vy = solStates(i-1, 2);
+        double w = solStates(i-1, 3);
+        double k = ipopt.p[this->Npar +this->n_states + (i-1)]; // curvature from planner
+
+        // save<double>(this->debug_path, "curvature.csv", k, true);
+        // save<double>(this->debug_path, "deviation.csv", n, true);
+
+        double sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
+
+        predicted_s(i) = predicted_s(i-1) + sdot*this->rk4_t;
+        if(predicted_s(i) > this->smax) predicted_s(i) -= this->smax; // if we have done one lap, reset progress
+
+        // Ensure sdot > 0
+        if(sdot < 0){
+            ROS_ERROR("MPC FATAL ERROR, negative sdot");
+            this->firstIter = true;
+            break;
+        }
+
+        // Predict states evolution with Euler
+        lastState(i, 0) = lastState(i-1,0) + (vx*cos(theta) - vy*sin(theta))*this->rk4_t;
+        lastState(i, 1) = lastState(i-1,1) + (vx*sin(theta) + vy*cos(theta))*this->rk4_t;
+        lastState(i, 2) = lastState(i-1,2) + w*this->rk4_t;
+        lastState(i, 3) = vx;
+        lastState(i, 4) = vy;
+        lastState(i, 5) = w;
+
+        lastCommands(i-1, 0) = solCommands(i-1, 1); // diff_delta
+        lastCommands(i-1, 1) = solCommands(i-1, 2); // Mtv
+        lastCommands(i-1, 2) = solCommands(i-1, 3); // Delta
+
+    }
+
+    // saveEigen(this->debug_path, "horizon_fss.csv", lastState.leftCols(2), false);
+    // saveEigen(this->debug_path, "solCommands.csv", solCommands, true);
+    // saveEigen(this->debug_path, "solStates.csv", solStates, true);
+
+    // If predicted s is too small set initial s again
+    double totalLength = predicted_s(this->N-1) - predicted_s(0);
+    if(totalLength < 1.0){ 
+        ROS_ERROR("Predicted s smaller than threshold!");
+        firstIter = true;    
+    }
 
 }
 
@@ -441,85 +645,24 @@ void MPC::set_params_bounds(){
 
 }
 
-void MPC::s_prediction(){
-
-    predicted_s.setZero();
-    cout << "S_PRED inicial: " << progress(0) << endl;
-    predicted_s(0) = progress(0);
-
-    lastState(0,0) = carState(0);
-    lastState(0,1) = carState(1);
-    lastState(0,2) = carState(2);
-    lastState(0,3) = carState(3);
-    lastState(0,4) = solStates(0,2);
-    lastState(0,5) = solStates(0,3);
-
-    for(int i=1; i < N; i++){
-
-        double theta = lastState(i-1, 2);
-        double n = solStates(i-1, 0);
-        double mu = solStates(i-1, 1);
-        double vx = forces.params.all_parameters[23 + (i-1)*this->Npar]; // predicted vel. from longitudinal pid
-        double vy = solStates(i-1, 2);
-        double w = solStates(i-1, 3);
-        double k = forces.params.all_parameters[24 + (i-1)*this->Npar]; // curvature from planner
-
-        // save<double>(this->debug_path, "curvature.csv", k, true);
-        // save<double>(this->debug_path, "deviation.csv", n, true);
-
-        double sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
-
-        predicted_s(i) = predicted_s(i-1) + sdot*this->rk4_t;
-        if(predicted_s(i) > this->smax) predicted_s(i) -= this->smax; // if we have done one lap, reset progress
-
-        // Ensure sdot > 0
-        if(sdot < 0){
-            ROS_ERROR("MPC FATAL ERROR, negative sdot");
-            this->firstIter = true;
-            break;
-        }
-
-        // Predict states evolution with Euler
-        lastState(i, 0) = lastState(i-1,0) + (vx*cos(theta) - vy*sin(theta))*this->rk4_t;
-        lastState(i, 1) = lastState(i-1,1) + (vx*sin(theta) + vy*cos(theta))*this->rk4_t;
-        lastState(i, 2) = lastState(i-1,2) + w*this->rk4_t;
-        lastState(i, 3) = vx;
-        lastState(i, 4) = vy;
-        lastState(i, 5) = w;
-
-        lastCommands(i-1, 0) = solCommands(i-1, 1); // diff_delta
-        lastCommands(i-1, 1) = solCommands(i-1, 2); // Mtv
-        lastCommands(i-1, 2) = solCommands(i-1, 3); // Delta
-
-    }
-
-    // saveEigen(this->debug_path, "horizon_fss.csv", lastState.leftCols(2), false);
-    // saveEigen(this->debug_path, "solCommands.csv", solCommands, true);
-    // saveEigen(this->debug_path, "solStates.csv", solStates, true);
-
-    // If predicted s is too small set initial s again
-    double totalLength = predicted_s(this->N-1) - predicted_s(0);
-    if(totalLength < 1.0){ 
-        ROS_ERROR("Predicted s smaller than threshold!");
-        firstIter = true;    
-    }
-
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //------------------------Auxiliar functions--------------------------------------------------
 
 void MPC::get_solution(){
 
-    // Change vec dimensions from x(4*N x 1) u(4*N x 1) to x(N x 4) u(N x 4)
-    Eigen::MatrixXd u = output2eigen(forces.solution.U, sizeU);
-    Eigen::MatrixXd x = output2eigen(forces.solution.X, sizeX);
+    // Concatenate optimized stages in Xopt ( n_opt*(N+1) x 1) --> (n_opt x (N+1) ) where n_opt = n_states + n_controls
+    Eigen::MatrixXd optimized = vector2eigen(ipopt.solution);
+    Eigen::Map<Eigen::MatrixXd> stages(optimized.topRows(n_states*(N+1)).data(),n_states,N+1);
+    Eigen::Map<Eigen::MatrixXd> controls(optimized.bottomRows(n_controls*(N+1)).data(),n_controls,N+1);
+    Eigen::MatrixXd Xopt(stages.rows()+controls.rows(), stages.cols());
+    Xopt << controls, 
+            stages;
+    Eigen::MatrixXd solStatesT, solCommandsT;
+    solStatesT = Xopt.bottomRows(n_states-1);
+    solCommandsT = Xopt.topRows(n_controls+1);
 
-    Eigen::Map<Eigen::MatrixXd> controlsT(u.data(), n_controls, N);
-    Eigen::Map<Eigen::MatrixXd> statesT(x.data(), n_states, N);
-
-    solStates = statesT.transpose();
-    solCommands = controlsT.transpose();
+    solStates = solStatesT.transpose();     // [n, mu vy, w] 
+    solCommands = solCommandsT.transpose(); // [diff_delta, Mtv, delta]
 
     // cout << "solStates: " << endl;
     // cout << solStates << endl;
