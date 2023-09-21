@@ -3,13 +3,23 @@
 // Constructor
 MPC::MPC(const Params* params){
 
+    cout << "Before solver generation" << endl;
+
+    // Call Optimizer constructor
+    this->opt_ptr = new Optimizer(params);
+    this->ipopt.solver_ptr = opt_ptr->generate_solver();
+
+    cout << "After solver generation" << endl;
+
     // NLOP params
-    this->N = params->mpc.nlop.N;
-    this->Nslacks = params->mpc.nlop.Nslacks;
+    this->N          = this->opt_ptr->N;
+    this->n_states   = this->opt_ptr->n_states;
+    this->n_controls = this->opt_ptr->n_controls;
+    this->Nh         = params->mpc.nlop.Nh;
 
     // MPC
     this->Hz            = params->mpc.Hz;
-    this->rk4_t         = params->mpc.rk4_t;
+    this->rk4_t         = this->opt_ptr->T;
     this->delta_s       = params->mpc.delta_s;
     this->nPlanning     = params->mpc.nPlanning;
     this->nSearch       = params->mpc.nSearch;
@@ -22,18 +32,7 @@ MPC::MPC(const Params* params){
     this->Lr        = params->vehicle.Lr;
     this->Lf        = params->vehicle.Lf;
     this->I         = params->vehicle.I;
-    this->Ar        = params->vehicle.Ar;
-    this->rho       = params->vehicle.rho;
-    this->gravity   = params->vehicle.gravity;
-
-    this->sizeU = sizeof(forces.solution.U)/sizeof(forces.solution.U[0]); // size of control FORCES array
-    this->sizeX = sizeof(forces.solution.X)/sizeof(forces.solution.X[0]); // size of states FORCES array
-
-    int sizeParam = sizeof(forces.params.all_parameters)/sizeof(forces.params.all_parameters[0]); // size of params FORCES array
-    this->Npar = int(sizeParam/N);
-
-    this->n_states = int(sizeX/N);      // number of car state variables
-    this->n_controls = int(sizeU/N);    // number of commands variables    
+    this->gravity   = params->vehicle.gravity;   
 
     planner = Eigen::MatrixXd::Zero(nPlanning,7);
     carState = Eigen::VectorXd::Zero(9);
@@ -41,14 +40,18 @@ MPC::MPC(const Params* params){
     progress = Eigen::VectorXd::Zero(N); 
     pred_velocities = Eigen::VectorXd::Zero(nPlanning);
 
-    lastState = Eigen::MatrixXd::Zero(N,6);                         // [x, y, theta, vx, vy, w]
-    lastCommands = Eigen::MatrixXd::Zero(N,n_controls-Nslacks);     // [diff_delta, Mtv, delta]
+    lastState = Eigen::MatrixXd::Zero(N,6);   // [x, y, theta, vx, vy, w]
 
-    solStates = Eigen::MatrixXd::Zero(N,n_states);        // [n, mu, vy, w]
-    solCommands = Eigen::MatrixXd::Zero(N,n_controls);    // [slack_track, diff_delta, Mtv, delta]
+    solStates = Eigen::MatrixXd::Zero(N+1,n_states);        // [n, mu, vy, w]
+    solCommands = Eigen::MatrixXd::Zero(N+1,n_controls+1);  // [diff_delta, Mtv, delta]
 
     this->debug_path = params->debug.path;
     this->debug_flag = params->debug.flag;
+    
+}
+
+MPC::~MPC(){
+    delete opt_ptr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,7 +120,7 @@ void MPC::troCallback(const as_msgs::ObjectiveArrayCurv::ConstPtr& msg){
 
 void MPC::velsCallback(const as_msgs::CarVelocityArray::ConstPtr& msg){
 
-    if (msg->velocities.size() < this->N){ 
+    if (msg->velocities.size() < this->N+1){ 
         ROS_WARN("MPC: Velocity profile too short!");
         return;
     }
@@ -139,40 +142,34 @@ void MPC::solve(){
         
         auto start_time = chrono::system_clock::now();
 
-        // Set number of internal threads
-        // forces.params.num_of_threads = this->Nthreads;
+        static bool only_once = set_static_boundaries(); // only called once
 
-        initial_conditions();   // compute initial state (xinit)
-        set_params_bounds();    // set parameters & boundaries of the NLOP (Non Linear Optimization Problem)
+        set_params_bounds(); // set real time parameters & boundaries of the NLOP (Non Linear Optimization Problem)
 
-        // Get i-th memory buffer
-        int i = 0;
-        forces.mem_handle = TailoredSolver_internal_mem(i);
-        /* Note: number of available memory buffers is controlled by code option max_num_mem */
+        // Solve the NLOP
+        solve_IPOPT();
 
-        // Solve
-        forces.exit_flag = TailoredSolver_solve(&forces.params, &forces.solution, &forces.info, forces.mem_handle, NULL, forces.ext_func);
+        ROS_WARN_STREAM("TAILORED MPC exit flag: " << ipopt.exit_flag);
 
-        ROS_WARN_STREAM("TAILORED MPC exit flag: " << forces.exit_flag);
-        // ROS_WARN_STREAM("TAILORED MPC solve time: " << forces.info.solvetime*1000 << " ms");
-        // ROS_WARN_STREAM("TAILORED MPC iterations: " << forces.info.it);
+        // cout << "SOLUTION: " << endl;
+        // printVec(ipopt.solution, 15);
 
-        if(forces.exit_flag == 1 || forces.exit_flag == 0) this->firstIter = false;
+        if(ipopt.exit_flag == 1 || ipopt.exit_flag == 0) this->firstIter = false;
         else this->firstIter = true; // we go back to first iteration's pipeline if the NLOP didn't converge
 
         get_solution(); // save current solution (predicted states & controls)
-        if(forces.exit_flag == 1 || forces.exit_flag == 0) s_prediction(); 
+        if(ipopt.exit_flag == 1 || ipopt.exit_flag == 0) s_prediction(); 
         /* Note: we predict the evolution of the progress (s) if optimal solution is found (exit flag == 1) or maximum number of iterations is reached (exit flag == 0)*/
 
         auto finish_time = chrono::system_clock::now();
 
         elapsed_time = finish_time - start_time;
 
-        // ROS_WARN("TAILORED MPC elapsed time: %f ms", elapsed_time.count()*1000);
+        ROS_WARN("TAILORED MPC elapsed time: %f ms", elapsed_time.count()*1000);
 
         // Save data
         // save<float>(this->debug_path, "solve_time.txt", elapsed_time.count()*1000, true);
-        // save<int>(this->debug_path, "exit_flags.csv", forces.exit_flag, true);
+        // save<int>(this->debug_path, "exit_flags.csv", ipopt.exit_flag, true);
 
     }else{
 
@@ -188,15 +185,12 @@ void MPC::solve(){
 
 void MPC::solve_IPOPT(){
 
-    set_boundaries_IPOPT();
-    set_parameters_IPOPT();
-
     // Bounds and initial guess
     std::map<std::string, casadi::DM> arg, sol;
     arg["lbx"] = ipopt.lbx;
     arg["ubx"] = ipopt.ubx;
-    arg["lbg"] = vconcat(vconcat(ipopt.lbg_next,ipopt.lbg_track),ipopt.lbg_elipse);
-    arg["ubg"] = vconcat(vconcat(ipopt.ubg_next,ipopt.ubg_track),ipopt.ubg_elipse);
+    arg["lbg"] = vconcat(ipopt.lbg_next,ipopt.lbg_track);
+    arg["ubg"] = vconcat(ipopt.ubg_next,ipopt.ubg_track);
     arg["x0"] = ipopt.x0;
     arg["p"] = ipopt.p;
 
@@ -207,14 +201,15 @@ void MPC::solve_IPOPT(){
         casadi::Dict stats;
         stats = (*ipopt.solver_ptr).stats();
 
-        ipopt.exit_flag = stats["return_status"].get_str(); // Maximum_Iterations_Exceeded
+        string flag = stats["return_status"].get_str();
         ipopt.solution = vector<double>(sol.at("x"));
 
-        // Exit Flag:
-        cout << "IPOPT EXIT FLAG = " << ipopt.exit_flag << endl;
+        if(flag == "Solve_Succeded") ipopt.exit_flag = 1;
+        else if(flag == "Maximum_Iterations_Exceeded") ipopt.exit_flag = 0;
+        else ipopt.exit_flag = -10;
 
-        cout << "SOLUTION: " << endl;
-        printVec(ipopt.solution, 15);
+        // Exit Flag:
+        cout << "IPOPT EXIT FLAG = " << flag << endl;
 
     }else{
         ROS_ERROR("IPOPT SOLVER POINTER IS NULL");
@@ -222,77 +217,19 @@ void MPC::solve_IPOPT(){
     
 }
 
-void MPC::initial_conditions(){
-
-    // Calculate tangent vector of the trajectory
-    Eigen::Vector2d tangent;
-    tangent << planner(1,0) - planner(0,0), planner(1,1) - planner(0,1);
-
-    // Calculate vector from the first point of the trajectory to the car
-    Eigen::Vector2d s0_to_car;
-    s0_to_car << carState(0) - planner(0,0), carState(1) - planner(0,1);
-
-    // Calculate cross product to get angle
-    double cross = s0_to_car(0)*tangent(1) - s0_to_car(1)*tangent(0);
-    double angle = asin(cross/(s0_to_car.norm()*tangent.norm())); // angle between car position and heading of the trajectory
-
-    // Get sign
-    int sign = angle/fabs(angle);
-
-    if(fabs(angle) > M_PI/2) angle = fabs(angle) - M_PI/2;
-    else angle = M_PI/2 - fabs(angle);
-
-    double n0 = -s0_to_car.norm()*cos(fabs(angle))*sign; // normal distance from car to track
-    double t_angle = atan2(tangent(1), tangent(0)); // heading of the trajectory
-    double mu0 = -(t_angle - continuous(carState(2), t_angle));
-
-    // ROS_WARN_STREAM("mu0: " << mu0);
-    // ROS_WARN_STREAM("n0: " << n0);
-
-    vector<double> xinit(this->n_states); // xinit = [delta, n, mu, Vy, w]
-    xinit[0] = carState(6);
-    xinit[1] = n0;
-    xinit[2] = mu0;
-    xinit[3] = carState(4);
-    xinit[4] = carState(5);
-
-    cout << "XINIT: " << endl;
-    printVec(xinit);
-
-    // forces.params.xinit[0] = 0.0;
-    // forces.params.xinit[1] = carState(8);
-    // forces.params.xinit[2] = carState(6);
-    // forces.params.xinit[3] = n0;
-    // forces.params.xinit[4] = mu0;
-    // forces.params.xinit[5] = carState(4);
-    // forces.params.xinit[6] = carState(5);
-
-    return xinit;
-
-}
-
-// set_boundaries_IPOPT: Set boundaries for state, control variables and equality & inequality constraints
-void MPC::set_boundaries_IPOPT(){
-
-    /* TO DO:
-        - fill initial guess x0 with different values depending on previous solution
-        - only execute this function once --> put outside X0 calculation/filling
-    */
+// Set static boundaries for state, control variables and equality & inequality constraints
+bool MPC::set_static_boundaries(){
 
     vector<double> X_MIN;
     vector<double> X_MAX;
-    // vector<double> X0;
     vector<double> U_MIN;
     vector<double> U_MAX;
-    // vector<double> U0;
 
     // Reserve memory
     X_MIN.reserve(this->bounds.x_min.size()*(this->N+1));
     X_MAX.reserve(this->bounds.x_max.size()*(this->N+1));
-    // X0.reserve(this->bounds.x0.size()*(this->N+1));
     U_MIN.reserve(this->bounds.u_min.size()*this->N);
     U_MAX.reserve(this->bounds.u_max.size()*this->N);
-    // U0.reserve(this->bounds.u0.size()*this->N);
 
     // Bounds of constraints
     vector<double> lbg_next(n_states*(N+1), this->bounds.lower_continuity);  // lower boundaries continuity constraint
@@ -300,43 +237,34 @@ void MPC::set_boundaries_IPOPT(){
 
     vector<double> ubg_next(n_states*(N+1), this->bounds.upper_continuity);  // upper boundaries continuity constraint
 
-    vector<double> ubg_track; // upper boundaries track constraint
-    for(unsigned i=0; i<N+1; i++){
-        ubg_track.push_back(planner(i,5));
-        ubg_track.push_back(planner(i,6));
-    }
-
     ipopt.lbg_next = lbg_next;
     ipopt.lbg_track = lbg_track;
     ipopt.ubg_next = ubg_next;
-    ipopt.ubg_track = ubg_track;
 
     for(int k=0; k<N+1; k++){
 
         X_MIN.insert(X_MIN.end(), this->bounds.x_min.begin(), this->bounds.x_min.end());
         X_MAX.insert(X_MAX.end(), this->bounds.x_max.begin(), this->bounds.x_max.end());
 
-        // X0.insert(X0.end(), this->bounds.x0.begin(), this->bounds.x0.end());
-
         if(k<N){
             U_MIN.insert(U_MIN.end(), this->bounds.u_min.begin(), this->bounds.u_min.end());
             U_MAX.insert(U_MAX.end(), this->bounds.u_max.begin(), this->bounds.u_max.end());
 
-            // U0.insert(U0.end(), this->bounds.u0.begin(), this->bounds.u0.end());
         }
     }
 
     ipopt.lbx = vconcat(X_MIN,U_MIN);
     ipopt.ubx = vconcat(X_MAX,U_MAX);
-    // ipopt.x0 = vconcat(X0,U0);
+
+    return true;
 
 }
 
-void MPC::set_parameters_IPOPT(){
+void MPC::set_params_bounds(){
 
-    /* TO DO:
-        - set curvature & velocity depending on progress prediction
-    */
+   vector<double> X0, U0;
+   X0.reserve(this->bounds.x0.size()*(this->N+1));
+   U0.reserve(this->bounds.u0.size()*this->N);
 
     vector<double> param = {this->dRd, 
                         this->m, 
@@ -356,98 +284,15 @@ void MPC::set_parameters_IPOPT(){
                         this->q_s};
 
     vector<double> curvature(this->N), velocity(this->N);
-    for (unsigned int i = 0; i < this->N; i++){
-        curvature[i] = planner(i,3);
-        velocity[i] = pred_velocities(i);
-    }
+    vector<double> ubg_track; // upper boundaries track constraint
 
     vector<double> xinit = initial_conditions(); // initial conditions evaluation
 
-    param.reserve(xinit.size()+param.size()+curvature.size()+velocity.size()); // reserve memory
-
-    param.insert(param.end(), xinit.begin(), xinit.end()); // insert initial state vector
-
-    param.insert(param.end(), curvature.begin(), curvature.end()); // insert midline path's curvature
-
-    param.insert(param.end(), velocity.begin(), velocity.end()); // insert velocity profile
-
-    ipopt.p = param;
-
-}
-
-void MPC::s_prediction(){
-
-    predicted_s.setZero();
-    cout << "S_PRED inicial: " << progress(0) << endl;
-    predicted_s(0) = progress(0);
-
-    lastState(0,0) = carState(0);
-    lastState(0,1) = carState(1);
-    lastState(0,2) = carState(2);
-    lastState(0,3) = carState(3);
-    lastState(0,4) = solStates(0,2);
-    lastState(0,5) = solStates(0,3);
-
-    for(int i=1; i < N; i++){
-
-        double theta = lastState(i-1, 2);
-        double n = solStates(i-1, 0);
-        double mu = solStates(i-1, 1);
-        double vx = ipopt.p[this->Npar +this->n_states + this->N + (i-1)]; // predicted vel. from longitudinal pid
-        double vy = solStates(i-1, 2);
-        double w = solStates(i-1, 3);
-        double k = ipopt.p[this->Npar +this->n_states + (i-1)]; // curvature from planner
-
-        // save<double>(this->debug_path, "curvature.csv", k, true);
-        // save<double>(this->debug_path, "deviation.csv", n, true);
-
-        double sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
-
-        predicted_s(i) = predicted_s(i-1) + sdot*this->rk4_t;
-        if(predicted_s(i) > this->smax) predicted_s(i) -= this->smax; // if we have done one lap, reset progress
-
-        // Ensure sdot > 0
-        if(sdot < 0){
-            ROS_ERROR("MPC FATAL ERROR, negative sdot");
-            this->firstIter = true;
-            break;
-        }
-
-        // Predict states evolution with Euler
-        lastState(i, 0) = lastState(i-1,0) + (vx*cos(theta) - vy*sin(theta))*this->rk4_t;
-        lastState(i, 1) = lastState(i-1,1) + (vx*sin(theta) + vy*cos(theta))*this->rk4_t;
-        lastState(i, 2) = lastState(i-1,2) + w*this->rk4_t;
-        lastState(i, 3) = vx;
-        lastState(i, 4) = vy;
-        lastState(i, 5) = w;
-
-        lastCommands(i-1, 0) = solCommands(i-1, 1); // diff_delta
-        lastCommands(i-1, 1) = solCommands(i-1, 2); // Mtv
-        lastCommands(i-1, 2) = solCommands(i-1, 3); // Delta
-
-    }
-
-    // saveEigen(this->debug_path, "horizon_fss.csv", lastState.leftCols(2), false);
-    // saveEigen(this->debug_path, "solCommands.csv", solCommands, true);
-    // saveEigen(this->debug_path, "solStates.csv", solStates, true);
-
-    // If predicted s is too small set initial s again
-    double totalLength = predicted_s(this->N-1) - predicted_s(0);
-    if(totalLength < 1.0){ 
-        ROS_ERROR("Predicted s smaller than threshold!");
-        firstIter = true;    
-    }
-
-}
-
-void MPC::set_params_bounds(){
-
     int id_k = 0;       // curvature's index
     int id_sinit = 0;   // initial progress (s) index
+    int plannerIdx = 0; // planner index to consider at each iter
     double mean_s = 0;  // mean of progress discretization (delta_s)
 
-    int size = sizeof(forces.params.hu)/sizeof(forces.params.hu[0]);
-    int nh = int(size/this->N);                    // number of inequality constraints
     int Nvar = this->n_states + this->n_controls;  // number of total variables (state + control)
 
     if(!firstIter){
@@ -471,32 +316,7 @@ void MPC::set_params_bounds(){
 
     for(int k = 0; k < this->N; k++){
 
-        this->forces.params.all_parameters[ 0 + k*this->Npar] = this->dRd; 
-        this->forces.params.all_parameters[ 1 + k*this->Npar] = this->m;
-        this->forces.params.all_parameters[ 2 + k*this->Npar] = this->I;
-        this->forces.params.all_parameters[ 3 + k*this->Npar] = this->Lf;
-        this->forces.params.all_parameters[ 4 + k*this->Npar] = this->Lr;
-        this->forces.params.all_parameters[ 5 + k*this->Npar] = this->Dr;
-        this->forces.params.all_parameters[ 6 + k*this->Npar] = this->Df;
-        this->forces.params.all_parameters[ 7 + k*this->Npar] = this->Cr;
-        this->forces.params.all_parameters[ 8 + k*this->Npar] = this->Cf;
-        this->forces.params.all_parameters[ 9 + k*this->Npar] = this->Br;
-        this->forces.params.all_parameters[10 + k*this->Npar] = this->Bf;
-        this->forces.params.all_parameters[11 + k*this->Npar] = this->u_r;   
-        this->forces.params.all_parameters[12 + k*this->Npar] = this->gravity;
-        this->forces.params.all_parameters[13 + k*this->Npar] = this->Cd;
-        this->forces.params.all_parameters[14 + k*this->Npar] = this->rho;   
-        this->forces.params.all_parameters[15 + k*this->Npar] = this->Ar;
-        this->forces.params.all_parameters[16 + k*this->Npar] = this->q_slip;
-        this->forces.params.all_parameters[17 + k*this->Npar] = (k == N-1) ? this->q_nN : this->q_n;
-        this->forces.params.all_parameters[18 + k*this->Npar] = this->q_mu;
-        this->forces.params.all_parameters[19 + k*this->Npar] = (k == N-1) ? this->q_sN : this->q_s;
-        this->forces.params.all_parameters[20 + k*this->Npar] = this->dMtv; 
-
-        this->forces.params.all_parameters[21 + k*this->Npar] = this->rk4_t;
-        this->forces.params.all_parameters[22 + k*this->Npar] = this->q_slack_track;
-
-        int plannerIdx = 0;
+        plannerIdx = 0;
         if(firstIter){
             plannerIdx = this->samplingS*k; // in first iteration we pick equally spaced points from the planner
 
@@ -547,101 +367,199 @@ void MPC::set_params_bounds(){
             }
         }
 
-        cout << "PlannerIDX: " << plannerIdx << endl;
-
         progress(k) = planner(plannerIdx, 2); // save current progress from planner
 
-        this->forces.params.all_parameters[23 + k*this->Npar] = pred_velocities(plannerIdx); // velocity profile from longitudinal pid
-        this->forces.params.all_parameters[24 + k*this->Npar] = planner(plannerIdx, 3);      // curvature 
+        curvature[k] = planner(plannerIdx,3);       // curvature 
+        velocity[k]  = pred_velocities(plannerIdx); // velocity profile from longitudinal pid
 
-        // Inequality constraints bounds:
-        this->forces.params.hu[k*nh]     = fabs(planner(plannerIdx, 5)); // L(s) ortogonal left dist from the path to the track limits
-        this->forces.params.hu[k*nh + 1] = fabs(planner(plannerIdx, 6)); // R(s) ortogonal right dist from the path to the track limits
-
-        // Variables bounds:
-        this->forces.params.lb[k*Nvar]     = this->bounds.u_min[0];
-        this->forces.params.lb[k*Nvar + 1] = this->bounds.u_min[1];
-        this->forces.params.lb[k*Nvar + 2] = this->bounds.u_min[2];
-        this->forces.params.lb[k*Nvar + 3] = this->bounds.x_min[0];
-        this->forces.params.lb[k*Nvar + 4] = this->bounds.x_min[1];
-        this->forces.params.lb[k*Nvar + 5] = this->bounds.x_min[2];
-        this->forces.params.lb[k*Nvar + 6] = this->bounds.x_min[3];
-        this->forces.params.lb[k*Nvar + 7] = this->bounds.x_min[4];
-
-            // Slack variables doesn't have any upper bounds, so Nvar-Nslacks is used here
-        this->forces.params.ub[k*(Nvar-Nslacks)]     = this->bounds.u_max[0];
-        this->forces.params.ub[k*(Nvar-Nslacks) + 1] = this->bounds.u_max[1];
-        this->forces.params.ub[k*(Nvar-Nslacks) + 2] = this->bounds.x_max[0];
-        this->forces.params.ub[k*(Nvar-Nslacks) + 3] = this->bounds.x_max[1];
-        this->forces.params.ub[k*(Nvar-Nslacks) + 4] = this->bounds.x_max[2];
-        this->forces.params.ub[k*(Nvar-Nslacks) + 5] = this->bounds.x_max[3];
-        this->forces.params.ub[k*(Nvar-Nslacks) + 6] = this->bounds.x_max[4];
+        // Inequality constraints dynamic upper bounds:
+        ubg_track.push_back(planner(plannerIdx,5)); // L(s) ortogonal left dist from the path to the track limits
+        ubg_track.push_back(planner(plannerIdx,6)); // R(s) ortogonal right dist from the path to the track limits
 
         if(!firstIter){
-            if((latency + k) < this->N - 1){
-                if(this->forces.exit_flag == 1){
-                    this->forces.params.x0[k*Nvar]     = 0.0;
-                    this->forces.params.x0[k*Nvar + 1] = solCommands(latency+k, 1);
-                    this->forces.params.x0[k*Nvar + 2] = solCommands(latency+k, 2);
-                    this->forces.params.x0[k*Nvar + 3] = solCommands(latency+k, 3);
-                    this->forces.params.x0[k*Nvar + 4] = solStates(latency+k, 0);
-                    this->forces.params.x0[k*Nvar + 5] = solStates(latency+k, 1);
-                    this->forces.params.x0[k*Nvar + 6] = solStates(latency+k, 2);
-                    this->forces.params.x0[k*Nvar + 7] = solStates(latency+k, 3);
+            if((latency + k) < this->N){
+                if(this->ipopt.exit_flag == 1){
+
+                    U0.push_back(solCommands(latency+k, 0));
+                    U0.push_back(solCommands(latency+k, 1));
+
+                    X0.push_back(solCommands(latency+k, 2));
+                    X0.push_back(solStates(latency+k, 0));
+                    X0.push_back(solStates(latency+k, 1));
+                    X0.push_back(solStates(latency+k, 2));
+                    X0.push_back(solStates(latency+k, 3));
+
                 }else{
-                    this->forces.params.x0[k*Nvar]     =  this->forces.params.lb[k*Nvar];
-                    this->forces.params.x0[k*Nvar + 1] = (this->forces.params.lb[k*Nvar + 1] + this->forces.params.ub[k*(Nvar-Nslacks)])/2;
-                    this->forces.params.x0[k*Nvar + 2] = (this->forces.params.lb[k*Nvar + 2] + this->forces.params.ub[k*(Nvar-Nslacks) + 1])/2;
-                    this->forces.params.x0[k*Nvar + 3] = (this->forces.params.lb[k*Nvar + 3] + this->forces.params.ub[k*(Nvar-Nslacks) + 2])/2;
-                    this->forces.params.x0[k*Nvar + 4] = (this->forces.params.lb[k*Nvar + 4] + this->forces.params.ub[k*(Nvar-Nslacks) + 3])/2;
-                    this->forces.params.x0[k*Nvar + 5] = (this->forces.params.lb[k*Nvar + 5] + this->forces.params.ub[k*(Nvar-Nslacks) + 4])/2;
-                    this->forces.params.x0[k*Nvar + 6] = (this->forces.params.lb[k*Nvar + 6] + this->forces.params.ub[k*(Nvar-Nslacks) + 5])/2;
-                    this->forces.params.x0[k*Nvar + 7] = (this->forces.params.lb[k*Nvar + 7] + this->forces.params.ub[k*(Nvar-Nslacks) + 6])/2;
+                    X0.insert(X0.end(), this->bounds.x0.begin(), this->bounds.x0.end());
+                    U0.insert(U0.end(), this->bounds.u0.begin(), this->bounds.u0.end());
                 }
             }else{
-                if(this->forces.exit_flag == 1){
-                    this->forces.params.x0[k*Nvar]     = 0.0;
-                    this->forces.params.x0[k*Nvar + 1] = solCommands(N-1, 1);
-                    this->forces.params.x0[k*Nvar + 2] = solCommands(N-1, 2);
-                    this->forces.params.x0[k*Nvar + 3] = solCommands(N-1, 3);
-                    this->forces.params.x0[k*Nvar + 4] = solStates(N-1, 0);
-                    this->forces.params.x0[k*Nvar + 5] = solStates(N-1, 1);
-                    this->forces.params.x0[k*Nvar + 6] = solStates(N-1, 2);
-                    this->forces.params.x0[k*Nvar + 7] = solStates(N-1, 3);
+                if(this->ipopt.exit_flag == 1){
+
+                    U0.push_back(solCommands(N, 0));
+                    U0.push_back(solCommands(N, 1));
+
+                    X0.push_back(solCommands(N, 2));
+                    X0.push_back(solStates(N, 0));
+                    X0.push_back(solStates(N, 1));
+                    X0.push_back(solStates(N, 2));
+                    X0.push_back(solStates(N, 3));
+
                 }else{
-                    this->forces.params.x0[k*Nvar]     =  this->forces.params.lb[k*Nvar];
-                    this->forces.params.x0[k*Nvar + 1] = (this->forces.params.lb[k*Nvar + 1] + this->forces.params.ub[k*(Nvar-Nslacks)])/2;
-                    this->forces.params.x0[k*Nvar + 2] = (this->forces.params.lb[k*Nvar + 2] + this->forces.params.ub[k*(Nvar-Nslacks) + 1])/2;
-                    this->forces.params.x0[k*Nvar + 3] = (this->forces.params.lb[k*Nvar + 3] + this->forces.params.ub[k*(Nvar-Nslacks) + 2])/2;
-                    this->forces.params.x0[k*Nvar + 4] = (this->forces.params.lb[k*Nvar + 4] + this->forces.params.ub[k*(Nvar-Nslacks) + 3])/2;
-                    this->forces.params.x0[k*Nvar + 5] = (this->forces.params.lb[k*Nvar + 5] + this->forces.params.ub[k*(Nvar-Nslacks) + 4])/2;
-                    this->forces.params.x0[k*Nvar + 6] = (this->forces.params.lb[k*Nvar + 6] + this->forces.params.ub[k*(Nvar-Nslacks) + 5])/2;
-                    this->forces.params.x0[k*Nvar + 7] = (this->forces.params.lb[k*Nvar + 7] + this->forces.params.ub[k*(Nvar-Nslacks) + 6])/2;
+                    X0.insert(X0.end(), this->bounds.x0.begin(), this->bounds.x0.end());
+                    U0.insert(U0.end(), this->bounds.u0.begin(), this->bounds.u0.end());
                 }
             }
         }else{
 
             if(k==0){
-                this->forces.params.x0[k*Nvar]     = 0.0;
-                this->forces.params.x0[k*Nvar + 1] = 0.0;
-                this->forces.params.x0[k*Nvar + 2] = carState(8);
-                this->forces.params.x0[k*Nvar + 3] = carState(6);
-                this->forces.params.x0[k*Nvar + 4] = forces.params.xinit[3];
-                this->forces.params.x0[k*Nvar + 5] = forces.params.xinit[4];;
-                this->forces.params.x0[k*Nvar + 6] = carState(4);
-                this->forces.params.x0[k*Nvar + 7] = carState(5);
+
+                U0.push_back(0.0);
+                U0.push_back(carState(8));
+
+                X0.push_back(carState(6));
+                X0.push_back(xinit[1]);
+                X0.push_back(xinit[2]);
+                X0.push_back(carState(4));
+                X0.push_back(carState(5));
+
             }else{
-                this->forces.params.x0[k*Nvar]     =  this->forces.params.lb[k*Nvar];
-                this->forces.params.x0[k*Nvar + 1] = (this->forces.params.lb[k*Nvar + 1] + this->forces.params.ub[k*(Nvar-Nslacks)])/2;
-                this->forces.params.x0[k*Nvar + 2] = (this->forces.params.lb[k*Nvar + 2] + this->forces.params.ub[k*(Nvar-Nslacks) + 1])/2;
-                this->forces.params.x0[k*Nvar + 3] = (this->forces.params.lb[k*Nvar + 3] + this->forces.params.ub[k*(Nvar-Nslacks) + 2])/2;
-                this->forces.params.x0[k*Nvar + 4] = (this->forces.params.lb[k*Nvar + 4] + this->forces.params.ub[k*(Nvar-Nslacks) + 3])/2;
-                this->forces.params.x0[k*Nvar + 5] = (this->forces.params.lb[k*Nvar + 5] + this->forces.params.ub[k*(Nvar-Nslacks) + 4])/2;
-                this->forces.params.x0[k*Nvar + 6] = (this->forces.params.lb[k*Nvar + 6] + this->forces.params.ub[k*(Nvar-Nslacks) + 5])/2;
-                this->forces.params.x0[k*Nvar + 7] = (this->forces.params.lb[k*Nvar + 7] + this->forces.params.ub[k*(Nvar-Nslacks) + 6])/2;
+                X0.insert(X0.end(), this->bounds.x0.begin(), this->bounds.x0.end());
+                U0.insert(U0.end(), this->bounds.u0.begin(), this->bounds.u0.end());
             }
         }
     }
+
+    // Add last state values:
+    if(!firstIter){
+        X0.push_back(solCommands(N, 2));
+        X0.push_back(solStates(N, 0));
+        X0.push_back(solStates(N, 1));
+        X0.push_back(solStates(N, 2));
+        X0.push_back(solStates(N, 3));
+    }else{
+        X0.insert(X0.end(), this->bounds.x0.begin(), this->bounds.x0.end());
+    }
+ 
+    ubg_track.push_back(planner(plannerIdx+int(mean_s),5)); 
+    ubg_track.push_back(planner(plannerIdx+int(mean_s),6)); 
+        
+
+    param.reserve(xinit.size()+param.size()+curvature.size()+velocity.size()); // reserve memory
+
+    param.insert(param.end(), xinit.begin(), xinit.end()); // insert initial state vector
+
+    param.insert(param.end(), curvature.begin(), curvature.end()); // insert midline path's curvature
+
+    param.insert(param.end(), velocity.begin(), velocity.end()); // insert velocity profile
+
+    ipopt.p = param;
+    ipopt.x0 = vconcat(X0,U0);
+    ipopt.ubg_track = ubg_track;
+
+    this->Npar = param.size();
+
+}
+
+void MPC::s_prediction(){
+
+    predicted_s.setZero();
+    cout << "S_PRED inicial: " << progress(0) << endl;
+    predicted_s(0) = progress(0);
+
+    lastState(0,0) = carState(0);
+    lastState(0,1) = carState(1);
+    lastState(0,2) = carState(2);
+    lastState(0,3) = carState(3);
+    lastState(0,4) = solStates(0,2);
+    lastState(0,5) = solStates(0,3);
+
+    for(int i=1; i < N; i++){
+
+        double theta = lastState(i-1, 2);
+        double n = solStates(i-1, 0);
+        double mu = solStates(i-1, 1);
+        double vx = ipopt.p[this->Npar + this->n_states + this->N + (i-1)]; // predicted vel. from longitudinal pid
+        double vy = solStates(i-1, 2);
+        double w = solStates(i-1, 3);
+        double k = ipopt.p[this->Npar + this->n_states + (i-1)]; // curvature from planner
+
+        // save<double>(this->debug_path, "curvature.csv", k, true);
+        // save<double>(this->debug_path, "deviation.csv", n, true);
+
+        double sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
+
+        predicted_s(i) = predicted_s(i-1) + sdot*this->rk4_t;
+        if(predicted_s(i) > this->smax) predicted_s(i) -= this->smax; // if we have done one lap, reset progress
+
+        // Ensure sdot > 0
+        if(sdot < 0){
+            ROS_ERROR("MPC FATAL ERROR, negative sdot");
+            this->firstIter = true;
+            break;
+        }
+
+        // Predict states evolution with Euler
+        lastState(i, 0) = lastState(i-1,0) + (vx*cos(theta) - vy*sin(theta))*this->rk4_t;
+        lastState(i, 1) = lastState(i-1,1) + (vx*sin(theta) + vy*cos(theta))*this->rk4_t;
+        lastState(i, 2) = lastState(i-1,2) + w*this->rk4_t;
+        lastState(i, 3) = vx;
+        lastState(i, 4) = vy;
+        lastState(i, 5) = w;
+
+    }
+
+    // saveEigen(this->debug_path, "horizon_fss.csv", lastState.leftCols(2), false);
+    // saveEigen(this->debug_path, "solCommands.csv", solCommands, true);
+    // saveEigen(this->debug_path, "solStates.csv", solStates, true);
+
+    // If predicted s is too small set initial s again
+    double totalLength = predicted_s(this->N-1) - predicted_s(0);
+    if(totalLength < 1.0){ 
+        ROS_ERROR("Predicted s smaller than threshold!");
+        firstIter = true;    
+    }
+
+}
+
+vector<double> MPC::initial_conditions(){
+
+    // Calculate tangent vector of the trajectory
+    Eigen::Vector2d tangent;
+    tangent << planner(1,0) - planner(0,0), planner(1,1) - planner(0,1);
+
+    // Calculate vector from the first point of the trajectory to the car
+    Eigen::Vector2d s0_to_car;
+    s0_to_car << carState(0) - planner(0,0), carState(1) - planner(0,1);
+
+    // Calculate cross product to get angle
+    double cross = s0_to_car(0)*tangent(1) - s0_to_car(1)*tangent(0);
+    double angle = asin(cross/(s0_to_car.norm()*tangent.norm())); // angle between car position and heading of the trajectory
+
+    // Get sign
+    int sign = angle/fabs(angle);
+
+    if(fabs(angle) > M_PI/2) angle = fabs(angle) - M_PI/2;
+    else angle = M_PI/2 - fabs(angle);
+
+    double n0 = -s0_to_car.norm()*cos(fabs(angle))*sign; // normal distance from car to track
+    double t_angle = atan2(tangent(1), tangent(0)); // heading of the trajectory
+    double mu0 = -(t_angle - continuous(carState(2), t_angle));
+
+    // ROS_WARN_STREAM("mu0: " << mu0);
+    // ROS_WARN_STREAM("n0: " << n0);
+
+    vector<double> xinit(this->n_states); // xinit = [delta, n, mu, Vy, w]
+    xinit[0] = carState(6);
+    xinit[1] = n0;
+    xinit[2] = mu0;
+    xinit[3] = carState(4);
+    xinit[4] = carState(5);
+
+    cout << "XINIT: " << endl;
+    printVec(xinit);
+
+    return xinit;
 
 }
 
@@ -676,8 +594,8 @@ void MPC::msgCommands(as_msgs::CarCommands *msg){
     
     msg->header.stamp = ros::Time::now();
     msg->motor = 0.0;
-    msg->steering = solCommands(this->latency, 3);
-    msg->Mtv = solCommands(this->latency, 2);
+    msg->steering = solCommands(this->latency, 2);
+    msg->Mtv = solCommands(this->latency, 1);
 
     // cout << "steering: " << solCommands(this->latency, 3) << endl;
     // cout << "Mtv: " << solCommands(this->latency, 2) << endl;
@@ -687,13 +605,13 @@ void MPC::msgCommands(as_msgs::CarCommands *msg){
 
 void MPC::get_debug_solution(as_msgs::MPCdebug *msg){
 
-    if(this->forces.exit_flag == 0 || this->forces.exit_flag == 1){
+    if(this->ipopt.exit_flag == 0 || this->ipopt.exit_flag == 1){
 
         msg->header.stamp = ros::Time::now();
 
-        msg->diff_delta = solCommands(this->latency, 1);
-        msg->Mtv        = solCommands(this->latency, 2);
-        msg->delta      = solCommands(this->latency, 3);
+        msg->diff_delta = solCommands(this->latency, 0);
+        msg->Mtv        = solCommands(this->latency, 1);
+        msg->delta      = solCommands(this->latency, 2);
 
         msg->n  = solStates(this->latency, 0);
         msg->mu = solStates(this->latency, 1);
@@ -701,9 +619,9 @@ void MPC::get_debug_solution(as_msgs::MPCdebug *msg){
         msg->r  = solStates(this->latency, 3);
 
         msg->s = planner(this->latency, 2);
-        msg->k = this->forces.params.all_parameters[24 + this->latency * this->Npar];
+        msg->k = this->ipopt.p[Npar - N - N + latency];
 
-        double vx = this->forces.params.all_parameters[23 + this->latency * this->Npar];
+        double vx = this->ipopt.p[Npar - N + latency];
 
         msg->alpha_f = atan( (msg->vy + this->Lf * msg->r)/vx ) - msg->delta;
         msg->alpha_r = atan( (msg->vy - this->Lr * msg->r)/vx );
@@ -882,17 +800,12 @@ void MPC::reconfigure(tailored_mpc::dynamicConfig& config){
         this->Cf = config.Cf;
         this->Br = config.Br;
         this->Bf = config.Bf;
-        this->u_r = config.u_r;
-        this->Cd = config.Cd;
         this->q_slip = config.q_slip;
         this->q_n = config.q_n;
-        this->q_nN = config.q_nN;
         this->q_mu = config.q_mu;
         this->q_s = config.q_s;
         this->latency = config.latency;
         this->dMtv = config.dMtv;
-        this->q_sN = config.q_sN;
-        this->q_slack_track = config.q_slack_track;
 
         this->bounds.u_min[1] = -config.diff_delta*M_PI/180.0;
         this->bounds.u_max[0] = config.diff_delta*M_PI/180.0;

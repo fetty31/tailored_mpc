@@ -12,7 +12,7 @@
 #include <sstream> // std::stringstream
 
 #include "casadi/casadi.hpp"
-#include "structures/params.hh"
+#include "utils/params.hh"
 
 using namespace casadi;
 using namespace std;
@@ -32,7 +32,7 @@ struct IPOPT{
     vector<double> p;          // Parameters + curvature
     vector<double> solution;   // Solution --> Optimized stages
 
-    string exit_flag;
+    int exit_flag;
 
     shared_ptr<casadi::Function> solver_ptr; // Solver object
 
@@ -46,16 +46,6 @@ class Optimizer{
         // Internal variables/methods of optimizer
 
         bool params_set = false;
-
-        int n_states;   // Number of states variables [delta, n, mu, Vy, w]
-        int n_controls; // Number of controls variables [diffDelta, Mtv] = [d(delta)/dt, Mtv]
-        int N;          // Horizon length for optimization problem 
-        int Npar;       // Number of parameters for optimization problem [ 23 (MPC parameters) + (initial state) + n (curvature points == N) + vx (target velocity points == N)]
-
-            // Vehicle variables
-        double m, Lf, Lr, width, longue; // see "params.hh" for explanation
-
-        double T; // integration time [s]
 
             // Optimization variables
         SX X; // symbolic states vector
@@ -73,9 +63,24 @@ class Optimizer{
 
     public:
 
-        Optimizer(const Params &params); // Constructor
+        Optimizer(const Params* params); // Constructor
+
+        int n_states;   // Number of states variables [delta, n, mu, Vy, w]
+        int n_controls; // Number of controls variables [diffDelta, Mtv] = [d(delta)/dt, Mtv]
+        int N;          // Horizon length for optimization problem 
+        int Npar;       // Number of parameters for optimization problem [ 23 (MPC parameters) + (initial state) + n (curvature points == N) + vx (target velocity points == N)]
+
+        // Aux variables
+        int curv_idx0; // First idx where curvature values start at
+        int vx_idx0;   // First idx where long. velocity values start at
+
+            // Vehicle variables
+        double m, Lf, Lr, width, longue; // see "params.hh" for explanation
+
+        double T; // integration time [s]
 
         shared_ptr<Function> generate_solver(); // Initialize
+        int get_ineq_size();
 
         // Solver options --> for IPOPT solver options, see http://casadi.sourceforge.net/v2.0.0/api/html/d6/d07/classcasadi_1_1NlpSolver.html#plugin_NlpSolver_ipopt
         //                                                  https://coin-or.github.io/Ipopt/OPTIONS.html

@@ -44,7 +44,7 @@ class VisualizationTools {
             pubPredictedHeading.publish(markerArray);
 
             // Steering
-            markerArray = getMarkersSteering(mpc->lastCommands, mpc->lastState);
+            markerArray = getMarkersSteering(mpc->solCommands, mpc->lastState);
             pubPredictedSteering.publish(markerArray);
 
             // DEBUG

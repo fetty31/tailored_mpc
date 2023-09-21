@@ -28,7 +28,6 @@
 #include "utils/params.hh"
 
 // Include headers of solver
-#include "utils/forces.hh"
 #include "utils/optimizer.hh"
 
 using namespace std;
@@ -68,12 +67,11 @@ class MPC{
         bool troActive = false, troProfile = false;   // whether TRO/GRO are publishing
 
         // NLOP params
-        int n_states = 5;             // number of state vars
-        int n_controls = 6;           // number of control vars
-        int N = 40;                   // horizon length
-        int Nslacks = 2;              // number of slack vars
-        int Npar = 31;                // number of real time parameters
-        int sizeU, sizeX;             // size of states and controls FORCES arrays
+        int n_states = 5;       // number of state vars
+        int n_controls = 6;     // number of control vars
+        int N = 40;             // horizon length
+        int Npar = 16;          // number of real time parameters
+        int Nh = 1;             // number of inequality constraints
 
         // MPC
         int nPlanning = 1900;     // number of points wanted from the planner
@@ -92,19 +90,13 @@ class MPC{
         double Cf = 1.6;
         double Br = 10.1507;
         double Bf = 10.8529;
-        double u_r = 0.45;
-        double Cd = 0.8727;
         double q_slip = 2;
         double q_n = 5;
-        double q_nN = 5;
         double q_mu = 0.1;
-        double lambda = 1;
         double q_s = 30;
-        // int latency = 4; made public for debugging
+        // int latency = 4; made public for debugging reasons
         double dMtv = 1;
         double q_sN = 10;
-
-        double q_slack_track = 0;
 
         // STATIC PARAMETERS: 
           // see "params.hh" for explanation
@@ -112,14 +104,12 @@ class MPC{
         double Lf = 0.708;
         double Lr = 0.822;
         double gravity = 9.81;
-        double Ar = 1;
-        double rho = 1.255;
         double I = 93;
         double longue = 2.72;
         double width = 1.5;
 
         // Initial conditions evaluation
-        void initial_conditions();
+        vector<double> initial_conditions();
 
         // S prediction
         void s_prediction();
@@ -127,13 +117,10 @@ class MPC{
         Eigen::VectorXd progress;
         double smax = 0;
 
-        // FORCESPRO:
-        void set_params_bounds(); // here parameters & boundaries are added in the same for loop
-        void get_solution();
-
         // CASADI + IPOPT:
-        void set_boundaries_IPOPT(); 
-        void set_parameters_IPOPT();
+        bool set_static_boundaries(); 
+        void set_params_bounds();
+        void get_solution();
         void solve_IPOPT();
 
         // Aux:
@@ -148,6 +135,7 @@ class MPC{
     public:
 
         MPC(const Params* params);
+        ~MPC();
 
         void reconfigure(tailored_mpc::dynamicConfig& config);
         void msgCommands(as_msgs::CarCommands *msg);
@@ -167,7 +155,9 @@ class MPC{
         // Structs declaration
         Boundaries bounds;
         IPOPT ipopt;
-        ForcesproSolver forces = ForcesproSolver();
+
+        // Solver Obj ptr declaration
+        Optimizer* opt_ptr;
 
         // MPC
         double Hz = 20;     // [Hz]
@@ -190,7 +180,7 @@ class MPC{
 
         // Previous solution
         Eigen::MatrixXd solStates;    // [n, mu, vy, w]
-        Eigen::MatrixXd solCommands;  // [slack_track, diff_delta, Mtv, delta]
+        Eigen::MatrixXd solCommands;  // [diff_delta, Mtv, delta]
 
         // Predicted velocities (vel profile from long_pid pkg)
         Eigen::VectorXd pred_velocities; 

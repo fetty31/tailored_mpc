@@ -1,25 +1,33 @@
-#include "optimizer.hh"
+#include "utils/optimizer.hh"
 
 // Constructor
-Optimizer::Optimizer(const Params& params){
+Optimizer::Optimizer(const Params* params){
 
     // NLOP params
-    this->n_states = params.mpc.nlop.n_states;
-    this->n_controls = params.mpc.nlop.n_controls;
-    this->N = params.mpc.nlop.N;
-    this->Npar = params.mpc.nlop.Npar + this->n_states 
-                    + this->N + this->N; /* [ 23 (MPC parameters) + (initial state) + 
-                                               + k (curvature points == N) + vx (target velocity points == N) ]
-                                        */
+    this->n_states   = params->mpc.nlop.n_states;
+    this->n_controls = params->mpc.nlop.n_controls;
+    this->N          = params->mpc.nlop.N;
+    this->Npar       = params->mpc.nlop.Npar + this->n_states 
+                             + this->N + this->N; /* [ 16 (MPC parameters) + (initial state) + 
+                                                    + k (curvature points == N) + vx (target velocity points == N) ]
+                                                  */
 
-    this->T = params.mpc.rk4_t; // Integration time
+    this->T = params->mpc.rk4_t; // Integration time
 
     // Vehicle params
-    this->m = params.vehicle.m;
-    this->longue = params.vehicle.longue;
-    this->width = params.vehicle.width;
-    this->Lr = params.vehicle.Lr;
-    this->Lf = params.vehicle.Lf;
+    this->m      = params->vehicle.m;
+    this->longue = params->vehicle.longue;
+    this->width  = params->vehicle.width;
+    this->Lr     = params->vehicle.Lr;
+    this->Lf     = params->vehicle.Lf;
+
+    cout << "n states: " << n_states << endl;
+    cout << "horizon length: " << N << endl;
+    cout << "Npar: " << Npar << endl;
+
+    cout << "X size: " << this->n_states * (this->N+1) << endl;
+    cout << "U size: " << this->n_controls * this->N << endl;
+    cout << "P size: " << this->Npar << endl;
 
     // NLOP variables
     X = SX::sym("X", this->n_states * (this->N+1));
@@ -38,9 +46,13 @@ shared_ptr<Function> Optimizer::generate_solver(){
 
         auto start_time = std::chrono::system_clock::now();
 
+        cout << "nlop formulation\n";
+
         nlop_formulation();
+
+        cout << "track constraints\n";
+
         track_constraints();
-        forces_constraints();
 
         SXDict nlp = {{"x", SX::vertcat({X,U})},
             {"f", obj},
@@ -70,24 +82,19 @@ shared_ptr<Function> Optimizer::generate_solver(){
 
 void Optimizer::nlop_formulation(){
 
-    /*TO DO:
-        - change parameters indexes    
-    */
-
     SX dRd = P(0);
-    // SX dRa = P(1);
-    SX Lf = P(4);
-    SX Lr = P(5);
-    SX q_slip = P(17);
-    SX q_n = P(19);
-    SX q_s = P(22);
-    SX q_mu = P(20);
+    SX Lf = P(3);
+    SX Lr = P(4);
+    SX q_slip = P(12);
+    SX q_n = P(13);
+    SX q_s = P(15);
+    SX q_mu = P(14);
 
     // Add initial conditions
-    int idx_init = Npar-n_states-N;
+    int idx_init = Npar-n_states-N-N;
     g.push_back( X(Slice(0,n_states)) - P(Slice(idx_init,idx_init+n_states)) );
 
-    cout << "P(23:28) " << P(Slice(idx_init,idx_init+n_states)) << endl;
+    cout << "P(16:21) " << P(Slice(idx_init,idx_init+n_states)) << endl;
     cout << "X(0:5) " << X(Slice(0,n_states)) << endl;
 
     int idx = 0; // index for X variables (states) 
@@ -107,7 +114,7 @@ void Optimizer::nlop_formulation(){
         SX diff_beta = beta_dyn - beta_kin;
 
         // Objective function
-        obj += -q_s*sdot + dRd*pow(U(idu),2) /*+ dRa*pow(U(idu+1),2)*/ + q_slip*pow(diff_beta,2) + q_mu*pow(st(2),2) + q_n*pow(st(1),2);
+        obj += -q_s*sdot + dRd*pow(U(idu),2) + q_slip*pow(diff_beta,2) + q_mu*pow(st(2),2) + q_n*pow(st(1),2);
 
         SX st_next = X(Slice(idx+n_states,idx+2*n_states)); // next stage state vector
         SX st_now = st(Slice(1,st.rows())); // current stage states (n,mu,vy,w)
@@ -119,8 +126,10 @@ void Optimizer::nlop_formulation(){
             states(row) = st_now(row) + T*f_value.at(row); // euler
         }
         
-        SX con_now = SX::vertcat({steering,U(idu+1)}); // current control vector (diffDelta, Mtv)
-        SX st_next_euler = SX::vertcat({con_now,states}); //next state calculated 
+        // SX con_now = SX::vertcat({steering,U(idu+1)}); // current control vector (diffDelta, Mtv)
+        SX st_next_euler = SX::vertcat({steering,states}); //next state calculated 
+
+        // cout << "st_next size: " << st_next.size() << endl; // should be [5,1]
 
         // Add continuity constraints
         g.push_back( st_next - st_next_euler );
@@ -148,23 +157,27 @@ void Optimizer::track_constraints(){
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //------------------------Auxiliar functions--------------------------------------------------
 
+int Optimizer::get_ineq_size(){
+    return this->g.size();
+}
+
 
 vector<SX> Optimizer::continuous_dynamics( SX st, SX delta, SX Mtv, SX k, SX vx){
 
     vector<SX> f_values;
 
-    SX alpha_R = atan((st(2)-P(5)*st(3))/vx);                   // alphaR = atan((vy-Lr*w)/(vx))
-    SX alpha_F = atan((st(2)+P(4)*st(3))/vx) - delta;           // alphaL = atan((vy+Lf*w)/(vx)) - delta
+    SX alpha_R = atan((st(2)-P(4)*st(3))/vx);                   // alphaR = atan((vy-Lr*w)/(vx))
+    SX alpha_F = atan((st(2)+P(3)*st(3))/vx) - delta;           // alphaL = atan((vy+Lf*w)/(vx)) - delta
 
-    SX Fr = P(6)*sin(P(8)*atan(P(10)*alpha_R));                 // Fr = Dr*sin(Cr*atan(Br*alpha_R))
-    SX Ff = P(7)*sin(P(9)*atan(P(11)*alpha_F));                 // Ff = Df*sin(Cf*atan(Bf*alpha_F))
+    SX Fr = P(5)*sin(P(7)*atan(P(9)*alpha_R));                 // Fr = Dr*sin(Cr*atan(Br*alpha_R))
+    SX Ff = P(6)*sin(P(8)*atan(P(10)*alpha_F));                 // Ff = Df*sin(Cf*atan(Bf*alpha_F))
 
     SX sdot = (vx*cos(st(1)) - st(2)*sin(st(1)))/(1-st(0)*k);   // sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k)
 
     SX ndot = (vx*sin(st(1)) + st(2)*cos(st(1)));               // ndot   =  (vx*sin(mu) + vy*cos(mu))
     SX mudot = st(3) - k*sdot;                                  // mudot  =  w - k*sdot
-    SX vydot = 1/P(2)*(Fr + Ff*cos(delta) - P(2)*vx*st(3));     // vydot  =  (1/m)*(Fr + Ff*cos(delta) - m*vx*w)
-    SX wdot = 1/P(3)*(Ff*P(4)*cos(delta) - Fr*P(5) + Mtv);      // wdot   =  (1/I)*(Ff*Lf*cos(delta) - Fr*Lr + Mtv)
+    SX vydot = 1/P(1)*(Fr + Ff*cos(delta) - P(1)*vx*st(3));     // vydot  =  (1/m)*(Fr + Ff*cos(delta) - m*vx*w)
+    SX wdot = 1/P(2)*(Ff*P(3)*cos(delta) - Fr*P(4) + Mtv);      // wdot   =  (1/I)*(Ff*Lf*cos(delta) - Fr*Lr + Mtv)
 
     f_values.push_back(ndot);
     f_values.push_back(mudot);

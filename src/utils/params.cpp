@@ -14,8 +14,6 @@ Params::Params(const ros::NodeHandle* nh) {
     nh->param<double>("Vehicle/Lr",         vehicle.Lr,         0.822);
     nh->param<double>("Vehicle/inertia",    vehicle.I,          93);
     nh->param<double>("Vehicle/gravity",    vehicle.gravity,    9.81);
-    nh->param<double>("Vehicle/rho",        vehicle.rho,        1.255);
-    nh->param<double>("Vehicle/Ar",         vehicle.Ar,         1.0);
 
     // Topics
     nh->param<string>("Topics/State",       mpc.topics.state,       "/AS/C/state");
@@ -31,8 +29,11 @@ Params::Params(const ros::NodeHandle* nh) {
     nh->param<string>("Topics/Vis/ActualPath",          mpc.topics.actualPath,          "/AS/C/mpc/vis/actual/path");
 
     // NLOP
-    nh->param<int>("NLOP/N",        mpc.nlop.N,         40);
-    nh->param<int>("NLOP/Nslacks",  mpc.nlop.Nslacks,   2);
+    nh->param<int>("NLOP/N",                mpc.nlop.N,             40);
+    nh->param<int>("NLOP/Nstates",          mpc.nlop.n_states,      5);
+    nh->param<int>("NLOP/Ncontrols",        mpc.nlop.n_controls,    2);
+    nh->param<int>("NLOP/Nh",               mpc.nlop.Nh,            1);
+    nh->param<int>("NLOP/Npar",             mpc.nlop.Npar,          16);
 
     // MPC period (1/freq)
     nh->param<double>("MPC/rk4_t",              mpc.rk4_t,          0.025);

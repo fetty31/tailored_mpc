@@ -49,14 +49,8 @@ int main(int argc, char **argv) {
     // Params object
     Params params = Params(&nh);
 
-    // Optimizer object
-    shared_ptr<casadi::Function> solverPtr;
-    Optimizer opt(params);
-    solverPtr = opt.generate_solver();
-
     // MPC object
     MPC mpc(&params);
-    mpc.ipopt.solver_ptr = solverPtr;
 
     // Visualization tools
     VisualizationTools rviz = VisualizationTools(&mpc, &params);
@@ -107,16 +101,14 @@ int main(int argc, char **argv) {
         mpc.solve(); // Solve the NLOP
 
         mpc.msgCommands(&msg);
-        pubCommands.publish(msg); // publish car commands
-
-        // if(mpc.forces.exit_flag == 1 /*|| mpc.forces.exit_flag == 0*/ ) pubCommands.publish(msg); // publish car commands
+        if(mpc.ipopt.exit_flag == 1 /*|| mpc.ipopt.exit_flag == 0*/ ) pubCommands.publish(msg); // publish car commands
 
         // DEBUG
         float_msg.data = mpc.elapsed_time.count()*1000;
         pubTime.publish(float_msg);
 
-        // exitflag_msg.data = mpc.forces.exit_flag;
-        // pubExitflag.publish(exitflag_msg);
+        exitflag_msg.data = mpc.ipopt.exit_flag;
+        pubExitflag.publish(exitflag_msg);
 
         as_float_msg.header.stamp = ros::Time::now();
         as_float_msg.data = mpc.pred_velocities(0);

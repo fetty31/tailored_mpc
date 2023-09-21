@@ -20,7 +20,6 @@ struct Params{
         int m;                          // Car's mass (without pilot)
         double width, longue;           // Car's track width & length
         double Lf, Lr;                  // Longitudinal distance from CoG to front and rear wheels
-        double Ar, rho;                 // aero area & air density
         double I;                       // moment of inertia (of the car)
         double gravity;
 
@@ -47,6 +46,7 @@ struct Params{
         } topics;
         struct NLOP{
             int N;          // Horizon length of the optimization problem 
+            int Nh;         // Number of inequality constraints
             int n_states;   // Number of state variables
             int n_controls; // Number of control variables
             int Npar;       // Number of parameters for optimization problem [ 23 (MPC parameters) + (initial state) + n (curvature points == N) ]
