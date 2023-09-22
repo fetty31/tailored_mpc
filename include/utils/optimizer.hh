@@ -59,7 +59,7 @@ class Optimizer{
         void nlop_formulation(); // set Non Linear Optimization Problem (multiple shooting)
         void track_constraints(); // set track constraints
 
-        vector<SX> continuous_dynamics( SX st, SX delta, SX Mtv, SX k, SX vx);
+        vector<SX> continuous_dynamics( SX st, SX delta, SX k, SX vx);
 
     public:
 
@@ -85,7 +85,7 @@ class Optimizer{
         // Solver options --> for IPOPT solver options, see http://casadi.sourceforge.net/v2.0.0/api/html/d6/d07/classcasadi_1_1NlpSolver.html#plugin_NlpSolver_ipopt
         //                                                  https://coin-or.github.io/Ipopt/OPTIONS.html
 
-        Dict ipoptOptions = {{"max_iter",1000},{"expect_infeasible_problem","yes"},{"print_level", 1}}; 
+        Dict ipoptOptions = {{"max_iter",100},{"expect_infeasible_problem","no"},{"print_level", 1}}; 
         Dict solverOptions = {{"ipopt",ipoptOptions},{"print_time",true}};
 
 };

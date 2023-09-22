@@ -37,9 +37,9 @@ struct Boundaries{
         // VARIABLES BOUNDARIES:
 
           // Bounds and initial guess for the control
-        vector<double> u_min =  { -3*M_PI/180, -800}; // delta max,min bounds will be overwriten by dynamic reconfigure callback
-        vector<double> u_max  = { 3*M_PI/180, 800};
-        vector<double> u0 = {  0.0, 0.0  };
+        vector<double> u_min =  { -3*M_PI/180 }; // delta max,min bounds will be overwriten by dynamic reconfigure callback
+        vector<double> u_max  = { 3*M_PI/180 };
+        vector<double> u0 = { 0.0 };
 
           // Bounds and initial guess for the state
         vector<double> x_min  = { -23.0*M_PI/180, -2.0, -50.0*M_PI/180, -5.0, -150.0*M_PI/180 };
@@ -77,7 +77,7 @@ class MPC{
         int nPlanning = 1900;     // number of points wanted from the planner
         int nSearch = 200;        // number of points where we will look for the close point to the car [not used]
         bool firstIter = true;    // first iteration flag
-        int samplingS = 10;       // s sampling distance 
+        int samplingS = 2;       // s sampling distance 
         double delta_s = 0.025;   // planner discretization [m]
         double rk4_t = 0.025;     // Integration time [s]
         
@@ -95,8 +95,6 @@ class MPC{
         double q_mu = 0.1;
         double q_s = 30;
         // int latency = 4; made public for debugging reasons
-        double dMtv = 1;
-        double q_sN = 10;
 
         // STATIC PARAMETERS: 
           // see "params.hh" for explanation
@@ -176,11 +174,10 @@ class MPC{
 
         // Previous state
         Eigen::MatrixXd lastState;    // [x, y, theta, vx, vy, w]
-        Eigen::MatrixXd lastCommands; // [diff_delta, Mtv, delta]
 
         // Previous solution
-        Eigen::MatrixXd solStates;    // [n, mu, vy, w]
-        Eigen::MatrixXd solCommands;  // [diff_delta, Mtv, delta]
+        Eigen::MatrixXd solStates;    // [n, mu, vy, w] 
+        Eigen::MatrixXd solCommands;  // [diff_delta, delta] 
 
         // Predicted velocities (vel profile from long_pid pkg)
         Eigen::VectorXd pred_velocities; 

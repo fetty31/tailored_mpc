@@ -13,6 +13,7 @@ MPC::MPC(const Params* params){
 
     // NLOP params
     this->N          = this->opt_ptr->N;
+    this->Npar       = params->mpc.nlop.Npar;
     this->n_states   = this->opt_ptr->n_states;
     this->n_controls = this->opt_ptr->n_controls;
     this->Nh         = params->mpc.nlop.Nh;
@@ -146,8 +147,16 @@ void MPC::solve(){
 
         set_params_bounds(); // set real time parameters & boundaries of the NLOP (Non Linear Optimization Problem)
 
+        auto start_solve = chrono::system_clock::now();
+
         // Solve the NLOP
         solve_IPOPT();
+
+        auto finish_solve = chrono::system_clock::now();
+
+        chrono::duration<double> elapsed_solve = finish_solve - start_solve;
+
+        ROS_WARN("IPOPT elapsed time: %f ms", elapsed_solve.count()*1000);
 
         ROS_WARN_STREAM("TAILORED MPC exit flag: " << ipopt.exit_flag);
 
@@ -204,8 +213,9 @@ void MPC::solve_IPOPT(){
         string flag = stats["return_status"].get_str();
         ipopt.solution = vector<double>(sol.at("x"));
 
-        if(flag == "Solve_Succeded") ipopt.exit_flag = 1;
+        if(flag == "Solve_Succeeded") ipopt.exit_flag = 1;
         else if(flag == "Maximum_Iterations_Exceeded") ipopt.exit_flag = 0;
+        else if(flag == "Infeasible_Problem_Detected") ipopt.exit_flag = -7;
         else ipopt.exit_flag = -10;
 
         // Exit Flag:
@@ -381,9 +391,8 @@ void MPC::set_params_bounds(){
                 if(this->ipopt.exit_flag == 1){
 
                     U0.push_back(solCommands(latency+k, 0));
-                    U0.push_back(solCommands(latency+k, 1));
 
-                    X0.push_back(solCommands(latency+k, 2));
+                    X0.push_back(solCommands(latency+k, 1));
                     X0.push_back(solStates(latency+k, 0));
                     X0.push_back(solStates(latency+k, 1));
                     X0.push_back(solStates(latency+k, 2));
@@ -397,9 +406,8 @@ void MPC::set_params_bounds(){
                 if(this->ipopt.exit_flag == 1){
 
                     U0.push_back(solCommands(N, 0));
-                    U0.push_back(solCommands(N, 1));
 
-                    X0.push_back(solCommands(N, 2));
+                    X0.push_back(solCommands(N, 1));
                     X0.push_back(solStates(N, 0));
                     X0.push_back(solStates(N, 1));
                     X0.push_back(solStates(N, 2));
@@ -415,7 +423,6 @@ void MPC::set_params_bounds(){
             if(k==0){
 
                 U0.push_back(0.0);
-                U0.push_back(carState(8));
 
                 X0.push_back(carState(6));
                 X0.push_back(xinit[1]);
@@ -457,8 +464,6 @@ void MPC::set_params_bounds(){
     ipopt.x0 = vconcat(X0,U0);
     ipopt.ubg_track = ubg_track;
 
-    this->Npar = param.size();
-
 }
 
 void MPC::s_prediction(){
@@ -489,6 +494,12 @@ void MPC::s_prediction(){
 
         double sdot = (vx*cos(mu) - vy*sin(mu))/(1 - n*k);
 
+        cout << "sdot: " << sdot << endl;
+        cout << "n: " << n << endl;
+        cout << "k: " << k << endl;
+        cout << "vx: " << vx << endl;
+        cout << "vy: " << vy << endl;
+
         predicted_s(i) = predicted_s(i-1) + sdot*this->rk4_t;
         if(predicted_s(i) > this->smax) predicted_s(i) -= this->smax; // if we have done one lap, reset progress
 
@@ -515,7 +526,7 @@ void MPC::s_prediction(){
 
     // If predicted s is too small set initial s again
     double totalLength = predicted_s(this->N-1) - predicted_s(0);
-    if(totalLength < 1.0){ 
+    if(totalLength < 0.3){ 
         ROS_ERROR("Predicted s smaller than threshold!");
         firstIter = true;    
     }
@@ -580,7 +591,7 @@ void MPC::get_solution(){
     solCommandsT = Xopt.topRows(n_controls+1);
 
     solStates = solStatesT.transpose();     // [n, mu vy, w] 
-    solCommands = solCommandsT.transpose(); // [diff_delta, Mtv, delta]
+    solCommands = solCommandsT.transpose(); // [diff_delta, delta]
 
     // cout << "solStates: " << endl;
     // cout << solStates << endl;
@@ -594,8 +605,8 @@ void MPC::msgCommands(as_msgs::CarCommands *msg){
     
     msg->header.stamp = ros::Time::now();
     msg->motor = 0.0;
-    msg->steering = solCommands(this->latency, 2);
-    msg->Mtv = solCommands(this->latency, 1);
+    msg->steering = solCommands(this->latency, 1);
+    // msg->Mtv = solCommands(this->latency, 1);
 
     // cout << "steering: " << solCommands(this->latency, 3) << endl;
     // cout << "Mtv: " << solCommands(this->latency, 2) << endl;
@@ -610,7 +621,7 @@ void MPC::get_debug_solution(as_msgs::MPCdebug *msg){
         msg->header.stamp = ros::Time::now();
 
         msg->diff_delta = solCommands(this->latency, 0);
-        msg->Mtv        = solCommands(this->latency, 1);
+        // msg->Mtv        = solCommands(this->latency, 1);
         msg->delta      = solCommands(this->latency, 2);
 
         msg->n  = solStates(this->latency, 0);
@@ -619,9 +630,9 @@ void MPC::get_debug_solution(as_msgs::MPCdebug *msg){
         msg->r  = solStates(this->latency, 3);
 
         msg->s = planner(this->latency, 2);
-        msg->k = this->ipopt.p[Npar - N - N + latency];
+        msg->k = this->ipopt.p[Npar + this->n_states + latency];
 
-        double vx = this->ipopt.p[Npar - N + latency];
+        double vx = this->ipopt.p[Npar + this->n_states + this->N + latency];
 
         msg->alpha_f = atan( (msg->vy + this->Lf * msg->r)/vx ) - msg->delta;
         msg->alpha_r = atan( (msg->vy - this->Lr * msg->r)/vx );
@@ -692,8 +703,8 @@ Eigen::MatrixXd MPC::vector2eigen(vector<double> vect){
     int rows = 0;
     vector<double>::iterator row;
     for(row = vect.begin(); row != vect.end(); ++row){
-            result(rows,0) = *row; 
-            rows++;
+        result(rows,0) = *row; 
+        rows++;
     }   
     return result;
 }
@@ -703,7 +714,6 @@ Eigen::MatrixXd MPC::output2eigen(double arr[], int size){
     Eigen::MatrixXd result(size,1);
     for(int i = 0; i < size; i++){
         result(i,0) = arr[i];
-        // cout << arr[i] << endl;
     }
     return result;
 }
@@ -805,9 +815,8 @@ void MPC::reconfigure(tailored_mpc::dynamicConfig& config){
         this->q_mu = config.q_mu;
         this->q_s = config.q_s;
         this->latency = config.latency;
-        this->dMtv = config.dMtv;
 
-        this->bounds.u_min[1] = -config.diff_delta*M_PI/180.0;
+        this->bounds.u_min[0] = -config.diff_delta*M_PI/180.0;
         this->bounds.u_max[0] = config.diff_delta*M_PI/180.0;
 
         this->bounds.x_min[3] = -config.Vy_max;

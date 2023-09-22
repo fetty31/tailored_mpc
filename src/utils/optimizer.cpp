@@ -87,8 +87,8 @@ void Optimizer::nlop_formulation(){
     SX Lr = P(4);
     SX q_slip = P(12);
     SX q_n = P(13);
-    SX q_s = P(15);
     SX q_mu = P(14);
+    SX q_s = P(15);
 
     // Add initial conditions
     int idx_init = Npar-n_states-N-N;
@@ -119,14 +119,13 @@ void Optimizer::nlop_formulation(){
         SX st_next = X(Slice(idx+n_states,idx+2*n_states)); // next stage state vector
         SX st_now = st(Slice(1,st.rows())); // current stage states (n,mu,vy,w)
 
-        vector<SX> f_value = continuous_dynamics(st_now,steering,U(idu+1),k,vx); // ODE with next states prediction
+        vector<SX> f_value = continuous_dynamics(st_now,steering,k,vx); // ODE with next states prediction
 
         SX states = SX::sym("states", f_value.size());
         for(int row = 0; row < f_value.size(); row++){
             states(row) = st_now(row) + T*f_value.at(row); // euler
         }
         
-        // SX con_now = SX::vertcat({steering,U(idu+1)}); // current control vector (diffDelta, Mtv)
         SX st_next_euler = SX::vertcat({steering,states}); //next state calculated 
 
         // cout << "st_next size: " << st_next.size() << endl; // should be [5,1]
@@ -162,7 +161,7 @@ int Optimizer::get_ineq_size(){
 }
 
 
-vector<SX> Optimizer::continuous_dynamics( SX st, SX delta, SX Mtv, SX k, SX vx){
+vector<SX> Optimizer::continuous_dynamics( SX st, SX delta, SX k, SX vx){
 
     vector<SX> f_values;
 
@@ -177,7 +176,7 @@ vector<SX> Optimizer::continuous_dynamics( SX st, SX delta, SX Mtv, SX k, SX vx)
     SX ndot = (vx*sin(st(1)) + st(2)*cos(st(1)));               // ndot   =  (vx*sin(mu) + vy*cos(mu))
     SX mudot = st(3) - k*sdot;                                  // mudot  =  w - k*sdot
     SX vydot = 1/P(1)*(Fr + Ff*cos(delta) - P(1)*vx*st(3));     // vydot  =  (1/m)*(Fr + Ff*cos(delta) - m*vx*w)
-    SX wdot = 1/P(2)*(Ff*P(3)*cos(delta) - Fr*P(4) + Mtv);      // wdot   =  (1/I)*(Ff*Lf*cos(delta) - Fr*Lr + Mtv)
+    SX wdot = 1/P(2)*(Ff*P(3)*cos(delta) - Fr*P(4));            // wdot   =  (1/I)*(Ff*Lf*cos(delta) - Fr*Lr)
 
     f_values.push_back(ndot);
     f_values.push_back(mudot);

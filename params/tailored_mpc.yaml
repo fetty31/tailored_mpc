@@ -33,15 +33,15 @@ Debug:
   Path: $(find tailored_mpc)/debug/
 
 NLOP:
-  N: 40                                               # Prediction horizon
+  N: 30                                               # Prediction horizon
   Nstates: 5                                          # Number of state variables
-  Ncontrols: 2                                        # Number of control variables
+  Ncontrols: 1                                        # Number of control variables
   Npar: 16                                            # Number of real time parameters
   Nh: 1                                               # Number of inequality constraints
 
 MPC:
-  Hz: 10                                              #[s] MPC frequency
-  rk4_t: 0.025                                        #[s] Euler's method integration time
+  Hz: 20                                              #[s] MPC frequency
+  rk4_t: 0.05                                        #[s] Euler's method integration time
 
   nPlanning: 2000                                     # n points saved from the planner
   plannerAccuracy: 0.025                              # [m] distance accuracy of the planner (distance between given points)
