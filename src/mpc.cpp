@@ -3,13 +3,9 @@
 // Constructor
 MPC::MPC(const Params* params){
 
-    cout << "Before solver generation" << endl;
-
     // Call Optimizer constructor
     this->opt_ptr = new Optimizer(params);
     this->ipopt.solver_ptr = opt_ptr->generate_solver();
-
-    cout << "After solver generation" << endl;
 
     // NLOP params
     this->N          = this->opt_ptr->N;
@@ -147,16 +143,8 @@ void MPC::solve(){
 
         set_params_bounds(); // set real time parameters & boundaries of the NLOP (Non Linear Optimization Problem)
 
-        auto start_solve = chrono::system_clock::now();
-
         // Solve the NLOP
         solve_IPOPT();
-
-        auto finish_solve = chrono::system_clock::now();
-
-        chrono::duration<double> elapsed_solve = finish_solve - start_solve;
-
-        ROS_WARN("IPOPT elapsed time: %f ms", elapsed_solve.count()*1000);
 
         ROS_WARN_STREAM("TAILORED MPC exit flag: " << ipopt.exit_flag);
 
