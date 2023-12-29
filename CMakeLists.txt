@@ -15,7 +15,10 @@ find_package(catkin REQUIRED COMPONENTS
   as_msgs
 )
 
+find_package(Eigen3 REQUIRED)
+
 find_package(OpenMP REQUIRED)
+
 if(OPENMP_FOUND)
   message(STATUS "OPENMP FOUND")
   set(OpenMP_FLAGS ${OpenMP_CXX_FLAGS})

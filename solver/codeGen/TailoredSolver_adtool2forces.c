@@ -8,7 +8,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
+
 #include "TailoredSolver/include/TailoredSolver.h"
 
 #ifndef NULL
@@ -51,8 +51,8 @@ extern solver_int32_default TailoredSolver_adtool2forces(TailoredSolver_float *x
                                  TailoredSolver_float *nabla_h,  /* Jacobian of inequality constraints (column major)   */
                                  TailoredSolver_float *hess,     /* Hessian (column major)                              */
                                  solver_int32_default stage,     /* stage number (0 indexed)                           */
-								 solver_int32_default iteration, /* iteration number of solver                         */
-								 solver_int32_default threadID   /* Id of caller thread                                */)
+                                 solver_int32_default iteration, /* iteration number of solver                         */
+                                 solver_int32_default threadID   /* Id of caller thread                                */)
 {
     /* AD tool input and output arrays */
     const TailoredSolver_callback_float *in[4];
@@ -70,7 +70,7 @@ extern solver_int32_default TailoredSolver_adtool2forces(TailoredSolver_float *x
     TailoredSolver_callback_float nabla_h_sparse[6];
     TailoredSolver_callback_float c_sparse[5];
     TailoredSolver_callback_float nabla_c_sparse[26];
-            
+    
     
     /* pointers to row and column info for 
      * column compressed format used by AD tool */

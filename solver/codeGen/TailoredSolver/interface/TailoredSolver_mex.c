@@ -136,13 +136,13 @@ extern solver_int32_default TailoredSolver_adtool2forces(TailoredSolver_float *x
 TailoredSolver_extfunc pt2function_TailoredSolver = &TailoredSolver_adtool2forces;
 
 
-/* Some memory for mex-function */
+/* Some memory for MEX function */
 static TailoredSolver_params params;
 static TailoredSolver_output output;
 static TailoredSolver_info info;
 static TailoredSolver_mem * mem;
 
-/* THE mex-function */
+/* Main MEX function */
 void mexFunction( solver_int32_default nlhs, mxArray *plhs[], solver_int32_default nrhs, const mxArray *prhs[] )  
 {
 	/* file pointer for printing */

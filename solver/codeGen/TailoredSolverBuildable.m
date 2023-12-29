@@ -50,7 +50,7 @@ classdef TailoredSolverBuildable < coder.ExternalDependency
             end
         end
         
-        function [output,exitflag,info] = forcesInitOutputsMatlab()
+        function [output, exitflag, info] = forcesInitOutputsMatlab()
             infos_it = coder.nullcopy(zeros(1, 1));
             infos_it2opt = coder.nullcopy(zeros(1, 1));
             infos_res_eq = coder.nullcopy(zeros(1, 1));
@@ -104,7 +104,7 @@ classdef TailoredSolverBuildable < coder.ExternalDependency
             [output,exitflag,info] = TailoredSolverBuildable.forcesCall(params.lb, params.ub, params.hu, params.xinit, params.x0, params.all_parameters, params.num_of_threads);
         end
 
-        function [output,exitflag,info] = forcesCall(lb, ub, hu, xinit, x0, all_parameters, num_of_threads)
+        function [output, exitflag, info] = forcesCall(lb, ub, hu, xinit, x0, all_parameters, num_of_threads)
             solvername = 'TailoredSolver';
 
             
@@ -116,14 +116,14 @@ classdef TailoredSolverBuildable < coder.ExternalDependency
                             'all_parameters', double(all_parameters),...
                             'num_of_threads', uint32(num_of_threads));
 
-            [output_c, exitflag_c, info_c] = TailoredSolverBuildable.forcesInitOutputsC();
+            [output_c, exitflag_c, info_c] = TailoredSolverBuildable.forcesInitOutputsC(); %#ok<ASGLU>
             
             headerName = [solvername '.h'];
             coder.cinclude(headerName);
             coder.cinclude([solvername '_memory.h']);
             coder.cinclude([solvername '_adtool2forces.h']);
             % define memory pointer
-            memptr = coder.opaque([solvername '_mem *'], 'HeaderFile', headerName);
+            memptr = coder.opaque([solvername '_mem *'], 'HeaderFile', headerName); %#ok<NASGU>
             memptr = coder.ceval([solvername '_internal_mem'], uint32(0));
             % define solver input information (params, file and casadi)
             coder.cstructname(params, [solvername '_params'], 'extern', 'HeaderFile', headerName);
@@ -168,7 +168,7 @@ classdef TailoredSolverBuildable < coder.ExternalDependency
     end
 
     methods (Static, Access = private)
-        function [output,exitflag,info] = forcesInitOutputsC()
+        function [output, exitflag, info] = forcesInitOutputsC()
             infos_it = coder.nullcopy(int32(zeros(1, 1)));
             infos_it2opt = coder.nullcopy(int32(zeros(1, 1)));
             infos_res_eq = coder.nullcopy(double(zeros(1, 1)));

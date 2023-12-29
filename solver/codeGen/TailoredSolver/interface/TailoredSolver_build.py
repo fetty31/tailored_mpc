@@ -17,6 +17,7 @@
 #jurisdiction in case of any dispute.
 #
 from distutils.ccompiler import new_compiler
+from distutils import unixccompiler
 c = new_compiler()
 #from numpy.distutils.intelccompiler import IntelCCompiler
 #c = IntelCCompiler()
@@ -43,7 +44,7 @@ if not os.path.exists(os.path.join(os.getcwd(),"TailoredSolver","lib")):
 				
 # compile into object file
 objdir = os.path.join(os.getcwd(),"TailoredSolver","obj")
-if isinstance(c,distutils.unixccompiler.UnixCCompiler):
+if isinstance(c,unixccompiler.UnixCCompiler):
 	#objects = c.compile([sourcefile], output_dir=objdir, extra_preargs=['-O3','-fPIC','-fopenmp','-mavx'])
 	objects = c.compile([sourcefile], output_dir=objdir, extra_preargs=['-O3','-fPIC','-mavx'])
 	if sys.platform.startswith('linux'):

@@ -3,27 +3,17 @@
 <div align="center">
 <a> <img src="docs/mpc_black.png" alt="Logo" width="855"> </a>
 <h3 align="center">Tailored MPC</h3>
-<p align="left">
-        This pkg is thought to be the main AS controller for CAT15x. Within this repo you will find 3 different controllers (time-variant, spatial-variant and lateral (also time-variant)). The one used for the 2022-2023 season is the lateral approach, leaving the others for a future implementation.
-    <br />
-  </p>
 </div>
+
+Here you can find the main Autonomous Systems controller for CAT15x, the [BCN eMotorsport](https://bcnemotorsport.upc.edu) 2022-23 car. Within this repo you will find 3 different MPC controllers: time-variant, spatial-variant and lateral (also time-variant). The one used for the 2022-2023 season is the lateral approach, leaving the others for a future implementation as they demand much more testing time.
 
 <details>
     <summary>Table of Contents</summary>
     <ol>
         <li>
-        <a href="#getting-started">Getting Started</a>
-        <ul>
-            <li><a href="#usage">Usage</a></li>
-            <li><a href="#branches">Branches</a></li>
-        </ul>
+        <a href="#disclaimer">Disclaimer</a>
         </li>
-        <li><a href="#prerequisites">Prerequisites</a>
-        <ul>
-            <li><a href="#msg-dependencies">Msg dependencies</a></li>
-            <li><a href="#solver-dependencies">Solver dependencies</a></li>
-        </ul>
+        <li><a href="#dependencies">Dependencies</a>
         </li>
         <li>
         <a href="#approach">Approach</a>
@@ -34,18 +24,23 @@
     </ol>
 </details>
 
-# Getting Started
+# Disclaimer
+This is a tailored control solution made for the CAT15x Formula Student vehicle. In order to make a propper use of this algorithm, it's the user duty to make sure the [dynamic model](docs/tfg.pdf) actually approximates the behaviour of the car. 
 
-## Usage
-In order to execute this pkg a [ForcesPro](https://forces.embotech.com/Documentation/index.html) software/hardware license is needed. If you don't have any license available read the __Solvers__ section in [AS README.md](https://bcnemotorsport.upc.edu:81/autonomous-systems-group/autonomous_systems).
+If you use this control algorithm in a Formula Student competition the **only** thing I ask for is to **ALWAYS REFERENCE** the team ___BCN eMotorsport___.
 
-This pkg has a launch file for each dynamic event (or should have) because of the specific parametres used depending on the event. 
+# Dependencies
+* [Ubuntu](https://ubuntu.com/) 20.04
+* [ROS](https://www.ros.org/) Noetic
+* [Embotech](https://www.embotech.com/products/forcespro/overview/) FORCESPRO solver. A Hardware or Software Embotech license is mandatory.
+* [Eigen3](https://eigen.tuxfamily.org)
+* ___as_msgs___: self-defined ROS msgs pkg. You may change it for yours, adapting the [necessary callbacks](include/mpc.hh).
 
-An example for executing the autocross controller:
+# Approach
 
-```sh
-roslaunch tailored_mpc autoX.launch
-```
+For specific information on how the lateral controller work read [Tailored MPC](docs/tfg.pdf)'s paper.
+
+For the sake of simplicity the different controllers are named after their more important characteristic. However, all the specified MPC controllers are curvature-based and follow a simplified non linear bicycle model.
 
 ## Branches
 Here's a quick explanation of this project branches:
@@ -76,23 +71,11 @@ Here's a quick explanation of this project branches:
 
 __NOTE:__ The other branches are still in an early development process. They're not ready for deployment!
 
-# Prerequisites
-
-## Msg dependencies
-This pkg depends on the self-defined [as_msgs](https://bcnemotorsport.upc.edu:81/autonomous-systems-group/autonomous_systems). Make sure to have this msgs on your current workspace.
-
-## Solver dependecies
-As said before, this pkg depends on [Embotech](https://www.embotech.com/products/forcespro/overview/) ForcesPro solver so a Hardware/Software license is needed. See the __Solvers__ section from [AS README.md](https://bcnemotorsport.upc.edu:81/autonomous-systems-group/autonomous_systems) for more information.
-
-# Approach
-
-For specific information on how these controllers work read [TRO](docs/TRO.pdf), [Lateral MPC](docs/KIT_lateral_MPC.pdf) and [Curvature MPC](docs/curvature_MPC.pdf) papers.
-
-For the sake of simplicity the different controllers are named after their more important characteristic. However, all the specified MPC controllers are curvature-based and follow a simplified non linear bicycle model.
-
 # Workflow
 
-In order to solve the Non Linear Optimization Problem (NLOP) stated in [solver declaration](solver/FORCES_problem.m) the following procedure must be followed (in this order):
+Here's a quick summary of the steps taken by the algorithm in each iteration.
+
+In order to solve the Non Linear Optimization Problem (NLOP) defined with the [solver declaration API](solver/FORCES_problem.m) the following procedure is followed (in this order):
 
 * __Initial conditions__: the initial conditions for all the state/control variables must be computed. Usually the only unkown initial conditions are the path tracking variables `n` & `mu` so they must be calculated using the actual car state and the planned trajectory. 
 
