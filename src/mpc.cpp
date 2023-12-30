@@ -1,3 +1,20 @@
+/*
+ Copyright (c) 2023 Oriol Martínez @fetty31
+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "mpc.hh"
 
 // Constructor
@@ -200,8 +217,8 @@ void MPC::solve(){
         ROS_WARN("TAILORED MPC elapsed time: %f ms", elapsed_time.count()*1000);
 
         // Save data
-        // save<float>("/home/fetty/Desktop/control_ws2022/src/control/tailored_mpc/debug/", "solve_time.txt", elapsed_time.count()*1000, true);
-        // save<int>("/home/fetty/Desktop/control_ws2022/src/control/tailored_mpc/debug/", "exit_flags.txt", forces.exit_flag, true);
+        // save<float>("debug/", "solve_time.txt", elapsed_time.count()*1000, true);
+        // save<int>("debug/", "exit_flags.txt", forces.exit_flag, true);
 
         
     }else{
