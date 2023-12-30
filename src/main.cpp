@@ -99,7 +99,6 @@ int main(int argc, char **argv) {
     std_msgs::Int32 exitflag_msg;
 
     ros::Rate r(mpc.Hz);
-    // launch-prefix="gdb -ex run --args"
     while(ros::ok()){
 
         mpc.solve(); // Solve the NLOP

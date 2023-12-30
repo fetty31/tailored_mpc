@@ -5,7 +5,9 @@
 <h3 align="center">Tailored MPC</h3>
 </div>
 
-Here you can find the main Autonomous Systems controller for CAT15x, the [BCN eMotorsport](https://bcnemotorsport.upc.edu) 2022-23 car. Within this repo you will find 3 different MPC controllers: time-variant, spatial-variant and lateral (also time-variant). The one used for the 2022-2023 season is the lateral approach, leaving the others for a future implementation as they demand much more testing time.
+Here you can find the main Autonomous Systems controller for CAT15x, the [BCN eMotorsport](https://bcnemotorsport.upc.edu) 2022-23 car. Within this repo you will find 3 different MPC controllers: time-variant, spatial-variant and lateral (also time-variant). The one used for the 2022-2023 season is the lateral approach, leaving the others for a future implementation as they demand much more testing time, which we don't ever have :(
+
+If you want to see the performance of this controller watch [this trackdrive](https://youtu.be/mk9U0lRWr-0?si=S0-yVm7wfKk2jvPq).
 
 <details>
     <summary>Table of Contents</summary>
@@ -32,7 +34,7 @@ If you use this control algorithm in a Formula Student competition the **only** 
 # Dependencies
 * [Ubuntu](https://ubuntu.com/) 20.04
 * [ROS](https://www.ros.org/) Noetic
-* [Embotech](https://www.embotech.com/products/forcespro/overview/) FORCESPRO solver. A Hardware or Software Embotech license is mandatory.
+* [Embotech](https://www.embotech.com/products/forcespro/overview/) FORCESPRO solver. A Hardware or Software Embotech's license is mandatory.
 * [Eigen3](https://eigen.tuxfamily.org)
 * ___as_msgs___: self-defined ROS msgs pkg. You may change it for yours, adapting the [necessary callbacks](include/mpc.hh).
 
