@@ -1,14 +1,5 @@
-<a name="readme-top"></a>
-<br />
-<div align="center">
-<a> <img src="docs/mpc_black.png" alt="Logo" width="855"> </a>
-<h3 align="center">Tailored MPC</h3>
-</div>
 
-Here you can find the main Autonomous Systems controller for CAT15x, the [BCN eMotorsport](https://bcnemotorsport.upc.edu) 2022-23 car. Within this repo you will find 3 different MPC controllers: time-variant, spatial-variant and lateral (also time-variant). The one used for the 2022-2023 season is the lateral approach, leaving the others for a future implementation as they demand much more testing time, which we don't ever have :(
-
-If you want to see the performance of this controller watch [this trackdrive](https://youtu.be/mk9U0lRWr-0?si=S0-yVm7wfKk2jvPq).
-
+# Tailored MPC
 <details>
     <summary>Table of Contents</summary>
     <ol>
@@ -25,26 +16,41 @@ If you want to see the performance of this controller watch [this trackdrive](ht
         </li>
     </ol>
 </details>
+<br />
 
-# Disclaimer
-This is a tailored control solution made for the CAT15x Formula Student vehicle. In order to make a propper use of this algorithm, it's the user duty to make sure the [dynamic model](docs/tfg.pdf) actually approximates the behaviour of the car. 
+Here you can find the main Autonomous Systems controller for CAT15x, the [BCN eMotorsport](https://bcnemotorsport.upc.edu) 2022-23 car. Within this repo you will find 3 different MPC controllers: time-variant, spatial-variant and lateral (also time-variant). The one used for the 2022-2023 season is the lateral approach, leaving the others for a future implementation as they demand much more testing time, which we don't ever have :(
+
+If you want to see the performance of this controller watch [this trackdrive](https://youtu.be/mk9U0lRWr-0?si=S0-yVm7wfKk2jvPq).
+
+<div align="center">
+<a> <img src="docs/mpc_black.png" alt="Logo" width="855"> </a>
+<!-- <h3 align="center">Tailored MPC</h3> -->
+</div>
+<br />
+
+This software is shared as part of my [Final Degree Thesis](docs/tfg.pdf). The controller actually used for competing during the 2022-2023 Formula Student season has been the `lateral` approach, so it's the one explained in the thesis (and the one that is driving the car in the video mentioned above). 
+
+Both other architectures were left apart due to the added tuning complexity of coupled NMPCs. However, the  `master` approach is ready to drive :). The `spatial` approach is the one I found the most difficult to tune so it's not really fine tuned at the moment.
+
+## Disclaimer
+This is a tailored control solution made for the CAT15x Formula Student vehicle. In order to make a proper use of this algorithm, it's the user duty to make sure the dynamic model (presented [here](docs/tfg.pdf)) actually approximates the behaviour of the car. 
 
 If you use this control algorithm in a Formula Student competition the **only** thing I ask for is to **ALWAYS REFERENCE** the team ___BCN eMotorsport___.
 
-# Dependencies
+## Dependencies
 * [Ubuntu](https://ubuntu.com/) 20.04
 * [ROS](https://www.ros.org/) Noetic
 * [Embotech](https://www.embotech.com/products/forcespro/overview/) FORCESPRO solver. A Hardware or Software Embotech's license is mandatory.
 * [Eigen3](https://eigen.tuxfamily.org)
 * ___as_msgs___: self-defined ROS msgs pkg. You may change it for yours, adapting the [necessary callbacks](include/mpc.hh).
 
-# Approach
+## Approach
 
 For specific information on how the lateral controller work read [Tailored MPC](docs/tfg.pdf)'s paper.
 
 For the sake of simplicity the different controllers are named after their more important characteristic. However, all the specified MPC controllers are curvature-based and follow a simplified non linear bicycle model.
 
-## Branches
+### Branches
 Here's a quick explanation of this project branches:
 
 * `master` : time-dependant Non Linear MPC. Here a coupled (longitudinal+lateral dynamics) autonomous controller is specified. The main characteristics of this controller are:
@@ -73,7 +79,7 @@ Here's a quick explanation of this project branches:
 
 __NOTE:__ The other branches are still in an early development process. They're not ready for deployment!
 
-# Workflow
+## Workflow
 
 Here's a quick summary of the steps taken by the algorithm in each iteration.
 
