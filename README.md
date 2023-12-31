@@ -14,9 +14,11 @@
         <li>
         <a href="#workflow">Workflow</a>
         </li>
+        <li>
+        <a href="#tuning">Tuning</a>
+        </li>
     </ol>
 </details>
-<br />
 
 Here you can find the main Autonomous Systems controller for CAT15x, the [BCN eMotorsport](https://bcnemotorsport.upc.edu) 2022-23 car. Within this repo you will find 3 different MPC controllers: time-variant, spatial-variant and lateral (also time-variant). The one used for the 2022-2023 season is the lateral approach, leaving the others for a future implementation as they demand much more testing time, which we don't ever have :(
 
@@ -96,3 +98,6 @@ In order to solve the Non Linear Optimization Problem (NLOP) defined with the [s
 * __Get Solution__: after the NLOP is solved, the given empty solution array will be filled with a solution for each optimization variable for each horizon stage. _It becomes handy to copy this solution to some other data structures in order to work with the given solutions easily._
 
 * __Progress Prediction__: finally, a progress (s) prediction should be computed using the NLOP solution in order to use this information when setting the curvature values for the next solver call (next iteration). _Basically, knowing the progress for each predicted state we can look for the closest planner points for each state and pick their curvature values for the next iteration. This heuristic procedure tends to help the NLOP convergence._
+
+## Tuning
+_Future explanation of all parameters_
