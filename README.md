@@ -17,12 +17,15 @@
         <li>
         <a href="#tuning">Tuning</a>
         </li>
+        <li>
+        <a href="#results">Results</a>
+        </li>
     </ol>
 </details>
 
 Here you can find the main Autonomous Systems controller for CAT15x, the [BCN eMotorsport](https://bcnemotorsport.upc.edu) 2022-23 car. Within this repo you will find 3 different MPC controllers: time-variant, spatial-variant and lateral (also time-variant). The one used for the 2022-2023 season is the lateral approach, leaving the others for a future implementation as they demand much more testing time, which we don't ever have :(
 
-If you want to see the performance of this controller watch [this trackdrive](https://youtu.be/mk9U0lRWr-0?si=S0-yVm7wfKk2jvPq).
+If you want to see the performance of this controller watch [THIS TRACKDRIVE](https://youtu.be/mk9U0lRWr-0?si=S0-yVm7wfKk2jvPq).
 
 <div align="center">
 <a> <img src="docs/mpc_black.png" alt="Logo" width="855"> </a>
@@ -30,12 +33,12 @@ If you want to see the performance of this controller watch [this trackdrive](ht
 </div>
 <br />
 
-This software is shared as part of my [Final Degree Thesis](docs/tfg.pdf). The controller actually used for competing during the 2022-2023 Formula Student season has been the `lateral` approach, so it's the one explained in the thesis (and the one that is driving the car in the video mentioned above). 
+This software is shared as part of my [Final Degree Thesis](docs/tfg_oriolmartinez.pdf). The controller actually used for competing during the 2022-2023 Formula Student season has been the `lateral` approach, so it's the one explained in the thesis (and the one that is driving the car in the [trackdrive video](https://youtu.be/mk9U0lRWr-0?si=S0-yVm7wfKk2jvPq)). 
 
 Both other architectures were left apart due to the added tuning complexity of coupled NMPCs. However, the  `master` approach is ready to drive :). The `spatial` approach is the one I found the most difficult to tune so it's not really fine tuned at the moment.
 
 ## Disclaimer
-This is a tailored control solution made for the CAT15x Formula Student vehicle. In order to make a proper use of this algorithm, it's the user duty to make sure the dynamic model (presented [here](docs/tfg.pdf)) actually approximates the behaviour of the car. 
+This is a tailored control solution made for the CAT15x Formula Student vehicle. In order to make a proper use of this algorithm, it's the user duty to make sure the dynamic model (presented [here](docs/tfg_oriolmartinez.pdf)) actually approximates the behaviour of the car. 
 
 If you use this control algorithm in a Formula Student competition the **only** thing I ask for is to **ALWAYS REFERENCE** the team ___BCN eMotorsport___.
 
@@ -48,7 +51,7 @@ If you use this control algorithm in a Formula Student competition the **only** 
 
 ## Approach
 
-For specific information on how the lateral controller work read [Tailored MPC](docs/tfg.pdf)'s paper.
+For specific information on how the lateral controller work read [Tailored MPC](docs/tfg_oriolmartinez.pdf)'s paper.
 
 For the sake of simplicity the different controllers are named after their more important characteristic. However, all the specified MPC controllers are curvature-based and follow a simplified non linear bicycle model.
 
@@ -100,4 +103,30 @@ In order to solve the Non Linear Optimization Problem (NLOP) defined with the [s
 * __Progress Prediction__: finally, a progress (s) prediction should be computed using the NLOP solution in order to use this information when setting the curvature values for the next solver call (next iteration). _Basically, knowing the progress for each predicted state we can look for the closest planner points for each state and pick their curvature values for the next iteration. This heuristic procedure tends to help the NLOP convergence._
 
 ## Tuning
-_Future explanation of all parameters_
+Explanation of all parameters from the lateral branch:
+
+| Parameter      | Summary                           | Value [SI]  |
+| -------------- | --------------------------------- | ----------- |
+| Q<sub>s</sub>     | Progress rate weight              | 10.0        |
+| Q<sub>n</sub>     | Normal distance weight            | 550.0       |
+| Q</sub>mu</sub>   | Heading (track reference) weight  | 0.1         |
+| Q<sub>slip</sub>  | Slip difference weight            | 2.0         |
+| Q<sub>slack</sub> | Track constraint slack weight     | 1000.0      |
+| R<sub>d</sub>     | Steering rate weight              | 100.0       |
+| R<sub>Mtv</sub>   | Additional moment weight          | 1.0         |
+| B<sub>f</sub>     | Pacejka Constant                  | 10.5507     |
+| B<sub>r</sub>     | Pacejka Constant                  | 10.5507     |
+| C<sub>f</sub>     | Pacejka Constant                  | -1.2705     |
+| C<sub>r</sub>     | Pacejka Constant                  | -1.2705     |
+| D<sub>f</sub>     | Pacejka Constant                  | 2208.0635   |
+| D<sub>r</sub>     | Pacejka Constant                  | 2563.599    |
+| L<sub>f</sub>     | Distance from CoG to front axis   | 0.708       |
+| L<sub>r</sub>     | Distance from CoG to rear axis    | 0.822       |
+| L                 | Total car's length                | 2.72        |
+| W                 | Total car's width                 | 1.5         |
+| m                 | Car's mass                        | 210.0       |
+| I<sub>z</sub>     | Inertial moment around z axis     | 180.0       |
+
+
+## Results
+The technical performance of the controller is discussed [here](docs/tfg_oriolmartinez.pdf).
