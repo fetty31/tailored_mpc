@@ -578,6 +578,7 @@ void MPC::get_debug_solution(as_msgs::MPCdebug *msg){
         msg->k = this->forces.params.all_parameters[24 + this->latency * this->Npar];
 
         double vx = this->forces.params.all_parameters[23 + this->latency * this->Npar];
+        msg->vx = vx;
 
         msg->alpha_f = atan( (msg->vy + this->Lf * msg->r)/vx ) - msg->delta;
         msg->alpha_r = atan( (msg->vy - this->Lr * msg->r)/vx );
